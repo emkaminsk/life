@@ -1,0 +1,37 @@
+# build output
+dist/
+
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env
+.env.*
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+jwt-token.txt
+
+# test artifacts
+playwright-report/
+test-results/
+playwright/.auth/
+
+# dev server PID file (created by E2E tests)
+.dev-server.pid
+
+# Supabase
+supabase/seed-prod.sql

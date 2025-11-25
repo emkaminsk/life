@@ -1,0 +1,108 @@
+import { Board } from '../core/Board';
+import { Entity } from '../entities/Entity';
+import { Human } from '../entities/Human';
+import { Wolf } from '../entities/Wolf';
+import { Fruit } from '../entities/Fruit';
+import { EntityType } from '../types';
+import { Random } from '../utils/Random';
+import { DEFAULT_CONFIG } from '../config';
+
+export class MovementSystem {
+  execute(board: Board): void {
+    const entities = board.getAllEntities();
+    const movedEntities = new Set<Entity>();
+
+    // Process all creatures (not fruits)
+    const creatures = entities.filter(e => e.type !== EntityType.FRUIT);
+
+    for (const creature of creatures) {
+      if (movedEntities.has(creature)) continue;
+
+      const moved = this.moveCreature(creature, board, entities);
+      if (moved) {
+        movedEntities.add(creature);
+      }
+    }
+
+    console.log(`[Movement] Moved ${movedEntities.size} creatures`);
+  }
+
+  private moveCreature(creature: Entity, board: Board, allEntities: Entity[]): boolean {
+    const availablePositions = board.getEmptyAdjacentPositions(creature.x, creature.y);
+    if (availablePositions.length === 0) return false;
+
+    let targetPosition = null;
+
+    if (creature instanceof Human) {
+      targetPosition = this.getHumanTarget(creature, board, allEntities, availablePositions);
+    } else if (creature instanceof Wolf) {
+      targetPosition = this.getWolfTarget(creature, allEntities, availablePositions);
+    }
+
+    // If no target found, move randomly
+    if (!targetPosition) {
+      targetPosition = Random.choice(availablePositions);
+    }
+
+    if (targetPosition) {
+      return board.moveEntity(creature.x, creature.y, targetPosition.x, targetPosition.y);
+    }
+
+    return false;
+  }
+
+  private getHumanTarget(
+    human: Human,
+    _board: Board,
+    allEntities: Entity[],
+    availablePositions: { x: number; y: number }[]
+  ): { x: number; y: number } | null {
+    // Find fruits within perception range
+    const fruitsInRange = Random.getEntitiesInRange(
+      allEntities.filter(e => e instanceof Fruit && (e as Fruit).isRipe()),
+      human.x,
+      human.y,
+      DEFAULT_CONFIG.human.perceptionRange
+    );
+
+    // If fruits found and probability check passes, move toward nearest
+    if (fruitsInRange.length > 0 && Random.chance(DEFAULT_CONFIG.human.moveTowardFruitProbability)) {
+      const nearestFruit = fruitsInRange[0];
+      const closestPositions = Random.getClosestPositions(
+        availablePositions,
+        nearestFruit.x,
+        nearestFruit.y
+      );
+      return Random.choice(closestPositions);
+    }
+
+    return null;
+  }
+
+  private getWolfTarget(
+    wolf: Wolf,
+    allEntities: Entity[],
+    availablePositions: { x: number; y: number }[]
+  ): { x: number; y: number } | null {
+    // Find humans within perception range
+    const humansInRange = Random.getEntitiesInRange(
+      allEntities.filter(e => e instanceof Human),
+      wolf.x,
+      wolf.y,
+      DEFAULT_CONFIG.wolf.perceptionRange
+    );
+
+    // If humans found and probability check passes, move toward nearest
+    if (humansInRange.length > 0 && Random.chance(DEFAULT_CONFIG.wolf.moveTowardHumanProbability)) {
+      const nearestHuman = humansInRange[0];
+      const closestPositions = Random.getClosestPositions(
+        availablePositions,
+        nearestHuman.x,
+        nearestHuman.y
+      );
+      return Random.choice(closestPositions);
+    }
+
+    return null;
+  }
+}
