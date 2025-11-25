@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<canvas id="test" width="800" height="800"></canvas>
+<script>
+const canvas = document.getElementById('test');
+const ctx = canvas.getContext('2d');
+const cellSize = 8;
+
+// Test rendering 1000 emojis
+const start = performance.now();
+for (let i = 0; i < 1000; i++) {
+  const x = (i % 100) * cellSize;
+  const y = Math.floor(i / 100) * cellSize;
+  ctx.font = '8px Arial';
+  ctx.fillText('🧑‍🦰', x, y);
+}
+const time = performance.now() - start;
+console.log(`1000 emojis rendered in ${time}ms`);
+console.log(`FPS if this was per frame: ${1000/time}`);
+</script>

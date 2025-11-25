@@ -1,0 +1,2 @@
+- Vanilla JS + Canvas with either emoji caching and dirty rectangles or image sprites
+- Vite - for optimizations
