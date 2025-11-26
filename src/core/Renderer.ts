@@ -1,5 +1,8 @@
 import { Board } from './Board';
 import { Entity } from '../entities/Entity';
+import { Human } from '../entities/Human';
+import { Wolf } from '../entities/Wolf';
+import { Fruit } from '../entities/Fruit';
 import { EntityType, VisualEffect } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 
@@ -40,7 +43,13 @@ export class Renderer {
         return '👩';
       case EntityType.WOLF:
         return '🐺';
+      case EntityType.DOG:
+        return '🐕';
       case EntityType.FRUIT:
+        // Check if fruit is ripe
+        if (entity instanceof Fruit) {
+          return entity.isRipe() ? '🍎' : '🍏';
+        }
         return '🍎';
       default:
         return '❓';
@@ -86,8 +95,16 @@ export class Renderer {
       const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
       this.ctx.drawImage(cachedEmoji, cellX, cellY);
 
-      // Draw red border for injured creatures
-      if (entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
+      // Draw pregnancy indicator for pregnant females
+      if (entity instanceof Human && entity.isPregnant()) {
+        this.ctx.strokeStyle = '#ff69b4'; // Hot pink
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(cellX + 2, cellY + 2, this.cellSize - 4, this.cellSize - 4);
+        this.ctx.lineWidth = 1;
+      }
+      // Draw red border for injured creatures only (not fruits)
+      else if ((entity instanceof Human || entity instanceof Wolf) &&
+               entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
         this.ctx.strokeStyle = 'red';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(cellX + 1, cellY + 1, this.cellSize - 2, this.cellSize - 2);
@@ -125,7 +142,7 @@ export class Renderer {
       let color: string;
       switch (effect.type) {
         case 'combat':
-          color = `rgba(255, 0, 0, ${alpha * 0.5})`;
+          color = `rgba(255, 0, 0, ${alpha * 0.25})`; // Reduced opacity for less overwhelming flash
           break;
         case 'reproduction':
           color = `rgba(0, 255, 0, ${alpha * 0.5})`;
@@ -152,10 +169,8 @@ export class Renderer {
     }
   }
 
-  private displayFps(): void {
-    this.ctx.fillStyle = 'black';
-    this.ctx.font = '16px monospace';
-    this.ctx.fillText(`FPS: ${this.currentFps}`, 10, 20);
+  getCurrentFps(): number {
+    return this.currentFps;
   }
 
   render(board: Board): void {
@@ -170,9 +185,8 @@ export class Renderer {
     // Draw visual effects
     this.drawVisualEffects();
 
-    // Update and display FPS
+    // Update FPS counter
     this.updateFps();
-    this.displayFps();
   }
 
   renderFull(board: Board): void {

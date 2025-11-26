@@ -21,6 +21,14 @@ function updateRoundCounter(): void {
   }
 }
 
+// Update rounds per second display
+function updateRoundsPerSec(): void {
+  const roundsPerSecElement = document.getElementById('roundsPerSec');
+  if (roundsPerSecElement) {
+    roundsPerSecElement.textContent = renderer.getCurrentFps().toString();
+  }
+}
+
 // Update statistics
 function updateStatistics(): void {
   const entities = board.getAllEntities();
@@ -28,6 +36,7 @@ function updateStatistics(): void {
   const maleCount = entities.filter(e => e.type === EntityType.MALE).length;
   const femaleCount = entities.filter(e => e.type === EntityType.FEMALE).length;
   const wolfCount = entities.filter(e => e.type === EntityType.WOLF).length;
+  const dogCount = entities.filter(e => e.type === EntityType.DOG).length;
   const fruitCount = entities.filter(e => e.type === EntityType.FRUIT).length;
   const pregnantCount = entities.filter(e => e instanceof Human && e.isPregnant()).length;
 
@@ -35,6 +44,7 @@ function updateStatistics(): void {
   document.getElementById('femaleCount')!.textContent = femaleCount.toString();
   document.getElementById('pregnantCount')!.textContent = pregnantCount.toString();
   document.getElementById('wolfCount')!.textContent = wolfCount.toString();
+  document.getElementById('dogCount')!.textContent = dogCount.toString();
   document.getElementById('fruitCount')!.textContent = fruitCount.toString();
 }
 
@@ -42,6 +52,7 @@ function updateStatistics(): void {
 setInterval(() => {
   updateRoundCounter();
   updateStatistics();
+  updateRoundsPerSec();
 }, 100);
 
 // Button handlers

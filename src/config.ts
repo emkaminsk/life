@@ -9,6 +9,7 @@ export const DEFAULT_CONFIG = {
     maleHumanProbability: 0.15,
     femaleHumanProbability: 0.15,
     wolfProbability: 0.05,
+    dogProbability: 0.03,
     fruitProbability: 0.10,
   },
 
@@ -32,6 +33,15 @@ export const DEFAULT_CONFIG = {
     moveTowardHumanProbability: 0.8,
     gompertzA: 0.0002,
     gompertzB: 0.12,
+  },
+
+  dog: {
+    startingHealth: 70,
+    damageToWolf: 35,
+    perceptionRange: 6,
+    moveTowardWolfProbability: 0.75,
+    gompertzA: 0.00015,
+    gompertzB: 0.11,
   },
 
   fruit: {

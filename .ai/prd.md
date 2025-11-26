@@ -94,7 +94,7 @@ The solution must enable exploration-based learning where students discover prin
 
 3.5.3 After ripening period, fruit becomes ripe (🍎) and edible
 
-3.5.4 When ripe fruit adjacent to human at round end, one random human (if multiple adjacent) eats it, gaining configured energy
+3.5.4 When ripe fruit adjacent to human at round end, one random human that has health below maximum (if multiple adjacent) eats it, gaining configured energy (up to maximum allowed)
 
 3.5.5 Eaten fruit is removed from board
 
@@ -503,11 +503,12 @@ Title: Observe male competition
 Description: As a student, I want to see males fight each other so that I can understand intra-species competition.
 Acceptance Criteria:
 - Two males on adjacent squares fight at round end
-- Each male deals configured damage to the other
+- Each male deals configured damage to the other and both males lose health simultaneously
+- When the result of the fight is established and one of the males fighting has health level <= 0, this males dies
+- When the result of the fight is established and both males fighting have health level <= 0, only one male dies. If the health levels are not equal, the one with lower health dies. If the health levels are equal, random one dies.
+- When as a result of a fight one male dies, the other male receives the amount of energy the dying male had at the beginning of this round
 - Red flash displays on both combat squares
-- Both males lose health simultaneously
 - Injured males display red border if health < 50%
-- Males die if health reaches zero
 - Females do not fight each other
 
 ### US-019: Dog Protection
@@ -601,6 +602,7 @@ Acceptance Criteria:
 - Cooldown period after birth configurable in rounds
 - Cooldown prevents immediate re-pregnancy
 - Statistics show count of pregnant females
+- If pregnant woman gives birth and there are no free adjacent fields, the woman dies after birth and the newly born human occupies the field instead of the woman.
 
 ### US-027: Plant Spawning Dynamics
 Title: Observe resource regeneration

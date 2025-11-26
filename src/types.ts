@@ -2,6 +2,7 @@ export enum EntityType {
   MALE = 'MALE',
   FEMALE = 'FEMALE',
   WOLF = 'WOLF',
+  DOG = 'DOG',
   FRUIT = 'FRUIT'
 }
 

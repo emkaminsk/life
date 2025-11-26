@@ -163,7 +163,10 @@
   <div class="container">
     <header>
       <h1>Game of Life Educational Simulator</h1>
-      <div class="round-counter">Round: <span id="round">0</span></div>
+      <div style="display: flex; gap: 20px; align-items: center;">
+        <div class="round-counter">Round: <span id="round">0</span></div>
+        <div class="round-counter">Rounds/sec: <span id="roundsPerSec">0</span></div>
+      </div>
     </header>
 
     <div class="main-content">
@@ -200,6 +203,10 @@
             <div class="stat-row">
               <span class="stat-label">🐺 Wolves</span>
               <span class="stat-value" id="wolfCount">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">🐕 Dogs</span>
+              <span class="stat-value" id="dogCount">0</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">🍎 Fruits</span>

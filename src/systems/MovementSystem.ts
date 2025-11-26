@@ -2,6 +2,7 @@ import { Board } from '../core/Board';
 import { Entity } from '../entities/Entity';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
+import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
 import { EntityType } from '../types';
 import { Random } from '../utils/Random';
@@ -37,6 +38,8 @@ export class MovementSystem {
       targetPosition = this.getHumanTarget(creature, board, allEntities, availablePositions);
     } else if (creature instanceof Wolf) {
       targetPosition = this.getWolfTarget(creature, allEntities, availablePositions);
+    } else if (creature instanceof Dog) {
+      targetPosition = this.getDogTarget(creature, allEntities, availablePositions);
     }
 
     // If no target found, move randomly
@@ -99,6 +102,33 @@ export class MovementSystem {
         availablePositions,
         nearestHuman.x,
         nearestHuman.y
+      );
+      return Random.choice(closestPositions);
+    }
+
+    return null;
+  }
+
+  private getDogTarget(
+    dog: Dog,
+    allEntities: Entity[],
+    availablePositions: { x: number; y: number }[]
+  ): { x: number; y: number } | null {
+    // Find wolves within perception range
+    const wolvesInRange = Random.getEntitiesInRange(
+      allEntities.filter(e => e instanceof Wolf),
+      dog.x,
+      dog.y,
+      DEFAULT_CONFIG.dog.perceptionRange
+    );
+
+    // If wolves found and probability check passes, move toward nearest
+    if (wolvesInRange.length > 0 && Random.chance(DEFAULT_CONFIG.dog.moveTowardWolfProbability)) {
+      const nearestWolf = wolvesInRange[0];
+      const closestPositions = Random.getClosestPositions(
+        availablePositions,
+        nearestWolf.x,
+        nearestWolf.y
       );
       return Random.choice(closestPositions);
     }
