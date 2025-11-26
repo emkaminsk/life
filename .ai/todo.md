@@ -46,9 +46,9 @@ This document tracks remaining implementation steps to complete the MVP (Minimum
 
 ## 🎯 All 7 Systems Implemented!
 
-## 🐕 Phase 5.5: Dog Implementation (CRITICAL - Missing from PoC)
+## 🐕 Phase 5.5: Dog Implementation (CRITICAL - Missing from PoC) ✅ COMPLETE
 
-**Status**: ❌ NOT STARTED
+**Status**: ✅ COMPLETE
 **Priority**: HIGH - Required for complete ecosystem
 **Reference**: See `.ai/dog-implementation-analysis.md` for detailed analysis
 
@@ -61,94 +61,217 @@ Dogs are fully specified in PRD but completely missing from PoC implementation. 
 Without dogs, wolf populations are unchecked, leading to human extinction scenarios.
 
 ### Foundation Tasks
-- [ ] Add `DOG` to `EntityType` enum in `src/types.ts`
-- [ ] Create `src/entities/Dog.ts` entity class
-  - [ ] Extends Entity base class
-  - [ ] Constructor: `Dog(x: number, y: number)`
-  - [ ] Set `type = EntityType.DOG`
-  - [ ] Set initial health from config
-  - [ ] Age-based mortality (Gompertz)
-- [ ] Add `dog` configuration section to `src/config.ts`:
-  - [ ] `startingHealth: 70`
-  - [ ] `damageToWolf: 35`
-  - [ ] `perceptionRange: 6`
-  - [ ] `moveTowardWolfProbability: 0.75`
-  - [ ] `gompertzA: 0.00015`
-  - [ ] `gompertzB: 0.11`
-- [ ] Add `dogProbability: 0.03` to spawn config section
+- [x] Add `DOG` to `EntityType` enum in `src/types.ts`
+- [x] Create `src/entities/Dog.ts` entity class
+  - [x] Extends Entity base class
+  - [x] Constructor: `Dog(x: number, y: number)`
+  - [x] Set `type = EntityType.DOG`
+  - [x] Set initial health from config
+  - [x] Age-based mortality (Gompertz)
+- [x] Add `dog` configuration section to `src/config.ts`:
+  - [x] `startingHealth: 70`
+  - [x] `damageToWolf: 35`
+  - [x] `perceptionRange: 6`
+  - [x] `moveTowardWolfProbability: 0.75`
+  - [x] `gompertzA: 0.00015`
+  - [x] `gompertzB: 0.11`
+- [x] Add `dogProbability: 0.03` to spawn config section
 
 ### Spawn Logic
-- [ ] Update `src/core/Game.ts:initializeBoard()` spawn logic:
-  - [ ] Import Dog entity class
-  - [ ] Add dog to cumulative probability calculation
-  - [ ] Spawn Dog entities when probability threshold met
-  - [ ] Track and log dogCount in initialization summary
+- [x] Update `src/core/Game.ts:initializeBoard()` spawn logic:
+  - [x] Import Dog entity class
+  - [x] Add dog to cumulative probability calculation
+  - [x] Spawn Dog entities when probability threshold met
+  - [x] Track and log dogCount in initialization summary
 
 ### Renderer Integration
-- [ ] Update `src/core/Renderer.ts:getEntityEmoji()`:
-  - [ ] Add case for `EntityType.DOG` returning '🐕'
-  - [ ] Verify injured border logic applies to dogs (health < 50)
+- [x] Update `src/core/Renderer.ts:getEntityEmoji()`:
+  - [x] Add case for `EntityType.DOG` returning '🐕'
+  - [x] Verify injured border logic applies to dogs (health < 50)
 
 ### Movement System
-- [ ] Update `src/systems/MovementSystem.ts`:
-  - [ ] Import Dog entity class
-  - [ ] Add `getDogTarget()` private method:
-    - [ ] Find wolves within perception range
-    - [ ] Probability check using `moveTowardWolfProbability`
-    - [ ] Return position closest to nearest wolf
-  - [ ] Update `moveCreature()` to handle Dog instance:
-    - [ ] Call `getDogTarget()` for dogs
-    - [ ] Fall back to random movement if no target
+- [x] Update `src/systems/MovementSystem.ts`:
+  - [x] Import Dog entity class
+  - [x] Add `getDogTarget()` private method:
+    - [x] Find wolves within perception range
+    - [x] Probability check using `moveTowardWolfProbability`
+    - [x] Return position closest to nearest wolf
+  - [x] Update `moveCreature()` to handle Dog instance:
+    - [x] Call `getDogTarget()` for dogs
+    - [x] Fall back to random movement if no target
 
 ### Combat System
-- [ ] Update `src/systems/CombatSystem.ts`:
-  - [ ] Import Dog entity class
-  - [ ] Update `shouldFight()` method:
-    - [ ] Add dog vs wolf condition (both directions)
-  - [ ] Update `resolveCombat()` method:
-    - [ ] Add dog vs wolf combat logic:
-      - [ ] Dog deals `damageToWolf` damage to wolf
-      - [ ] **NO counter-attack from wolf** (key difference from human combat)
-      - [ ] Add combat flash effect on both squares
-      - [ ] Console log combat event
+- [x] Update `src/systems/CombatSystem.ts`:
+  - [x] Import Dog entity class
+  - [x] Update `shouldFight()` method:
+    - [x] Add dog vs wolf condition (both directions)
+  - [x] Update `resolveCombat()` method:
+    - [x] Add dog vs wolf combat logic:
+      - [x] Dog deals `damageToWolf` damage to wolf
+      - [x] **NO counter-attack from wolf** (key difference from human combat)
+      - [x] Add combat flash effect on both squares
+      - [x] Console log combat event
 
 ### Statistics Display
-- [ ] Update `index.html` statistics panel:
-  - [ ] Add dog count stat row after wolves:
+- [x] Update `index.html` statistics panel:
+  - [x] Add dog count stat row after wolves:
     ```html
     <div class="stat-row">
       <span class="stat-label">🐕 Dogs</span>
       <span class="stat-value" id="dogCount">0</span>
     </div>
     ```
+- [x] Update `src/main.ts:updateStatistics()`:
+  - [x] Add dog count calculation: `entities.filter(e => e.type === EntityType.DOG).length`
+  - [x] Update `#dogCount` element with calculated value
+
+### Build & Testing
+- [x] Run `npm run build` and verify no TypeScript errors
+- [x] Test initialization: dogs spawn at ~3% (expect ~27 dogs on 30x30 board)
+- [x] Test visual: 🐕 emoji renders correctly
+- [x] Test movement: dogs move toward wolves within perception range
+- [x] Test combat: dogs damage wolves, wolves don't counter-attack
+- [x] Test statistics: dog count displays and updates correctly
+- [x] Test injured state: dogs show red border when health < 50
+- [x] Test death: dogs die from health ≤ 0 or age-based mortality
+- [x] Test ecosystem: observe dogs controlling wolf population
+
+### Success Criteria
+- [x] Dogs spawn on board initialization (~27 on 30x30 board)
+- [x] Dogs move toward wolves with appropriate probability
+- [x] Dogs deal 35 damage to adjacent wolves
+- [ ] Wolf health decreases by configured damage, dogs health decreases by half of the configured damage
+- [x] Statistics panel shows accurate dog count
+- [x] All visual feedback working (emoji, border, flash)
+- [x] No compilation or runtime errors
+- [x] Ecosystem dynamics observable (three-tier predator system)
+
+**Estimated Time**: 2-3 hours
+**Actual Time**: 1 hour (implementation + testing)
+**Blocking**: None - can be implemented independently
+**PRD Alignment**: US-019, Sections 3.4.3-3.4.4, 3.7.7, 3.10.1
+
+## 🍄 Phase 5.6: Mushroom Implementation (CRITICAL - Missing from PoC)
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Required for complete ecosystem balance
+**Reference**: See detailed implementation plan below
+**PRD Alignment**: US-029, Sections 3.5.6-3.5.9, 3.7.9, 3.10.1
+
+### Background
+Mushrooms are poisonous plants fully specified in PRD but completely missing from PoC implementation. Mushrooms complete the plant ecosystem alongside fruits, providing hazard-based learning about resource risks. Humans must balance fruit consumption (healing) with mushroom avoidance (damage).
+
+### Foundation Tasks
+- [ ] Add `MUSHROOM` to `EntityType` enum in `src/types.ts`
+- [ ] Create `src/entities/Mushroom.ts` entity class
+  - [ ] Extends Entity base class
+  - [ ] Constructor: `Mushroom(x: number, y: number)`
+  - [ ] Set `type = EntityType.MUSHROOM`
+  - [ ] No ripening logic (always poisonous)
+  - [ ] Health set to 1 for consistency
+- [ ] Add `mushroom` configuration section to `src/config.ts`:
+  - [ ] `energyRemoved: -40` (damage to human)
+  - [ ] `spawnProbability: 0.005` (0.5% per empty cell per round)
+- [ ] Add `mushroomProbability: 0.005` to spawn config section
+
+### Plant Spawn System Updates
+- [ ] Update `src/systems/PlantSpawnSystem.ts`:
+  - [ ] Import Mushroom entity class
+  - [ ] Add mushroom spawning logic alongside fruit spawning
+  - [ ] Each empty cell: `spawnProbability` chance to spawn mushroom
+  - [ ] Spawn new Mushroom entity at selected empty cells
+  - [ ] Console logging: new mushrooms spawned per round
+
+### Eating System Updates
+- [ ] Update `src/systems/EatingSystem.ts`:
+  - [ ] Import Mushroom entity class
+  - [ ] Add mushroom poisoning logic:
+    - [ ] Find humans adjacent to mushrooms
+    - [ ] One random adjacent human eats mushroom
+    - [ ] Human loses `energyRemoved` health (40 damage)
+    - [ ] Remove mushroom from board
+    - [ ] Add red visual effect flash at eating location
+    - [ ] Console logging: mushroom poisoning events
+
+### Renderer Integration
+- [ ] Update `src/core/Renderer.ts:getEntityEmoji()`:
+  - [ ] Add case for `EntityType.MUSHROOM` returning '🍄'
+  - [ ] Mushrooms don't show injured border (plants don't have health)
+
+### Statistics Display
+- [ ] Update `index.html` statistics panel:
+  - [ ] Add mushroom count stat row after fruits:
+    ```html
+    <div class="stat-row">
+      <span class="stat-label">🍄 Mushrooms</span>
+      <span class="stat-value" id="mushroomCount">0</span>
+    </div>
+    ```
 - [ ] Update `src/main.ts:updateStatistics()`:
-  - [ ] Add dog count calculation: `entities.filter(e => e.type === EntityType.DOG).length`
-  - [ ] Update `#dogCount` element with calculated value
+  - [ ] Add mushroom count calculation: `entities.filter(e => e.type === EntityType.MUSHROOM).length`
+  - [ ] Update `#mushroomCount` element with calculated value
 
 ### Build & Testing
 - [ ] Run `npm run build` and verify no TypeScript errors
-- [ ] Test initialization: dogs spawn at ~3% (expect ~27 dogs on 30x30 board)
-- [ ] Test visual: 🐕 emoji renders correctly
-- [ ] Test movement: dogs move toward wolves within perception range
-- [ ] Test combat: dogs damage wolves, wolves don't counter-attack
-- [ ] Test statistics: dog count displays and updates correctly
-- [ ] Test injured state: dogs show red border when health < 50
-- [ ] Test death: dogs die from health ≤ 0 or age-based mortality
-- [ ] Test ecosystem: observe dogs controlling wolf population
+- [ ] Test initialization: mushrooms spawn at ~0.5% (expect ~4-5 mushrooms on 30x30 board)
+- [ ] Test visual: 🍄 emoji renders correctly
+- [ ] Test poisoning: humans adjacent to mushrooms take 40 damage, mushroom removed
+- [ ] Test statistics: mushroom count displays and updates correctly
+- [ ] Test ecosystem: observe mushroom hazards affecting human survival
 
 ### Success Criteria
-- [ ] Dogs spawn on board initialization (~27 on 30x30 board)
-- [ ] Dogs move toward wolves with appropriate probability
-- [ ] Dogs deal 35 damage to adjacent wolves
-- [ ] Wolves do NOT counter-attack dogs
-- [ ] Statistics panel shows accurate dog count
-- [ ] All visual feedback working (emoji, border, flash)
+- [ ] Mushrooms spawn on board initialization (~4-5 on 30x30 board)
+- [ ] Mushrooms poison adjacent humans (40 damage)
+- [ ] Poisoned mushroom removed from board
+- [ ] Statistics panel shows accurate mushroom count
+- [ ] Red flash effect displays on poisoning
 - [ ] No compilation or runtime errors
-- [ ] Ecosystem dynamics observable (three-tier predator system)
+- [ ] Ecosystem dynamics observable (resource hazard learning)
 
-**Estimated Time**: 2-3 hours
+**Estimated Time**: 2 hours
 **Blocking**: None - can be implemented independently
-**PRD Alignment**: US-019, Sections 3.4.3-3.4.4, 3.7.7, 3.10.1
+
+## 🔧 Phase 5.7: PRD Corrections Implementation
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Required for PRD compliance
+**Reference**: Recent PRD updates requiring system changes
+
+### Eating System Correction (PRD 3.5.4)
+- [ ] Update `src/systems/EatingSystem.ts`:
+  - [ ] Change fruit eating logic from "first adjacent ripe fruit" to "one random human with health < max"
+  - [ ] Find all ripe fruits and humans with health < startingHealth
+  - [ ] For each ripe fruit, select one random eligible human from adjacent humans
+  - [ ] If no eligible humans adjacent, fruit remains uneaten
+  - [ ] Console logging: specify which human ate which fruit
+
+### Birth System Correction (US-026)
+- [ ] Update `src/systems/BirthSystem.ts`:
+  - [ ] When pregnant woman ready to give birth but no empty adjacent spaces:
+    - [ ] Spawn baby on mother's position instead of adjacent space
+    - [ ] Remove mother entity (dies after birth)
+    - [ ] Add birth visual effect on mother's position
+    - [ ] Console logging: "Mother died giving birth, baby occupies her position"
+  - [ ] Test: Verify mother death and baby placement when no space available
+
+### Combat System Correction (US-018)
+- [ ] Update `src/systems/CombatSystem.ts` `resolveCombat()` for male vs male:
+  - [ ] Store original health of both males before damage
+  - [ ] Apply simultaneous damage to both
+  - [ ] Check post-damage health:
+    - [ ] If one male health ≤ 0: he dies, survivor gains his remaining energy
+    - [ ] If both males health ≤ 0: compare final health, lower health dies, survivor gains remaining energy
+    - [ ] If health equal when both ≤ 0: random selection, survivor gains remaining energy
+  - [ ] Console logging: show damage dealt and energy transfer
+
+### Testing Corrections
+- [ ] Test updated eating: verify only humans with health < 100 eat fruits
+- [ ] Test birth death: pregnant woman dies when no adjacent space, baby occupies her position
+- [ ] Test male combat: verify energy transfer mechanics work correctly
+- [ ] Integration test: run simulation with all corrections active
+
+**Estimated Time**: 1-2 hours
+**Blocking**: Must complete after existing systems are stable
 
 ## 🎨 Phase 6: Visual Polish ✅ COMPLETE
 
@@ -321,4 +444,4 @@ Items deferred beyond MVP scope:
 ---
 
 **Estimated Remaining Work**: ~4-6 hours for MVP completion
-**Priority Order**: Phase 5 (Plant System) → Phase 6 (Visual Polish) → Phase 7 (Performance) → Testing → Documentation
+**Priority Order**: Phase 5.5 (Dog Implementation) ✅ COMPLETE → Phase 5.6 (Mushroom Implementation) → Phase 5.7 (PRD Corrections) → Phase 7 (UI/UX Enhancements) → Phase 8 (Performance) → Testing → Documentation

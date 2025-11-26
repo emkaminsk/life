@@ -518,7 +518,7 @@ Acceptance Criteria:
 - Dogs move toward wolves within perception range
 - Dog adjacent to wolf deals damage at round end
 - Red flash displays on combat squares
-- Wolf health decreases by configured damage
+- Wolf health decreases by configured damage, dogs health decreases by half of the configured damage
 - Dogs do not attack humans
 - Wolves do not attack dogs independently (only counter-damage)
 
