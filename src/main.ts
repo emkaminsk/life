@@ -3,6 +3,7 @@ import { Renderer } from './core/Renderer';
 import { Game } from './core/Game';
 import { Human } from './entities/Human';
 import { EntityType } from './types';
+import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
 
 // Initialize
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -10,8 +11,14 @@ const board = new Board();
 const renderer = new Renderer(canvas);
 const game = new Game(board, renderer);
 
+// Initialize configuration panel
+const configPanel = new ConfigPanel();
+
 // Initial render
 renderer.renderFull(board);
+
+// Show configuration panel on load
+configPanel.show();
 
 // Notification system
 let previousMaleCount = 0;
@@ -228,11 +235,12 @@ const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
 const finishBtn = document.getElementById('finishBtn') as HTMLButtonElement;
 const speedSelect = document.getElementById('speedSelect') as HTMLSelectElement;
 
-startBtn.addEventListener('click', async () => {
-  console.log('[UI] Start game clicked');
+// Configuration panel callback - called when user clicks "Start Game"
+configPanel.onStart(async (config: GameConfig) => {
+  console.log('[UI] Starting game with custom configuration');
 
   // Check if board is large (> 50x50)
-  const isLargeBoard = board.width > 50 || board.height > 50;
+  const isLargeBoard = config.board.width > 50 || config.board.height > 50;
 
   if (isLargeBoard) {
     // Show progress indicator for large boards
@@ -246,7 +254,7 @@ startBtn.addEventListener('click', async () => {
       // Simulate async initialization with progress updates
       await new Promise<void>((resolve) => {
         let progress = 0;
-        const totalCells = board.width * board.height;
+        const totalCells = config.board.width * config.board.height;
         let processedCells = 0;
 
         const updateProgress = () => {
@@ -262,8 +270,8 @@ startBtn.addEventListener('click', async () => {
             if (processedCells < totalCells) {
               requestAnimationFrame(updateProgress);
             } else {
-              // Actually initialize the board
-              game.initializeBoard();
+              // Actually initialize the board with custom config
+              game.initializeBoard(config);
               setTimeout(() => {
                 progressOverlay.classList.remove('active');
                 resolve();
@@ -276,11 +284,11 @@ startBtn.addEventListener('click', async () => {
       });
     } else {
       // Fallback if progress elements not found
-      game.initializeBoard();
+      game.initializeBoard(config);
     }
   } else {
-    // Small board - initialize normally
-    game.initializeBoard();
+    // Small board - initialize normally with custom config
+    game.initializeBoard(config);
   }
 
   updateStatistics();
@@ -292,12 +300,19 @@ startBtn.addEventListener('click', async () => {
   previousMaleCount = 0;
   previousFemaleCount = 0;
 
+  // Enable game controls, disable start button
   startBtn.disabled = true;
   pauseBtn.disabled = false;
   stepBtn.disabled = false;
   runBtn.disabled = false;
   resetBtn.disabled = false;
   finishBtn.disabled = false;
+});
+
+// Original start button - now just shows a message since config panel handles start
+startBtn.addEventListener('click', () => {
+  console.log('[UI] Start button clicked - showing config panel');
+  configPanel.show();
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -348,6 +363,10 @@ finishBtn.addEventListener('click', () => {
   game.reset();
   updateStatistics();
   renderPopulationGraph();
+
+  // Show configuration panel for new game
+  configPanel.show();
+
   // Re-enable start button, disable others
   startBtn.disabled = false;
   pauseBtn.disabled = true;
@@ -424,6 +443,12 @@ document.addEventListener('keydown', (e) => {
 
   // Ignore if modal is open
   if (rulesModal.classList.contains('active')) {
+    return;
+  }
+
+  // Ignore if config panel is visible (game not started yet)
+  const configPanelElement = document.getElementById('configPanel');
+  if (configPanelElement && configPanelElement.style.display !== 'none') {
     return;
   }
 

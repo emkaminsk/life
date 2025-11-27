@@ -14,6 +14,7 @@ import { ReproductionSystem } from '../systems/ReproductionSystem';
 import { DeathSystem } from '../systems/DeathSystem';
 import { BirthSystem } from '../systems/BirthSystem';
 import { PlantSpawnSystem } from '../systems/PlantSpawnSystem';
+import type { GameConfig } from '../ui/ConfigPanel';
 
 export class Game {
   private board: Board;
@@ -49,8 +50,12 @@ export class Game {
   /**
    * Initialize board with random entities
    */
-  initializeBoard(): void {
+  initializeBoard(config?: GameConfig): void {
+    // Use provided config or fall back to default
+    const spawnConfig = config?.spawn || DEFAULT_CONFIG.spawn;
+
     console.log('[Game] Initializing board with entities...');
+    console.log('[Game] Using configuration:', config ? 'Custom' : 'Default');
 
     let maleCount = 0;
     let femaleCount = 0;
@@ -63,12 +68,12 @@ export class Game {
       for (let x = 0; x < this.board.width; x++) {
         // Weighted random selection using cumulative probabilities
         const rand = Math.random();
-        const cumulativeMale = DEFAULT_CONFIG.spawn.maleHumanProbability;
-        const cumulativeFemale = cumulativeMale + DEFAULT_CONFIG.spawn.femaleHumanProbability;
-        const cumulativeWolf = cumulativeFemale + DEFAULT_CONFIG.spawn.wolfProbability;
-        const cumulativeDog = cumulativeWolf + DEFAULT_CONFIG.spawn.dogProbability;
-        const cumulativeFruit = cumulativeDog + DEFAULT_CONFIG.spawn.fruitProbability;
-        const cumulativeMushroom = cumulativeFruit + DEFAULT_CONFIG.spawn.mushroomProbability;
+        const cumulativeMale = spawnConfig.maleHumanProbability;
+        const cumulativeFemale = cumulativeMale + spawnConfig.femaleHumanProbability;
+        const cumulativeWolf = cumulativeFemale + spawnConfig.wolfProbability;
+        const cumulativeDog = cumulativeWolf + spawnConfig.dogProbability;
+        const cumulativeFruit = cumulativeDog + spawnConfig.fruitProbability;
+        const cumulativeMushroom = cumulativeFruit + spawnConfig.mushroomProbability;
 
         if (rand < cumulativeMale) {
           this.board.setEntity(x, y, new Human(x, y, Sex.MALE));
