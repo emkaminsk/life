@@ -33,13 +33,13 @@ export class Game {
   constructor(board: Board, renderer: Renderer) {
     this.board = board;
     this.renderer = renderer;
-    this.movementSystem = new MovementSystem();
+    this.movementSystem = new MovementSystem(renderer);
     this.combatSystem = new CombatSystem(renderer);
     this.eatingSystem = new EatingSystem(renderer);
     this.reproductionSystem = new ReproductionSystem(renderer);
-    this.deathSystem = new DeathSystem();
+    this.deathSystem = new DeathSystem(renderer);
     this.birthSystem = new BirthSystem(renderer);
-    this.plantSpawnSystem = new PlantSpawnSystem();
+    this.plantSpawnSystem = new PlantSpawnSystem(renderer);
     this.isRunning = false;
     this.roundInterval = null;
     this.populationHistory = [];
@@ -129,9 +129,6 @@ export class Game {
 
     // Phase 7: Plant Spawn
     this.plantSpawnSystem.execute(this.board);
-
-    // Mark entire board dirty to clear cells that became empty (moved/dead entities)
-    this.renderer.markAllDirty(this.board);
 
     // Increment round counter
     this.board.incrementRound();

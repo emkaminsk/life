@@ -3,11 +3,18 @@ import { Entity } from '../entities/Entity';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
+import { Renderer } from '../core/Renderer';
 import { Gompertz } from '../utils/Gompertz';
 import { DEFAULT_CONFIG } from '../config';
 import { EntityType } from '../types';
 
 export class DeathSystem {
+  private renderer: Renderer;
+
+  constructor(renderer: Renderer) {
+    this.renderer = renderer;
+  }
+
   execute(board: Board): void {
     const entities = board.getAllEntities();
     const entitiesToRemove: Entity[] = [];
@@ -89,6 +96,7 @@ export class DeathSystem {
     // Remove all dead entities
     for (const entity of entitiesToRemove) {
       board.removeEntity(entity.x, entity.y);
+      this.renderer.markDirty(entity.x, entity.y);
     }
 
     if (healthDeaths + ageDeaths > 0) {
