@@ -60,8 +60,8 @@ export class DeathSystem {
       if (entity instanceof Human) {
         const died = Gompertz.shouldDie(
           entity.age,
-          DEFAULT_CONFIG.human.gompertzA,
-          DEFAULT_CONFIG.human.gompertzB,
+          entity.gompertzA,
+          entity.gompertzB,
           humanMultiplier
         );
         if (died) {
@@ -71,8 +71,8 @@ export class DeathSystem {
       } else if (entity instanceof Wolf) {
         const died = Gompertz.shouldDie(
           entity.age,
-          DEFAULT_CONFIG.wolf.gompertzA,
-          DEFAULT_CONFIG.wolf.gompertzB,
+          entity.gompertzA,
+          entity.gompertzB,
           animalMultiplier
         );
         if (died) {
@@ -82,8 +82,8 @@ export class DeathSystem {
       } else if (entity instanceof Dog) {
         const died = Gompertz.shouldDie(
           entity.age,
-          DEFAULT_CONFIG.dog.gompertzA,
-          DEFAULT_CONFIG.dog.gompertzB,
+          entity.gompertzA,
+          entity.gompertzB,
           animalMultiplier
         );
         if (died) {

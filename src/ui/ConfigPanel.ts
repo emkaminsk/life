@@ -145,6 +145,32 @@ export class ConfigPanel {
     sectionHeaders.forEach(header => {
       header.addEventListener('click', () => this.toggleSection(header as HTMLElement));
     });
+
+    // Input change listeners for real-time validation
+    const spawnInputs = [
+      'spawnMaleHuman',
+      'spawnFemaleHuman',
+      'spawnWolf',
+      'spawnDog',
+      'spawnFruit',
+      'spawnMushroom',
+      'boardWidth',
+      'boardHeight'
+    ];
+
+    spawnInputs.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', () => {
+          this.updateExpectedCounts();
+          this.validateSpawnProbabilities();
+        });
+        input.addEventListener('change', () => {
+          this.updateExpectedCounts();
+          this.validateSpawnProbabilities();
+        });
+      }
+    });
   }
 
   private toggleSection(header: HTMLElement): void {
@@ -273,6 +299,11 @@ export class ConfigPanel {
   show(): void {
     this.panel.style.display = 'flex';
     this.populateInputs();
+    // Disable the old start button in sidebar when config panel is shown
+    const oldStartBtn = document.getElementById('startBtn') as HTMLButtonElement;
+    if (oldStartBtn) {
+      oldStartBtn.disabled = true;
+    }
   }
 
   hide(): void {

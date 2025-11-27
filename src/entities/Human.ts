@@ -7,12 +7,14 @@ export class Human extends Entity {
   pregnancyCounter: number;
   reproductionCooldown: number;
 
-  constructor(x: number, y: number, sex: Sex) {
+  constructor(x: number, y: number, sex: Sex, startingHealth?: number, gompertzA?: number, gompertzB?: number) {
     super(
       x,
       y,
-      DEFAULT_CONFIG.human.startingHealth,
-      sex === Sex.MALE ? EntityType.MALE : EntityType.FEMALE
+      startingHealth ?? DEFAULT_CONFIG.human.startingHealth,
+      sex === Sex.MALE ? EntityType.MALE : EntityType.FEMALE,
+      gompertzA ?? DEFAULT_CONFIG.human.gompertzA,
+      gompertzB ?? DEFAULT_CONFIG.human.gompertzB
     );
     this.sex = sex;
     this.pregnancyCounter = 0;

@@ -22,6 +22,33 @@ export class Board {
     }
   }
 
+  resize(newWidth: number, newHeight: number): void {
+    // Clear all entities (they will be respawned)
+    this.clear();
+
+    this.width = newWidth;
+    this.height = newHeight;
+
+    // Reinitialize grid
+    this.grid = [];
+    for (let y = 0; y < newHeight; y++) {
+      this.grid[y] = [];
+      for (let x = 0; x < newWidth; x++) {
+        this.grid[y][x] = null;
+      }
+    }
+  }
+
+  clear(): void {
+    // Remove all entities from the board
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.grid[y][x] = null;
+      }
+    }
+    this.round = 0;
+  }
+
   getEntity(x: number, y: number): Entity | null {
     if (!this.isInBounds(x, y)) return null;
     return this.grid[y][x];

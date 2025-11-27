@@ -6,13 +6,17 @@ export abstract class Entity {
   health: number;
   age: number;
   type: EntityType;
+  gompertzA: number;
+  gompertzB: number;
 
-  constructor(x: number, y: number, health: number, type: EntityType) {
+  constructor(x: number, y: number, health: number, type: EntityType, gompertzA: number = 0.0001, gompertzB: number = 0.1) {
     this.x = x;
     this.y = y;
     this.health = health;
     this.age = 0;
     this.type = type;
+    this.gompertzA = gompertzA;
+    this.gompertzB = gompertzB;
   }
 
   isDead(): boolean {

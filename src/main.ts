@@ -3,12 +3,98 @@ import { Renderer } from './core/Renderer';
 import { Game } from './core/Game';
 import { Human } from './entities/Human';
 import { EntityType } from './types';
+import { ConfigPanel, GameConfig } from './ui/ConfigPanel';
 
 // Initialize
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 const board = new Board();
 const renderer = new Renderer(canvas);
 const game = new Game(board, renderer);
+
+// Initialize Config Panel
+const configPanel = new ConfigPanel();
+configPanel.onStart((config: GameConfig) => {
+  console.log('[Main] Starting game with config:', config);
+
+  // Update board dimensions if changed
+  if (config.board.width !== board.width || config.board.height !== board.height) {
+    board.resize(config.board.width, config.board.height);
+  }
+
+  // Update game config
+  game.updateConfig(config);
+
+  // Check if board is large (> 50x50)
+  const isLargeBoard = board.width > 50 || board.height > 50;
+
+  if (isLargeBoard) {
+    // Show progress indicator for large boards
+    const progressOverlay = document.getElementById('initProgress');
+    const progressBar = document.getElementById('progressBar') as HTMLDivElement;
+    const progressText = document.getElementById('progressText');
+
+    if (progressOverlay && progressBar && progressText) {
+      progressOverlay.classList.add('active');
+
+      // Simulate async initialization with progress updates
+      new Promise<void>((resolve) => {
+        let progress = 0;
+        const totalCells = board.width * board.height;
+        let processedCells = 0;
+
+        const updateProgress = () => {
+          if (processedCells < totalCells) {
+            // Process in chunks to prevent freezing
+            const chunkSize = Math.min(100, totalCells - processedCells);
+            processedCells += chunkSize;
+            progress = Math.floor((processedCells / totalCells) * 100);
+
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `Spawning creatures: ${progress}%`;
+
+            if (processedCells < totalCells) {
+              requestAnimationFrame(updateProgress);
+            } else {
+              // Actually initialize the board
+              game.initializeBoard(config);
+              setTimeout(() => {
+                progressOverlay.classList.remove('active');
+                resolve();
+              }, 300);
+            }
+          }
+        };
+
+        updateProgress();
+      });
+    } else {
+      // Fallback if progress elements not found
+      game.initializeBoard(config);
+    }
+  } else {
+    // Small board - initialize normally
+    game.initializeBoard(config);
+  }
+
+  updateStatistics();
+
+  // Reset alert flags
+  maleExtinctionAlerted = false;
+  femaleExtinctionAlerted = false;
+  capacityWarningShown = false;
+  previousMaleCount = 0;
+  previousFemaleCount = 0;
+
+  startBtn.disabled = true;
+  pauseBtn.disabled = false;
+  stepBtn.disabled = false;
+  runBtn.disabled = false;
+  resetBtn.disabled = false;
+  finishBtn.disabled = false;
+});
+
+// Show config panel on page load
+configPanel.show();
 
 // Initial render
 renderer.renderFull(board);
@@ -333,8 +419,10 @@ resetBtn.addEventListener('click', () => {
   game.reset();
   updateStatistics();
   renderPopulationGraph();
-  // Re-enable start button, disable others
-  startBtn.disabled = false;
+  // Show config panel again for new game
+  configPanel.show();
+  // Disable game controls
+  startBtn.disabled = true;
   pauseBtn.disabled = true;
   pauseBtn.textContent = 'Pause';
   stepBtn.disabled = true;
@@ -348,8 +436,10 @@ finishBtn.addEventListener('click', () => {
   game.reset();
   updateStatistics();
   renderPopulationGraph();
-  // Re-enable start button, disable others
-  startBtn.disabled = false;
+  // Show config panel again for new game
+  configPanel.show();
+  // Disable game controls
+  startBtn.disabled = true;
   pauseBtn.disabled = true;
   pauseBtn.textContent = 'Pause';
   stepBtn.disabled = true;
