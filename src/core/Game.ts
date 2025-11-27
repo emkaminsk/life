@@ -14,6 +14,7 @@ import { ReproductionSystem } from '../systems/ReproductionSystem';
 import { DeathSystem } from '../systems/DeathSystem';
 import { BirthSystem } from '../systems/BirthSystem';
 import { PlantSpawnSystem } from '../systems/PlantSpawnSystem';
+import { AnimationSystem, MovementRecord } from './AnimationSystem';
 
 import { GameConfig } from '../ui/ConfigPanel';
 
@@ -27,10 +28,14 @@ export class Game {
   private deathSystem: DeathSystem;
   private birthSystem: BirthSystem;
   private plantSpawnSystem: PlantSpawnSystem;
+  private animationSystem: AnimationSystem;
   private isRunning: boolean;
   private roundInterval: number | null;
   private populationHistory: number[]; // Track human population over time
   private currentSpeed: number; // Current simulation speed in ms
+  private animationDuration: number; // Animation duration in ms
+  private isAnimating: boolean; // Track if animations are currently running
+  private animationFrameId: number | null; // Track animation frame request ID
   private currentConfig: GameConfig;
 
   constructor(board: Board, renderer: Renderer) {
@@ -43,10 +48,14 @@ export class Game {
     this.deathSystem = new DeathSystem(renderer);
     this.birthSystem = new BirthSystem(renderer);
     this.plantSpawnSystem = new PlantSpawnSystem(renderer);
+    this.animationSystem = new AnimationSystem();
     this.isRunning = false;
     this.roundInterval = null;
     this.populationHistory = [];
     this.currentSpeed = DEFAULT_CONFIG.simulation.defaultSpeed;
+    this.animationDuration = 300; // Default 300ms animation duration
+    this.isAnimating = false;
+    this.animationFrameId = null;
     this.currentConfig = this.createDefaultConfig();
   }
 
@@ -185,11 +194,120 @@ export class Game {
    * Execute one complete round
    */
   executeRound(): void {
+    // Prevent overlapping rounds if animations are still running
+    if (this.isAnimating) {
+      console.log('[Game] Skipping round - animations still in progress');
+      return;
+    }
+
     console.log(`\n=== Round ${this.board.round + 1} ===`);
 
     // Phase 1: Movement
-    this.movementSystem.execute(this.board);
+    const movements = this.movementSystem.execute(this.board);
 
+    // If there are movements, animate them before proceeding
+    if (movements.length > 0) {
+      this.isAnimating = true;
+      this.animateMovements(movements, () => {
+        // Animation complete callback - continue with remaining phases
+        this.isAnimating = false;
+        this.continueRoundAfterAnimation();
+      });
+      return; // Exit early, continueRoundAfterAnimation will be called when animations complete
+    }
+
+    // No movements, proceed directly to remaining phases
+    this.continueRoundAfterAnimation();
+  }
+
+  /**
+   * Animate movements and wait for completion
+   */
+  private animateMovements(movements: MovementRecord[], onComplete: () => void): void {
+    // Start animations
+    this.animationSystem.startAnimations(movements, this.animationDuration);
+
+    // Mark all animation paths as dirty once (optimization)
+    this.renderer.markAnimationPaths(this.board, this.animationSystem);
+
+    // Enter animation loop using requestAnimationFrame
+    const animationLoop = () => {
+      // Check if game was paused during animation
+      if (!this.isRunning && this.isAnimating) {
+        // Game paused - stop animation loop and sync positions
+        this.stopAnimations(movements);
+        return;
+      }
+
+      // Update animation progress
+      this.animationSystem.update();
+
+      // Render animation frame
+      this.renderer.renderAnimationFrame(this.board, this.animationSystem);
+
+      // Continue animation loop if still animating
+      if (this.animationSystem.isAnimating()) {
+        this.animationFrameId = requestAnimationFrame(animationLoop);
+      } else {
+        // All animations complete - sync visual positions to logical positions
+        this.completeAnimations(movements, onComplete);
+      }
+    };
+
+    // Start animation loop
+    this.animationFrameId = requestAnimationFrame(animationLoop);
+  }
+
+  /**
+   * Stop animations and sync visual positions to logical positions
+   */
+  private stopAnimations(movements?: MovementRecord[]): void {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
+    // Sync visual positions to logical positions for all animating entities
+    const animatingEntities = this.animationSystem.getAnimatingEntities();
+    if (movements) {
+      // Use provided movements array if available
+      movements.forEach(movement => {
+        movement.entity.syncVisualPosition();
+      });
+    } else {
+      // Otherwise sync all currently animating entities
+      animatingEntities.forEach(entity => {
+        entity.syncVisualPosition();
+      });
+    }
+    
+    this.animationSystem.stopAll();
+    // Final render to ensure entities are at logical positions
+    this.renderer.render(this.board);
+    this.isAnimating = false;
+    console.log('[Game] Animations stopped due to pause/reset');
+  }
+
+  /**
+   * Complete animations and continue round
+   */
+  private completeAnimations(movements: MovementRecord[], onComplete: () => void): void {
+    // Sync visual positions to logical positions
+    movements.forEach(movement => {
+      movement.entity.syncVisualPosition();
+    });
+    // Final render to ensure entities are at logical positions
+    this.renderer.render(this.board);
+    this.isAnimating = false;
+    this.animationFrameId = null;
+    // Call completion callback
+    onComplete();
+  }
+
+  /**
+   * Continue round execution after movement animations complete
+   */
+  private continueRoundAfterAnimation(): void {
     // Phase 2: Combat
     this.combatSystem.execute(this.board);
 
@@ -214,8 +332,10 @@ export class Game {
     // Record population after round
     this.recordPopulation();
 
-    // Render changes
-    this.renderer.render(this.board);
+    // Render changes (if not already rendered by animation)
+    if (!this.animationSystem.isAnimating()) {
+      this.renderer.render(this.board);
+    }
   }
 
   /**
@@ -243,6 +363,8 @@ export class Game {
       clearInterval(this.roundInterval);
       this.roundInterval = null;
     }
+    // If animations are running, they will be stopped in the animation loop
+    // The stopAnimations() method will be called automatically
   }
 
   /**
@@ -275,6 +397,11 @@ export class Game {
     // Pause if running
     if (this.isRunning) {
       this.pause();
+    }
+
+    // Stop any running animations
+    if (this.isAnimating) {
+      this.stopAnimations();
     }
 
     // Clear the board
@@ -326,5 +453,19 @@ export class Game {
    */
   getSpeed(): number {
     return this.currentSpeed;
+  }
+
+  /**
+   * Set animation duration
+   */
+  setAnimationDuration(durationMs: number): void {
+    this.animationDuration = durationMs;
+  }
+
+  /**
+   * Get animation duration
+   */
+  getAnimationDuration(): number {
+    return this.animationDuration;
   }
 }

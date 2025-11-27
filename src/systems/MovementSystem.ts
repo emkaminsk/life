@@ -8,6 +8,7 @@ import { Renderer } from '../core/Renderer';
 import { EntityType } from '../types';
 import { Random } from '../utils/Random';
 import { DEFAULT_CONFIG } from '../config';
+import { MovementRecord } from '../core/AnimationSystem';
 
 export class MovementSystem {
   private renderer: Renderer;
@@ -16,9 +17,10 @@ export class MovementSystem {
     this.renderer = renderer;
   }
 
-  execute(board: Board): void {
+  execute(board: Board): MovementRecord[] {
     const entities = board.getAllEntities();
     const movedEntities = new Set<Entity>();
+    const movements: MovementRecord[] = [];
 
     // Process all creatures (not fruits)
     const creatures = entities.filter(e => e.type !== EntityType.FRUIT);
@@ -26,18 +28,20 @@ export class MovementSystem {
     for (const creature of creatures) {
       if (movedEntities.has(creature)) continue;
 
-      const moved = this.moveCreature(creature, board, entities);
-      if (moved) {
+      const movement = this.moveCreature(creature, board, entities);
+      if (movement) {
         movedEntities.add(creature);
+        movements.push(movement);
       }
     }
 
     console.log(`[Movement] Moved ${movedEntities.size} creatures`);
+    return movements;
   }
 
-  private moveCreature(creature: Entity, board: Board, allEntities: Entity[]): boolean {
+  private moveCreature(creature: Entity, board: Board, allEntities: Entity[]): MovementRecord | null {
     const availablePositions = board.getEmptyAdjacentPositions(creature.x, creature.y);
-    if (availablePositions.length === 0) return false;
+    if (availablePositions.length === 0) return null;
 
     let targetPosition = null;
 
@@ -62,11 +66,19 @@ export class MovementSystem {
         // Mark both old and new positions dirty
         this.renderer.markDirty(oldX, oldY);
         this.renderer.markDirty(targetPosition.x, targetPosition.y);
+
+        // Return movement record for animation
+        return {
+          entity: creature,
+          fromX: oldX,
+          fromY: oldY,
+          toX: targetPosition.x,
+          toY: targetPosition.y,
+        };
       }
-      return moved;
     }
 
-    return false;
+    return null;
   }
 
   private getHumanTarget(

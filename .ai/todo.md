@@ -930,3 +930,249 @@ Items deferred beyond MVP scope:
 - Initialize large boards without browser freezing
 
 **ONLY ONE CRITICAL FEATURE REMAINING**: Configuration UI for parameter modification between games.
+
+---
+
+## 🎬 Phase 16: Movement Animation System ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM - Visual enhancement for better user experience
+**Estimated Time**: 10-16 hours
+
+### Background
+Currently, entities move instantaneously between cells each round. This feature will add smooth animations showing entities transitioning between positions with 3 intermediate frames (4 total frames including start/end), making movements more visually clear and engaging for students.
+
+### Foundation (Phase 16.1) ✅ COMPLETE
+- [x] Create `src/core/AnimationSystem.ts`
+  - [x] Interface: `MovementRecord { entity, fromX, fromY, toX, toY }`
+  - [x] Method: `startAnimations(movements: MovementRecord[], durationMs: number)`
+  - [x] Method: `update(): void` - update animation progress
+  - [x] Method: `isAnimating(): boolean` - check if animations are running
+  - [x] Method: `getVisualPosition(entity: Entity): {x: number, y: number}` - interpolated position
+  - [x] Implement linear interpolation (0.0 to 1.0 progress)
+  - [x] Track animation state per entity
+  - [x] Bonus: Added easing functions (linear, ease-out, ease-in-out)
+  - [x] Bonus: Added `getAnimatingEntities()` and `stopAll()` methods
+
+- [x] Update `src/systems/MovementSystem.ts`
+  - [x] Add `MovementRecord[]` return type to `execute()` method
+  - [x] Before `board.moveEntity()`, capture `{entity, fromX, fromY, toX, toY}`
+  - [x] Store all movements in array
+  - [x] Return movement records array
+  - [x] Keep existing board update logic unchanged
+
+- [x] Update `src/entities/Entity.ts`
+  - [x] Add `visualX: number` property (default: this.x)
+  - [x] Add `visualY: number` property (default: this.y)
+  - [x] Update constructor to initialize visual positions
+  - [x] Add method: `setVisualPosition(x: number, y: number)`
+  - [x] Add method: `syncVisualPosition()` to reset after animations
+
+- [x] Update `.ai/todo.md` with complete task breakdown ✅ DONE
+
+### Rendering System (Phase 16.2) ✅ COMPLETE
+- [x] Update `src/core/Renderer.ts`
+  - [x] Modify `drawCell()` to support drawing entity at arbitrary position:
+    - [x] Add optional `visualPosition?: {x: number, y: number}` parameter
+    - [x] Support fractional cell positions (e.g., x=2.5, y=3.75)
+    - [x] Calculate pixel position from fractional cell coordinates
+  - [x] Add `drawEntity(entity, visualX, visualY, board)` helper method
+    - [x] Clear affected cell region (handles up to 4 cells for diagonal movement)
+    - [x] Draw entity emoji at interpolated pixel position
+    - [x] Handle entities transitioning between cells (partial overlap)
+    - [x] Draw entity indicators (pregnancy, injured) at visual cell position
+  - [x] Add `renderAnimationFrame(board, animationSystem)` method:
+    - [x] Get all animating entities from AnimationSystem
+    - [x] For each entity, get visual position and draw using drawEntity()
+    - [x] Mark animation path cells as dirty (from → to + intermediates)
+  - [x] Expand dirty rectangle tracking:
+    - [x] Mark all cells in animation path (from → to + intermediates)
+    - [x] For diagonal movement, mark up to 4 cells
+    - [x] Clear previous frame's entity positions
+
+- [ ] Test single entity animation
+  - [ ] Create test scenario with 1 entity moving
+  - [ ] Verify smooth transition over 3 intermediate frames
+  - [ ] Check for visual artifacts (ghosting, flickering)
+  - [ ] Verify dirty rectangles clear properly
+
+### Game Loop Integration (Phase 16.3) ✅ COMPLETE
+- [x] Update `src/core/Game.ts`
+  - [x] Add `animationSystem: AnimationSystem` property
+  - [x] Initialize in constructor: `this.animationSystem = new AnimationSystem()`
+  - [x] Modify `executeRound()` method:
+    - [x] Store movements from `MovementSystem.execute()` (returns `MovementRecord[]`)
+    - [x] Start animations: `animationSystem.startAnimations(movements, animationDuration)`
+    - [x] Enter animation loop using `requestAnimationFrame`:
+      - [x] Update animation progress each frame
+      - [x] Render animation frame using `renderer.renderAnimationFrame()`
+      - [x] Continue loop while animations active
+      - [x] On completion: sync visual positions, final render, continue round
+    - [x] After animation completes, run Combat → Death → ... phases via callback
+    - [x] Final render with all entities at logical positions
+  - [x] Handle timing coordination:
+    - [x] Added `isAnimating` flag to prevent overlapping rounds
+    - [x] Skip `executeRound()` if animations still in progress
+    - [x] Ensure animations complete before next round starts
+
+- [x] Add animation duration property:
+  - [x] `private animationDuration: number = 300` (default 300ms)
+  - [x] Getter/setter methods: `setAnimationDuration()` and `getAnimationDuration()`
+
+- [x] Handle pause during animation:
+  - [x] Implemented: Stop animation loop when game paused
+  - [x] Sync visual positions to logical positions on pause
+  - [x] Cancel animation frame request on pause
+  - [x] Animation loop checks `isRunning` flag each frame
+  - [x] Handle reset during animation (stop animations and sync positions)
+
+### Multi-Entity Support (Phase 16.4)
+- [ ] Test with multiple simultaneous animations
+  - [ ] Spawn 10+ entities, trigger movement phase
+  - [ ] Verify all entities animate smoothly in parallel
+  - [ ] Check for performance issues with many animations
+  - [ ] Verify no entity position conflicts
+
+- [x] Handle edge cases:
+  - [x] Entities moving to adjacent cells simultaneously (each clears own path, no conflicts)
+  - [x] Entities crossing paths during animation (visual overlap handled, logical positions separate)
+  - [x] Entities moving diagonally vs orthogonally (up to 4 cells marked correctly)
+  - [x] Very short movements (1 cell) vs longer movements (both handled by same interpolation)
+  - [x] Added comprehensive comments documenting edge case handling in `drawEntity()`
+
+- [x] Optimize dirty rectangle marking:
+  - [x] Batch mark all animation paths at animation start (`markAnimationPaths()`)
+  - [x] Minimize redundant dirty rectangle additions (mark once per animation start)
+  - [x] Added `getAllMovementPaths()` to AnimationSystem for batch access
+  - [x] Mark only current visual position cells each frame (not entire paths)
+
+- [ ] Performance testing:
+  - [ ] Test with 200 entities on 30x30 board
+  - [ ] Measure FPS during animations
+  - [ ] Target: maintain 30+ FPS
+  - [ ] Profile rendering bottlenecks if needed
+
+### Configuration & Polish (Phase 16.5)
+- [ ] Add configuration parameters to `src/config.ts`
+  - [ ] `simulation.enableAnimations: boolean` (default: true)
+  - [ ] `simulation.animationDuration: number` (default: 300ms, range: 100-1000)
+  - [ ] `simulation.animationEasing: 'linear' | 'ease-out' | 'ease-in-out'` (default: 'linear')
+
+- [ ] Update `src/ui/ConfigPanel.ts`
+  - [ ] Add "Animation" collapsible section
+  - [ ] Checkbox: "Enable Movement Animations"
+  - [ ] Slider: "Animation Speed" (100-1000ms)
+  - [ ] Dropdown: "Easing Function" (optional, start with linear only)
+  - [ ] Tooltip: "Smooth animations between cell movements. Disable for better performance on large boards."
+
+- [ ] Implement easing functions in AnimationSystem:
+  - [ ] Linear (already implemented)
+  - [ ] Ease-out: `1 - (1-t)^2` (recommended for natural feel)
+  - [ ] Ease-in-out: `t < 0.5 ? 2*t^2 : 1 - 2*(1-t)^2`
+  - [ ] Apply selected easing to interpolation
+
+- [ ] Add animation toggle functionality:
+  - [ ] When disabled, entities render immediately at final position
+  - [ ] Skip animation loop entirely
+  - [ ] Maintain single-render-per-round behavior
+
+- [ ] Performance monitoring:
+  - [ ] Track FPS during animations
+  - [ ] If FPS < 20 for >3 seconds, show warning
+  - [ ] Suggest disabling animations or reducing board size
+  - [ ] Optional: Auto-disable animations if performance degrades
+
+### Edge Cases & Testing (Phase 16.6)
+- [ ] Test very fast round speeds:
+  - [ ] Speed = 50ms (faster than animation duration of 300ms)
+  - [ ] Implement animation queuing or skipping
+  - [ ] Ensure no visual desync or stuttering
+
+- [ ] Test very slow round speeds:
+  - [ ] Speed = 2000ms (much slower than animation)
+  - [ ] Verify animations complete naturally
+  - [ ] No long pauses between animation end and next round
+
+- [ ] Test pause/resume during animation:
+  - [ ] Pause game while animations running
+  - [ ] Verify chosen behavior (freeze or complete)
+  - [ ] Resume and ensure no position errors
+
+- [ ] Test with large boards:
+  - [ ] 50x50 board with 500+ entities
+  - [ ] Measure performance impact
+  - [ ] Verify dirty rectangle optimization working
+  - [ ] Check for memory leaks in animation system
+
+- [ ] Test visual effects interaction:
+  - [ ] Combat flash + movement animation
+  - [ ] Eating flash + movement animation
+  - [ ] Verify flashes render correctly during animations
+
+- [ ] Test all 7 game phases:
+  - [ ] Movement phase animations
+  - [ ] Combat phase (entities at final positions)
+  - [ ] Death phase during animation (entity dies mid-movement?)
+  - [ ] Birth phase (new entity spawning during animations?)
+  - [ ] Verify no phase conflicts or race conditions
+
+- [ ] Integration testing:
+  - [ ] Run full simulation for 100+ rounds with animations
+  - [ ] Verify statistics update correctly
+  - [ ] Verify population graph updates correctly
+  - [ ] Check for any position desync issues
+  - [ ] Ensure no memory leaks over long sessions
+
+- [ ] Edge case: Death during movement animation
+  - [ ] What if entity dies in Combat phase while animation running?
+  - [ ] Solution: Complete movement animation first, then process death
+  - [ ] OR: Interrupt animation and remove entity immediately
+  - [ ] Choose and implement consistent behavior
+
+### Performance Optimization (Phase 16.7)
+- [ ] Profile rendering performance:
+  - [ ] Measure time spent in `drawEntity()` per frame
+  - [ ] Measure dirty rectangle overhead
+  - [ ] Identify bottlenecks
+
+- [ ] Optimize if needed:
+  - [ ] Batch dirty rectangle marking
+  - [ ] Reduce redundant clearing operations
+  - [ ] Consider caching interpolated positions per frame
+  - [ ] Minimize garbage collection (avoid creating objects in animation loop)
+
+- [ ] Benchmark results:
+  - [ ] Record FPS with animations ON vs OFF
+  - [ ] Document performance impact in different scenarios
+  - [ ] Update CLAUDE.md with performance notes
+
+### Success Criteria
+- [ ] Entities smoothly animate between cells with 3 intermediate frames
+- [ ] Logical game state unchanged (all 7 phases work identically)
+- [ ] Performance: 30+ FPS on 30x30 board with 200 entities (animations ON)
+- [ ] No visual artifacts (ghosting, flickering, position errors)
+- [ ] Configuration UI functional (enable/disable, speed control)
+- [ ] Animation completes before next phase executes
+- [ ] Works at all simulation speeds (slow/medium/fast)
+- [ ] All existing features continue working (effects, stats, graph)
+- [ ] No memory leaks during long sessions
+- [ ] Build completes without TypeScript errors
+
+### Known Risks
+- **Performance degradation**: 4-16x increase in rendering load
+  - Mitigation: Optional animations, FPS monitoring, auto-disable
+- **Timing conflicts**: Fast round speeds vs animation duration
+  - Mitigation: Animation queuing or intelligent skipping
+- **Visual artifacts**: Entity appearing in multiple places
+  - Mitigation: Proper dirty rectangle clearing, thorough testing
+- **State desync**: Logical vs visual position mismatch
+  - Mitigation: Never use visual position for game logic, careful state management
+
+### Implementation Notes
+- Start with linear interpolation, add easing later
+- Keep AnimationSystem isolated and stateless where possible
+- Maintain separation: logical state (Entity.x/y) vs visual state (visualX/visualY)
+- Test incrementally after each phase
+- Document any architectural decisions in CLAUDE.md
+
+---

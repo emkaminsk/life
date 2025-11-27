@@ -5,6 +5,7 @@ import { Wolf } from '../entities/Wolf';
 import { Fruit } from '../entities/Fruit';
 import { EntityType, VisualEffect } from '../types';
 import { DEFAULT_CONFIG } from '../config';
+import { AnimationSystem } from './AnimationSystem';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -95,7 +96,7 @@ export class Renderer {
     return offscreenCanvas;
   }
 
-  private drawCell(x: number, y: number, entity: Entity | null): void {
+  private drawCell(x: number, y: number, entity: Entity | null, visualPosition?: { x: number; y: number }): void {
     const cellX = x * this.cellSize;
     const cellY = y * this.cellSize;
 
@@ -109,14 +110,19 @@ export class Renderer {
 
     // Draw entity if present
     if (entity) {
+      // Use visual position if provided (for animations), otherwise use cell position
+      const drawX = visualPosition ? visualPosition.x * this.cellSize : cellX;
+      const drawY = visualPosition ? visualPosition.y * this.cellSize : cellY;
+
       const emoji = this.getEntityEmoji(entity);
       const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
-      this.ctx.drawImage(cachedEmoji, cellX, cellY);
+      this.ctx.drawImage(cachedEmoji, drawX, drawY);
 
       // Draw pregnancy indicator for pregnant females
       if (entity instanceof Human && entity.isPregnant()) {
         this.ctx.strokeStyle = '#ff69b4'; // Hot pink
         this.ctx.lineWidth = 3;
+        // Use cell position for border (always aligned to grid)
         this.ctx.strokeRect(cellX + 2, cellY + 2, this.cellSize - 4, this.cellSize - 4);
         this.ctx.lineWidth = 1;
       }
@@ -125,9 +131,75 @@ export class Renderer {
                entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
         this.ctx.strokeStyle = 'red';
         this.ctx.lineWidth = 2;
+        // Use cell position for border (always aligned to grid)
         this.ctx.strokeRect(cellX + 1, cellY + 1, this.cellSize - 2, this.cellSize - 2);
         this.ctx.lineWidth = 1;
       }
+    }
+  }
+
+  /**
+   * Draw an entity at an arbitrary fractional position (for animations)
+   * Handles clearing affected cells and drawing entity at interpolated position
+   */
+  private drawEntity(entity: Entity, visualX: number, visualY: number, board: Board): void {
+    // Calculate which cells are affected by this entity's position
+    // Entity can overlap up to 4 cells when moving diagonally
+    const minCellX = Math.floor(visualX);
+    const maxCellX = Math.ceil(visualX);
+    const minCellY = Math.floor(visualY);
+    const maxCellY = Math.ceil(visualY);
+
+    // Clear all affected cells (background and grid)
+    // Only clear cells that don't have other entities at their logical positions
+    for (let cy = minCellY; cy <= maxCellY; cy++) {
+      for (let cx = minCellX; cx <= maxCellX; cx++) {
+        if (cx >= 0 && cx < board.width && cy >= 0 && cy < board.height) {
+          const cellEntity = board.getEntity(cx, cy);
+          // Clear cell if:
+          // 1. Cell is empty, OR
+          // 2. Cell contains this animating entity (at its destination)
+          // Don't clear cells with other stationary entities
+          if (!cellEntity || cellEntity === entity) {
+            const cellX = cx * this.cellSize;
+            const cellY = cy * this.cellSize;
+            this.ctx.fillStyle = '#f0f0f0';
+            this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+            this.ctx.strokeStyle = '#ddd';
+            this.ctx.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+          }
+        }
+      }
+    }
+
+    // Draw entity emoji at visual position (fractional pixel coordinates)
+    const pixelX = visualX * this.cellSize;
+    const pixelY = visualY * this.cellSize;
+    const emoji = this.getEntityEmoji(entity);
+    const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
+    this.ctx.drawImage(cachedEmoji, pixelX, pixelY);
+
+    // Draw entity-specific indicators at the cell containing the visual position
+    // (aligned to grid for visual clarity)
+    const visualCellX = Math.floor(visualX);
+    const visualCellY = Math.floor(visualY);
+    const cellX = visualCellX * this.cellSize;
+    const cellY = visualCellY * this.cellSize;
+
+    // Draw pregnancy indicator for pregnant females
+    if (entity instanceof Human && entity.isPregnant()) {
+      this.ctx.strokeStyle = '#ff69b4'; // Hot pink
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeRect(cellX + 2, cellY + 2, this.cellSize - 4, this.cellSize - 4);
+      this.ctx.lineWidth = 1;
+    }
+    // Draw red border for injured creatures only (not fruits)
+    else if ((entity instanceof Human || entity instanceof Wolf) &&
+             entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
+      this.ctx.strokeStyle = 'red';
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeRect(cellX + 1, cellY + 1, this.cellSize - 2, this.cellSize - 2);
+      this.ctx.lineWidth = 1;
     }
   }
 
@@ -227,5 +299,99 @@ export class Renderer {
   renderFull(board: Board): void {
     this.markAllDirty(board);
     this.render(board);
+  }
+
+  /**
+   * Mark all animation paths as dirty (optimized batch marking)
+   * Called once at animation start to mark all affected cells
+   * @param board The game board
+   * @param animationSystem The animation system managing current animations
+   */
+  markAnimationPaths(board: Board, animationSystem: AnimationSystem): void {
+    const movementPaths = animationSystem.getAllMovementPaths();
+    
+    // Mark all cells in all animation paths
+    for (const path of movementPaths.values()) {
+      // Mark cells in path (handles diagonal movement - up to 4 cells)
+      const minX = Math.min(path.fromX, path.toX);
+      const maxX = Math.max(path.fromX, path.toX);
+      const minY = Math.min(path.fromY, path.toY);
+      const maxY = Math.max(path.fromY, path.toY);
+
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          if (cx >= 0 && cx < board.width && cy >= 0 && cy < board.height) {
+            this.markDirty(cx, cy);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Render a single animation frame during movement animations
+   * Draws all animating entities at their interpolated positions
+   * @param board The game board
+   * @param animationSystem The animation system managing current animations
+   */
+  renderAnimationFrame(board: Board, animationSystem: AnimationSystem): void {
+    // Mark cells with active visual effects as dirty
+    this.visualEffects.forEach(effect => {
+      this.markDirty(effect.x, effect.y);
+    });
+
+    // Get all animating entities
+    const animatingEntities = animationSystem.getAnimatingEntities();
+
+    // Mark animation paths as dirty (only cells that need updating)
+    // This is optimized - we mark paths once, but also mark current visual position cells each frame
+    for (const entity of animatingEntities) {
+      const visualPos = animationSystem.getVisualPosition(entity);
+      if (visualPos) {
+        // Mark current visual position cell (entity might be between cells)
+        const visualCellX = Math.floor(visualPos.x);
+        const visualCellY = Math.floor(visualPos.y);
+        if (visualCellX >= 0 && visualCellX < board.width && 
+            visualCellY >= 0 && visualCellY < board.height) {
+          this.markDirty(visualCellX, visualCellY);
+        }
+        // Also mark adjacent cells if entity is near cell boundary
+        if (visualPos.x - visualCellX > 0.5 && visualCellX + 1 < board.width) {
+          this.markDirty(visualCellX + 1, visualCellY);
+        }
+        if (visualPos.y - visualCellY > 0.5 && visualCellY + 1 < board.height) {
+          this.markDirty(visualCellX, visualCellY + 1);
+        }
+      }
+    }
+
+    // Render dirty cells (non-animating entities at their logical positions)
+    this.dirtyRects.forEach(coord => {
+      const [x, y] = coord.split(',').map(Number);
+      const entity = board.getEntity(x, y);
+      
+      // Only render if this entity is not currently animating
+      if (entity && !animatingEntities.includes(entity)) {
+        this.drawCell(x, y, entity);
+      } else if (!entity) {
+        // Empty cell - clear it (might be part of animation path)
+        this.drawCell(x, y, null);
+      }
+    });
+    this.dirtyRects.clear();
+
+    // Draw all animating entities at their visual positions
+    for (const entity of animatingEntities) {
+      const visualPos = animationSystem.getVisualPosition(entity);
+      if (visualPos) {
+        this.drawEntity(entity, visualPos.x, visualPos.y, board);
+      }
+    }
+
+    // Draw visual effects
+    this.drawVisualEffects();
+
+    // Update FPS counter
+    this.updateFps();
   }
 }
