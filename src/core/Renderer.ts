@@ -31,8 +31,24 @@ export class Renderer {
     this.currentFps = 0;
 
     // Set canvas size
-    this.canvas.width = DEFAULT_CONFIG.board.width * cellSize;
-    this.canvas.height = DEFAULT_CONFIG.board.height * cellSize;
+    const initialWidth = DEFAULT_CONFIG.board.width * cellSize;
+    const initialHeight = DEFAULT_CONFIG.board.height * cellSize;
+    this.canvas.width = initialWidth;
+    this.canvas.height = initialHeight;
+    // Explicitly set CSS dimensions to match internal resolution to prevent scaling
+    this.canvas.style.width = `${initialWidth}px`;
+    this.canvas.style.height = `${initialHeight}px`;
+  }
+
+  resize(width: number, height: number): void {
+    const pixelWidth = width * this.cellSize;
+    const pixelHeight = height * this.cellSize;
+    this.canvas.width = pixelWidth;
+    this.canvas.height = pixelHeight;
+    // Explicitly set CSS dimensions to match internal resolution to prevent scaling
+    this.canvas.style.width = `${pixelWidth}px`;
+    this.canvas.style.height = `${pixelHeight}px`;
+    console.log(`[Renderer] Canvas resized to ${pixelWidth}x${pixelHeight} pixels (${width}x${height} cells)`);
   }
 
   private getEntityEmoji(entity: Entity): string {

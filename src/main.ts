@@ -19,6 +19,7 @@ configPanel.onStart((config: GameConfig) => {
   // Update board dimensions if changed
   if (config.board.width !== board.width || config.board.height !== board.height) {
     board.resize(config.board.width, config.board.height);
+    renderer.resize(config.board.width, config.board.height);
   }
 
   // Update game config
