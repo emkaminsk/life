@@ -933,9 +933,8 @@ Items deferred beyond MVP scope:
 
 ---
 
-## 🎬 Phase 16: Movement Animation System ❌ NOT STARTED
+## 🎬 Phase 16: Movement Animation System IN PROGRESS
 
-**Status**: ❌ NOT STARTED
 **Priority**: MEDIUM - Visual enhancement for better user experience
 **Estimated Time**: 10-16 hours
 
@@ -1177,9 +1176,9 @@ Currently, entities move instantaneously between cells each round. This feature 
 
 ---
 
-## 🐺🐕 Phase 17: Animal Spawn System (PRD 3.4.5) ❌ NOT STARTED
+## 🐺🐕 Phase 17: Animal Spawn System (PRD 3.4.5) ⚠️ IN PROGRESS
 
-**Status**: ❌ NOT STARTED
+**Status**: ⚠️ IN PROGRESS - Implementation Complete, Testing Pending
 **Priority**: MEDIUM-HIGH - Required for MVP (PRD Section 3.4.5)
 **Reference**: PRD Section 3.4.5, "Animals spawn randomly on empty squares with configured probability per round"
 
@@ -1188,74 +1187,68 @@ PRD 3.4.5 specifies that animals (wolves and dogs) should spawn randomly on empt
 
 Currently, animals only spawn during initial board setup. This feature will add ongoing animal spawning during gameplay.
 
-**Design Decision**: Instead of creating a separate `AnimalSpawnSystem` that would iterate through empty cells twice (once for plants, once for animals), we will extend the existing `PlantSpawnSystem` to handle all spawning in a single pass. This is more efficient and follows the DRY principle.
+**Design Decision**: Instead of creating a separate `AnimalSpawnSystem` that would iterate through empty cells twice (once for plants, once for animals), we extended the existing `PlantSpawnSystem` (renamed to `SpawnSystem`) to handle all spawning in a single pass. This is more efficient and follows the DRY principle.
 
-**Design Decision**: Instead of creating a separate `AnimalSpawnSystem` that would iterate through empty cells twice (once for plants, once for animals), we will extend the existing `PlantSpawnSystem` to handle all spawning in a single pass. This is more efficient and follows the DRY principle.
+### Foundation Tasks (Phase 17.1) ✅ COMPLETE
+- [x] Add spawn probability configs to `src/config.ts`:
+  - [x] `wolf.spawnProbability: 0.002` (0.2% per empty cell per round, default low to prevent overpopulation)
+  - [x] `dog.spawnProbability: 0.001` (0.1% per empty cell per round, default low)
+- [x] Update `GameConfig` interface in `src/ui/ConfigPanel.ts`:
+  - [x] Add `spawnProbability: number` to `wolf` section
+  - [x] Add `spawnProbability: number` to `dog` section
+- [x] Update `DEFAULT_CONFIG` in `src/config.ts`:
+  - [x] Add `spawnProbability: 0.002` to `wolf` config
+  - [x] Add `spawnProbability: 0.001` to `dog` config
 
-### Foundation Tasks (Phase 17.1)
-- [ ] Add spawn probability configs to `src/config.ts`:
-  - [ ] `wolf.spawnProbability: 0.002` (0.2% per empty cell per round, default low to prevent overpopulation)
-  - [ ] `dog.spawnProbability: 0.001` (0.1% per empty cell per round, default low)
-- [ ] Update `GameConfig` interface in `src/ui/ConfigPanel.ts`:
-  - [ ] Add `spawnProbability: number` to `wolf` section
-  - [ ] Add `spawnProbability: number` to `dog` section
-- [ ] Update `DEFAULT_CONFIG` in `src/config.ts`:
-  - [ ] Add `spawnProbability: 0.002` to `wolf` config
-  - [ ] Add `spawnProbability: 0.001` to `dog` config
+### Extend SpawnSystem (Phase 17.2) ✅ COMPLETE
+- [x] Update `src/systems/PlantSpawnSystem.ts` → Renamed to `SpawnSystem.ts`:
+  - [x] Renamed class to `SpawnSystem`
+  - [x] Import `Wolf`, `Dog`, `GameConfig` (in addition to existing imports)
+  - [x] Update `execute()` method signature: `execute(board: Board, config: GameConfig)` (accept config parameter)
+  - [x] Add animal spawn counters: `let wolfSpawnCount = 0; let dogSpawnCount = 0;`
+  - [x] Extend the empty cell iteration loop:
+    - [x] Keep existing fruit/mushroom spawning logic
+    - [x] After mushroom check, add animal spawning:
+      - [x] If fruit didn't spawn AND mushroom didn't spawn:
+        - [x] Check `Random.chance(config.wolf.spawnProbability)` → spawn Wolf
+        - [x] Else check `Random.chance(config.dog.spawnProbability)` → spawn Dog
+      - [x] Only one entity spawns per cell per round (priority: fruit → mushroom → wolf → dog)
+    - [x] Mark spawned cells dirty for rendering
+  - [x] Update console logging to include animals:
+    - [x] `[Spawn] Spawned ${fruitSpawnCount} fruits, ${mushroomSpawnCount} mushrooms, ${wolfSpawnCount} wolves, ${dogSpawnCount} dogs`
+  - [x] Replace `DEFAULT_CONFIG` references with `config` parameter
+- [x] Update `src/core/Game.ts`:
+  - [x] Update import: `PlantSpawnSystem` → `SpawnSystem`
+  - [x] Update property: `plantSpawnSystem` → `spawnSystem`
+  - [x] Update `spawnSystem.execute()` call to pass config:
+    - [x] Changed `this.plantSpawnSystem.execute(this.board)` 
+    - [x] To `this.spawnSystem.execute(this.board, this.currentConfig)`
+  - [x] Update comment: "Phase 7: Plant Spawn" → "Phase 7: Spawn"
+  - [x] Update `createDefaultConfig()` to include wolf/dog spawn probabilities
 
-### Extend PlantSpawnSystem (Phase 17.2)
-- [ ] Update `src/systems/PlantSpawnSystem.ts`:
-  - [ ] Rename class to `SpawnSystem` (optional, or keep name but expand functionality)
-  - [ ] Import `Wolf`, `Dog`, `GameConfig` (in addition to existing imports)
-  - [ ] Update `execute()` method signature: `execute(board: Board, config: GameConfig)` (accept config parameter)
-  - [ ] Add animal spawn counters: `let wolfSpawnCount = 0; let dogSpawnCount = 0;`
-  - [ ] Extend the empty cell iteration loop (lines 33-52):
-    - [ ] Keep existing fruit/mushroom spawning logic
-    - [ ] After mushroom check, add animal spawning:
-      - [ ] If fruit didn't spawn AND mushroom didn't spawn:
-        - [ ] Check `Random.chance(config.wolf.spawnProbability)` → spawn Wolf
-        - [ ] Else check `Random.chance(config.dog.spawnProbability)` → spawn Dog
-      - [ ] Only one entity spawns per cell per round (priority: fruit → mushroom → wolf → dog)
-    - [ ] Mark spawned cells dirty for rendering
-  - [ ] Update console logging to include animals:
-    - [ ] `[Spawn] Spawned ${fruitSpawnCount} fruits, ${mushroomSpawnCount} mushrooms, ${wolfSpawnCount} wolves, ${dogSpawnCount} dogs`
-  - [ ] Replace `DEFAULT_CONFIG` references with `config` parameter
-- [ ] Update `src/core/Game.ts`:
-  - [ ] Update `plantSpawnSystem.execute()` call to pass config:
-    - [ ] Change `this.plantSpawnSystem.execute(this.board)` 
-    - [ ] To `this.plantSpawnSystem.execute(this.board, this.currentConfig)`
-  - [ ] Update comment: "Phase 7: Plant Spawn" → "Phase 7: Spawn" (or "Phase 7: Resource & Animal Spawn")
-  - [ ] Update `createDefaultConfig()` to include wolf/dog spawn probabilities
+### Configuration UI (Phase 17.3) ✅ COMPLETE
+- [x] Update `src/ui/ConfigPanel.ts`:
+  - [x] Add spawn probability fields to `getDefaultConfig()`:
+    - [x] `wolf: { ..., spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability }`
+    - [x] `dog: { ..., spawnProbability: DEFAULT_CONFIG.dog.spawnProbability }`
+  - [x] Update `populateInputs()`:
+    - [x] Add `this.setInputValue('wolfSpawn', this.config.wolf.spawnProbability)`
+    - [x] Add `this.setInputValue('dogSpawn', this.config.dog.spawnProbability)`
+  - [x] Update `readConfigFromInputs()`:
+    - [x] Add `wolf: { ..., spawnProbability: this.getInputValue('wolfSpawn') }`
+    - [x] Add `dog: { ..., spawnProbability: this.getInputValue('dogSpawn') }`
+- [x] Update `index.html`:
+  - [x] Add input field to Wolf Configuration section (after "Move Toward Human Probability"):
+    - [x] Input ID: `wolfSpawn`
+    - [x] Range: 0-1, step 0.0001, default 0.002
+    - [x] Label with tooltip
+  - [x] Add input field to Dog Configuration section (after "Move Toward Wolf Probability"):
+    - [x] Input ID: `dogSpawn`
+    - [x] Range: 0-1, step 0.0001, default 0.001
+    - [x] Label with tooltip
 
-### Configuration UI (Phase 17.3)
-- [ ] Update `src/ui/ConfigPanel.ts`:
-  - [ ] Add spawn probability fields to `getDefaultConfig()`:
-    - [ ] `wolf: { ..., spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability }`
-    - [ ] `dog: { ..., spawnProbability: DEFAULT_CONFIG.dog.spawnProbability }`
-  - [ ] Update `populateInputs()`:
-    - [ ] Add `this.setInputValue('wolfSpawn', this.config.wolf.spawnProbability)`
-    - [ ] Add `this.setInputValue('dogSpawn', this.config.dog.spawnProbability)`
-  - [ ] Update `readConfig()`:
-    - [ ] Add `wolf: { ..., spawnProbability: this.getInputValue('wolfSpawn') }`
-    - [ ] Add `dog: { ..., spawnProbability: this.getInputValue('dogSpawn') }`
-- [ ] Update `index.html`:
-  - [ ] Add input field to Wolf Configuration section (after "Move Toward Human Probability"):
-    ```html
-    <div class="config-row">
-      <label for="wolfSpawn" title="Probability to spawn wolf per empty cell per round (0-1)">Spawn Probability (per round):</label>
-      <input type="number" id="wolfSpawn" min="0" max="1" step="0.0001" value="0.002">
-    </div>
-    ```
-  - [ ] Add input field to Dog Configuration section (after "Move Toward Wolf Probability"):
-    ```html
-    <div class="config-row">
-      <label for="dogSpawn" title="Probability to spawn dog per empty cell per round (0-1)">Spawn Probability (per round):</label>
-      <input type="number" id="dogSpawn" min="0" max="1" step="0.0001" value="0.001">
-    </div>
-    ```
-
-### Integration & Testing (Phase 17.4)
-- [ ] Verify SpawnSystem (formerly PlantSpawnSystem) executes in Phase 7
+### Integration & Testing (Phase 17.4) ❌ PENDING
+- [ ] Verify SpawnSystem executes in Phase 7
 - [ ] Test animal spawning:
   - [ ] Run simulation for 50+ rounds
   - [ ] Verify wolves spawn on empty cells with configured probability
@@ -1281,17 +1274,17 @@ Currently, animals only spawn during initial board setup. This feature will add 
   - [ ] Compare performance: before (plant spawn only) vs after (all spawns in one loop)
 
 ### Success Criteria
-- [ ] Animals spawn randomly on empty squares each round
-- [ ] Spawn probabilities configurable per animal type (wolf/dog)
-- [ ] Configuration UI includes spawn probability inputs in Wolf and Dog sections
-- [ ] Spawning occurs in Phase 7 (single unified spawn phase)
-- [ ] Console logging shows spawn counts for all entity types each round
-- [ ] No performance degradation (actually improved - single iteration vs double)
-- [ ] Default spawn probabilities prevent overpopulation (low values: 0.1-0.2%)
-- [ ] Animals spawn with correct health and config values
-- [ ] Only one entity spawns per cell per round (priority order maintained)
-- [ ] Works correctly with all existing systems (movement, combat, death, etc.)
-- [ ] Fruit ripening logic still works correctly
+- [x] Animals spawn randomly on empty squares each round (implementation complete)
+- [x] Spawn probabilities configurable per animal type (wolf/dog) (implementation complete)
+- [x] Configuration UI includes spawn probability inputs in Wolf and Dog sections (implementation complete)
+- [x] Spawning occurs in Phase 7 (single unified spawn phase) (implementation complete)
+- [x] Console logging shows spawn counts for all entity types each round (implementation complete)
+- [ ] No performance degradation (actually improved - single iteration vs double) (testing pending)
+- [x] Default spawn probabilities prevent overpopulation (low values: 0.1-0.2%) (implementation complete)
+- [ ] Animals spawn with correct health and config values (testing pending)
+- [x] Only one entity spawns per cell per round (priority order maintained) (implementation complete)
+- [ ] Works correctly with all existing systems (movement, combat, death, etc.) (testing pending)
+- [x] Fruit ripening logic still works correctly (implementation complete - logic preserved)
 
 ### Implementation Notes
 - **Efficiency**: Single iteration through empty cells instead of separate loops (more efficient)
@@ -1304,7 +1297,393 @@ Currently, animals only spawn during initial board setup. This feature will add 
 - Keep fruit ripening logic separate from spawning logic (handles existing fruits)
 
 **Estimated Time**: 2-3 hours
+**Actual Time**: 1.5 hours (implementation), testing pending
 **Blocking**: None - can be implemented independently
 **PRD Alignment**: PRD 3.4.5
+
+**Implementation Status**: 
+- ✅ Phase 17.1: Foundation Tasks - COMPLETE
+- ✅ Phase 17.2: Extend SpawnSystem - COMPLETE
+- ✅ Phase 17.3: Configuration UI - COMPLETE
+- ❌ Phase 17.4: Integration & Testing - PENDING (manual testing required)
+
+**Next Steps**: Manual testing to verify functionality, edge cases, and performance.
+
+---
+
+## 🌍 Phase 18: Localization System (English/Polish) ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM - Educational enhancement for Polish students
+**Estimated Time**: 6-8 hours
+
+### Background
+The application is currently English-only. Adding Polish localization will make the tool accessible to Polish students aged 11-15, expanding its educational reach. The localization system should support easy switching between languages and be extensible for future language additions.
+
+**Design Decision**: Implement a lightweight i18n system without external dependencies, using TypeScript interfaces for type safety and JSON-like objects for translations.
+
+### Foundation (Phase 18.1) - Localization Infrastructure
+- [ ] Create `src/i18n/` directory
+- [ ] Create `src/i18n/types.ts`:
+  - [ ] Define `Language` enum: `EN = 'en'`, `PL = 'pl'`
+  - [ ] Define `TranslationKeys` interface with all UI text keys (organized by section)
+  - [ ] Define `Translations` type: `Record<Language, TranslationKeys>`
+- [ ] Create `src/i18n/translations.ts`:
+  - [ ] Export `translations` object with English and Polish text
+  - [ ] Organize keys by section: `header`, `controls`, `statistics`, `config`, `notifications`, `rules`, `errors`
+  - [ ] Include all UI labels, button text, tooltips, notifications, and rules modal content
+- [ ] Create `src/i18n/i18n.ts`:
+  - [ ] Export `I18n` class with:
+    - [ ] `currentLanguage: Language` property (default: `EN`)
+    - [ ] `setLanguage(lang: Language): void` method
+    - [ ] `t(key: string): string` method (translation getter with dot notation support)
+    - [ ] `getCurrentLanguage(): Language` getter
+    - [ ] Event emitter for language change (notify UI components to re-render)
+- [ ] Export singleton instance: `export const i18n = new I18n()`
+
+### Translation Content (Phase 18.2) - English/Polish Text
+- [ ] **Header Section**:
+  - [ ] Title: "Game of Life Educational Simulator" / "Symulator Edukacyjny Gra w Życie"
+  - [ ] Round counter: "Round: {0}" / "Runda: {0}"
+  - [ ] Rounds/sec: "Rounds/sec: {0}" / "Rundy/sek: {0}"
+- [ ] **Controls Section**:
+  - [ ] Start Game: "Start Game" / "Rozpocznij Grę"
+  - [ ] Pause: "Pause" / "Pauza"
+  - [ ] Run One Round: "Run One Round" / "Jedna Runda"
+  - [ ] Run Five Rounds: "Run Five Rounds" / "Pięć Rund"
+  - [ ] Run Free: "Run Free" / "Uruchom Swobodnie"
+  - [ ] Reset: "Reset" / "Resetuj"
+  - [ ] Finish Game: "Finish Game" / "Zakończ Grę"
+  - [ ] Speed: "Speed:" / "Prędkość:"
+  - [ ] Slow/Medium/Fast: "Slow"/"Medium"/"Fast" / "Wolno"/"Średnio"/"Szybko"
+- [ ] **Statistics Section**:
+  - [ ] Statistics: "Statistics" / "Statystyki"
+  - [ ] Males: "Males" / "Mężczyźni"
+  - [ ] Females: "Females" / "Kobiety"
+  - [ ] Pregnant: "{0} pregnant" / "{0} w ciąży"
+  - [ ] Wolves: "Wolves" / "Wilki"
+  - [ ] Dogs: "Dogs" / "Psy"
+  - [ ] Fruits: "Fruits" / "Owoce"
+  - [ ] Ripe/Unripe: "{0} ripe / {1} unripe" / "{0} dojrzałe / {1} niedojrzałe"
+  - [ ] Mushrooms: "Mushrooms" / "Grzyby"
+  - [ ] Total: "Total creatures: {0}/{1}" / "Łącznie stworzeń: {0}/{1}"
+  - [ ] Population Graph: "Population Graph" / "Wykres Populacji"
+- [ ] **Configuration Panel** (all sections):
+  - [ ] Board Setup: "Board Setup" / "Ustawienia Planszy"
+  - [ ] Human Configuration: "Human Configuration" / "Konfiguracja Ludzi"
+  - [ ] Wolf Configuration: "Wolf Configuration" / "Konfiguracja Wilków"
+  - [ ] Dog Configuration: "Dog Configuration" / "Konfiguracja Psów"
+  - [ ] Fruit Configuration: "Fruit Configuration" / "Konfiguracja Owoców"
+  - [ ] Mushroom Configuration: "Mushroom Configuration" / "Konfiguracja Grzybów"
+  - [ ] Population Control: "Population Control" / "Kontrola Populacji"
+  - [ ] All parameter labels and tooltips (40+ strings)
+  - [ ] Reset to Defaults: "Reset to Defaults" / "Przywróć Domyślne"
+  - [ ] Expected creatures: "Expected starting creatures: ~{0}" / "Oczekiwane stworzenia na start: ~{0}"
+- [ ] **Notifications**:
+  - [ ] Male extinction: "All males have died - reproduction no longer possible" / "Wszyscy mężczyźni wymarli - rozmnażanie niemożliwe"
+  - [ ] Female extinction: "All females have died - reproduction no longer possible" / "Wszystkie kobiety wymarły - rozmnażanie niemożliwe"
+  - [ ] Capacity warning: "Board nearly full - ecosystem may become unstable" / "Plansza prawie pełna - ekosystem może być niestabilny"
+- [ ] **Rules Modal** (4 tabs, extensive content):
+  - [ ] Tab titles: "Game Rules"/"Creature Types"/"Plant Types"/"Controls" / "Zasady Gry"/"Typy Stworzeń"/"Typy Roślin"/"Sterowanie"
+  - [ ] All rule descriptions (7 phases, creature behaviors, plant mechanics)
+  - [ ] All keyboard shortcuts documentation
+- [ ] **Error Messages**:
+  - [ ] Validation errors for configuration inputs
+  - [ ] Spawn probability warnings
+
+### Language Selector UI (Phase 18.3)
+- [ ] Add language selector to configuration panel header:
+  - [ ] Create dropdown/toggle in `index.html` config panel header
+  - [ ] Options: "🇬🇧 English" and "🇵🇱 Polski"
+  - [ ] Position: Top-right of configuration panel (next to close button)
+  - [ ] CSS styling: Minimal dropdown with flag emojis
+- [ ] Add language selector to game header (optional, for in-game switching):
+  - [ ] Small language toggle in top-right corner (next to "?" button)
+  - [ ] Allows language change during gameplay (re-renders UI text only)
+- [ ] Wire up event listeners:
+  - [ ] On language change: `i18n.setLanguage(selectedLanguage)`
+  - [ ] Trigger UI re-render for all text elements
+  - [ ] Save language preference to localStorage
+
+### UI Integration (Phase 18.4) - Dynamic Text Rendering
+- [ ] Update `index.html`:
+  - [ ] Add `data-i18n` attributes to all static text elements
+  - [ ] Example: `<h1 data-i18n="header.title">Game of Life Educational Simulator</h1>`
+  - [ ] Add `data-i18n-placeholder` for input placeholders
+  - [ ] Add `data-i18n-title` for tooltips
+- [ ] Create `src/i18n/DOMRenderer.ts`:
+  - [ ] `updateDOM()` method: iterate all `[data-i18n]` elements, set `textContent` from translations
+  - [ ] `updatePlaceholders()`: update all `[data-i18n-placeholder]` elements
+  - [ ] `updateTooltips()`: update all `[data-i18n-title]` elements
+  - [ ] Call on language change and page load
+- [ ] Update `src/ui/ConfigPanel.ts`:
+  - [ ] Import `i18n` singleton
+  - [ ] Replace all hardcoded English strings with `i18n.t('config.sectionName')`
+  - [ ] Add `updateLanguage()` method to re-render all labels
+  - [ ] Subscribe to language change events
+- [ ] Update `src/main.ts`:
+  - [ ] Replace hardcoded strings in statistics update with `i18n.t('stats.males')`, etc.
+  - [ ] Update notification messages to use translations
+  - [ ] Initialize language from localStorage on page load
+
+### Rules Modal Localization (Phase 18.5)
+- [ ] Update rules modal content in `index.html`:
+  - [ ] Add `data-i18n` attributes to all tab titles
+  - [ ] Add `data-i18n` attributes to all section headers
+  - [ ] Replace static text with translation keys
+- [ ] Create structured translations for rules content:
+  - [ ] Game Rules tab: 7-phase priority order explanation (EN/PL)
+  - [ ] Creatures tab: Male/Female/Wolf/Dog descriptions (EN/PL)
+  - [ ] Plants tab: Fruit/Mushroom mechanics (EN/PL)
+  - [ ] Controls tab: All keyboard shortcuts (EN/PL)
+- [ ] Update modal rendering logic:
+  - [ ] On language change, re-render all modal content
+  - [ ] Maintain current tab selection during language switch
+
+### Persistence & Defaults (Phase 18.6)
+- [ ] Implement localStorage persistence:
+  - [ ] Save selected language to `localStorage.setItem('language', lang)`
+  - [ ] Load on page load: `localStorage.getItem('language') || 'en'`
+  - [ ] Clear on browser storage clear (no cross-session persistence required)
+- [ ] Set default language based on browser locale (optional enhancement):
+  - [ ] Check `navigator.language` or `navigator.languages[0]`
+  - [ ] If starts with 'pl', default to Polish, else English
+  - [ ] Allow user override via language selector
+
+### Testing (Phase 18.7)
+- [ ] Test language switching:
+  - [ ] Switch between English and Polish in configuration panel
+  - [ ] Verify all UI text updates immediately
+  - [ ] Verify tooltips and placeholders update
+  - [ ] Verify rules modal content updates
+  - [ ] Verify notifications display in correct language
+- [ ] Test persistence:
+  - [ ] Select Polish, refresh page, verify Polish persists
+  - [ ] Clear localStorage, verify defaults to English (or browser locale)
+- [ ] Test edge cases:
+  - [ ] Switch language during active simulation (UI updates, game continues)
+  - [ ] Switch language with rules modal open (modal content updates)
+  - [ ] Switch language with notification visible (notification remains, new ones in new language)
+- [ ] Test translation completeness:
+  - [ ] Verify no missing translations (all keys have both EN and PL)
+  - [ ] Verify no hardcoded English strings remain in UI
+  - [ ] Verify Polish text fits in UI elements (no overflow/truncation)
+- [ ] Test with Polish students (optional):
+  - [ ] Verify translations are age-appropriate (11-15 years)
+  - [ ] Verify technical terms are correctly translated
+  - [ ] Verify instructions are clear and understandable
+
+### Success Criteria
+- [ ] Language selector visible and functional in configuration panel
+- [ ] All UI text (buttons, labels, tooltips, notifications) available in English and Polish
+- [ ] Rules modal fully localized (4 tabs, all content)
+- [ ] Language preference persists across page refreshes
+- [ ] Language switching works during active simulation without disrupting gameplay
+- [ ] No hardcoded English strings remain in UI code
+- [ ] Polish translations are grammatically correct and age-appropriate
+- [ ] UI layout remains intact in both languages (no text overflow)
+- [ ] TypeScript compilation succeeds with no errors
+- [ ] No performance degradation from localization system
+
+### Implementation Notes
+- Use simple key-based translation system (no external i18n libraries)
+- Organize translation keys hierarchically (e.g., `config.board.width`)
+- Support string interpolation for dynamic values: `"Round: {0}"` → `i18n.t('header.round', roundNumber)`
+- Keep translations in separate file for easy maintenance
+- Consider using Google Translate for initial Polish translations, then review with native speaker
+- Ensure Polish diacritics render correctly (ą, ć, ę, ł, ń, ó, ś, ź, ż)
+- Test on Windows/Linux/Mac to ensure font rendering consistency
+
+### Known Risks
+- **Translation accuracy**: Polish translations may need native speaker review
+- **UI layout**: Polish text may be longer than English, causing layout issues
+- **Maintenance burden**: All new features require translations in both languages
+- **Mitigation**: Start with machine translation, iterate with user feedback
+
+**Estimated Time**: 6-8 hours (2h infrastructure, 3h translations, 2h integration, 1h testing)
+**Blocking**: None - can be implemented independently
+**PRD Alignment**: Not explicitly in PRD, but enhances educational accessibility
+
+---
+
+## 🐺 Phase 19: Wolf Damage Differentiation (PRD Alignment) ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM-HIGH - PRD specifies different wolf behavior toward males vs females
+**Estimated Time**: 3-4 hours
+**Reference**: PRD Section 3.3.10-3.3.11, User Story US-010
+
+### Background
+Currently, wolves deal a single configurable damage value to all humans (`wolf.damageToHuman`). However, the PRD specifies different combat dynamics:
+- **Males fight back** (US-010, PRD 3.3.10): "When wolf adjacent to male at round end, male deals configured damage back to wolf"
+- **Females don't fight back** (US-010, PRD 3.3.11): "When wolf adjacent to female at round end, female takes damage but does not fight back"
+
+This suggests wolves may need different damage values for males vs females to balance the asymmetric combat. Additionally, PRD US-019 specifies dogs take specific damage from wolves, suggesting a need for separate wolf damage parameters.
+
+**Current State**: Single parameter `wolf.damageToHuman: 30`
+**Desired State**: Three separate parameters:
+- `wolf.damageToMale: 30` (males fight back, so balanced damage)
+- `wolf.damageToFemale: 40` (females don't fight back, so higher damage to compensate)
+- `wolf.damageToDog: 17` (dogs counter-attack, wolves deal half of dog's damage)
+
+### Configuration Updates (Phase 19.1)
+- [ ] Update `src/config.ts`:
+  - [ ] Remove `wolf.damageToHuman: 30`
+  - [ ] Add `wolf.damageToMale: 30` (default: same as current)
+  - [ ] Add `wolf.damageToFemale: 40` (default: higher than male, since females don't fight back)
+  - [ ] Add `wolf.damageToDog: 17` (default: half of dog's damage to wolf, per US-019)
+  - [ ] Update `DEFAULT_CONFIG` object
+- [ ] Update `src/ui/ConfigPanel.ts`:
+  - [ ] Update `GameConfig` interface:
+    - [ ] Remove `wolf.damageToHuman: number`
+    - [ ] Add `wolf.damageToMale: number`
+    - [ ] Add `wolf.damageToFemale: number`
+    - [ ] Add `wolf.damageToDog: number`
+  - [ ] Update `getDefaultConfig()` to include new parameters
+  - [ ] Update `populateInputs()` to read new parameters
+  - [ ] Update `readConfigFromInputs()` to write new parameters
+
+### Configuration UI (Phase 19.2)
+- [ ] Update `index.html` Wolf Configuration section:
+  - [ ] Remove existing "Damage to Human" input field
+  - [ ] Add three new input fields:
+    - [ ] **Damage to Male**:
+      - [ ] Input ID: `wolfDamageToMale`
+      - [ ] Range: 0-100, step 1, default 30
+      - [ ] Label: "Damage to Male Human"
+      - [ ] Tooltip: "Damage dealt to male humans (males fight back with configured counter-damage)"
+    - [ ] **Damage to Female**:
+      - [ ] Input ID: `wolfDamageToFemale`
+      - [ ] Range: 0-100, step 1, default 40
+      - [ ] Label: "Damage to Female Human"
+      - [ ] Tooltip: "Damage dealt to female humans (females do not fight back)"
+    - [ ] **Damage to Dog**:
+      - [ ] Input ID: `wolfDamageToDog`
+      - [ ] Range: 0-100, step 1, default 17
+      - [ ] Label: "Counter-Damage to Dog"
+      - [ ] Tooltip: "Damage dealt to dogs when dogs attack wolves (typically half of dog's damage)"
+  - [ ] Position: After "Starting Health", before "Perception Range"
+  - [ ] CSS: Match existing input field styling
+- [ ] Update `src/ui/ConfigPanel.ts`:
+  - [ ] Add input value setters for three new fields in `populateInputs()`
+  - [ ] Add input value getters for three new fields in `readConfigFromInputs()`
+  - [ ] Add validation for all three fields (0-100 range)
+
+### Combat System Updates (Phase 19.3)
+- [ ] Update `src/systems/CombatSystem.ts`:
+  - [ ] Import `GameConfig` type
+  - [ ] Add `config: GameConfig` property to class
+  - [ ] Update constructor: `constructor(renderer: Renderer, config: GameConfig)`
+  - [ ] Update `resolveCombat()` wolf vs human logic:
+    - [ ] Check if human is male or female: `human.isMale()` / `human.isFemale()`
+    - [ ] If male: use `this.config.wolf.damageToMale`
+    - [ ] If female: use `this.config.wolf.damageToFemale`
+    - [ ] Update console logging to show which damage value used
+  - [ ] Update `resolveCombat()` dog vs wolf logic:
+    - [ ] Wolf counter-attack to dog: use `this.config.wolf.damageToDog`
+    - [ ] Remove hardcoded `Math.floor(dogDamage / 2)` calculation
+    - [ ] Use configured value directly
+    - [ ] Update console logging
+- [ ] Update `src/core/Game.ts`:
+  - [ ] Pass `this.currentConfig` to `CombatSystem` constructor
+  - [ ] Update `updateConfig()` to update combat system config reference
+
+### Default Value Balancing (Phase 19.4)
+- [ ] Determine balanced default values:
+  - [ ] **Male damage (30)**: Males fight back with 25 damage, so 30 damage from wolf is balanced
+  - [ ] **Female damage (40)**: Females don't fight back, so higher damage compensates for lack of counter-attack
+  - [ ] **Dog damage (17)**: Dogs deal 35 damage to wolves, wolves deal half back (17-18 damage)
+- [ ] Test default values:
+  - [ ] Run simulation with default config
+  - [ ] Observe male vs female survival rates
+  - [ ] Observe dog vs wolf combat outcomes
+  - [ ] Adjust defaults if ecosystem becomes unbalanced
+- [ ] Document rationale in `config.ts` comments:
+  - [ ] Explain why female damage is higher
+  - [ ] Explain relationship between dog damage and wolf counter-damage
+
+### Integration & Testing (Phase 19.5)
+- [ ] Test configuration UI:
+  - [ ] Verify three new input fields appear in Wolf Configuration section
+  - [ ] Verify default values populate correctly
+  - [ ] Verify validation works (0-100 range, red borders on invalid)
+  - [ ] Verify "Reset to Defaults" restores all three values
+  - [ ] Verify values persist when changing other config parameters
+- [ ] Test wolf vs male combat:
+  - [ ] Spawn wolves and male humans adjacent
+  - [ ] Run simulation, observe combat
+  - [ ] Verify wolf deals configured `damageToMale` to male
+  - [ ] Verify male counter-attacks with `maleVsWolfDamage`
+  - [ ] Verify console logs show correct damage values
+  - [ ] Verify both take damage simultaneously
+- [ ] Test wolf vs female combat:
+  - [ ] Spawn wolves and female humans adjacent
+  - [ ] Run simulation, observe combat
+  - [ ] Verify wolf deals configured `damageToFemale` to female
+  - [ ] Verify female does NOT counter-attack
+  - [ ] Verify console logs show correct damage value
+  - [ ] Verify only female takes damage
+- [ ] Test dog vs wolf combat:
+  - [ ] Spawn dogs and wolves adjacent
+  - [ ] Run simulation, observe combat
+  - [ ] Verify dog deals `damageToWolf` to wolf
+  - [ ] Verify wolf deals configured `damageToDog` to dog
+  - [ ] Verify console logs show both damage values
+  - [ ] Verify both take damage simultaneously
+- [ ] Test edge cases:
+  - [ ] Set `damageToMale = 0`: males take no damage from wolves
+  - [ ] Set `damageToFemale = 100`: females die in one hit
+  - [ ] Set `damageToDog = 0`: dogs take no counter-damage
+  - [ ] Verify no crashes or unexpected behavior
+- [ ] Test ecosystem balance:
+  - [ ] Run 100+ round simulation with default values
+  - [ ] Observe male/female survival rates (should be roughly similar)
+  - [ ] Observe dog/wolf population dynamics
+  - [ ] Adjust defaults if one gender or species dominates excessively
+
+### Documentation Updates (Phase 19.6)
+- [ ] Update `CLAUDE.md`:
+  - [ ] Document new wolf damage parameters
+  - [ ] Explain rationale for differentiation
+  - [ ] Update combat system description
+- [ ] Update rules modal (if applicable):
+  - [ ] Update wolf combat description to mention different damage to males/females
+  - [ ] Update dog combat description to mention wolf counter-damage
+- [ ] Update configuration tooltips:
+  - [ ] Ensure tooltips clearly explain each damage parameter
+  - [ ] Mention counter-attack mechanics in tooltips
+
+### Success Criteria
+- [ ] Three separate wolf damage parameters in configuration
+- [ ] Configuration UI displays all three input fields with clear labels
+- [ ] Wolves deal configured damage to males (males counter-attack)
+- [ ] Wolves deal configured damage to females (females don't counter-attack)
+- [ ] Wolves deal configured counter-damage to dogs
+- [ ] Console logs show correct damage values for each combat type
+- [ ] Default values create balanced ecosystem dynamics
+- [ ] All existing combat mechanics continue working correctly
+- [ ] TypeScript compilation succeeds with no errors
+- [ ] No visual or gameplay regressions
+
+### Implementation Notes
+- This change improves PRD alignment by making wolf combat more configurable
+- Default values should maintain ecosystem balance (test extensively)
+- Consider that higher female damage may lead to female extinction if too high
+- Lower male damage may lead to wolf extinction if males kill wolves too easily
+- Dog counter-damage should be low enough that dogs remain effective wolf hunters
+- Update any hardcoded references to `damageToHuman` throughout codebase
+- Ensure backward compatibility: if loading old config, migrate to new structure
+
+### Known Risks
+- **Ecosystem imbalance**: New damage values may destabilize population dynamics
+  - Mitigation: Extensive testing, adjustable defaults, clear tooltips
+- **Configuration complexity**: Three parameters instead of one increases cognitive load
+  - Mitigation: Clear labels, tooltips explaining rationale, sensible defaults
+- **Breaking change**: Existing saved configs (if implemented) won't have new parameters
+  - Mitigation: Provide migration logic or clear error messages
+
+**Estimated Time**: 3-4 hours (1h config updates, 1h UI, 1h combat system, 1h testing/balancing)
+**Blocking**: None - can be implemented independently
+**PRD Alignment**: Improves alignment with PRD 3.3.10-3.3.11, US-010, US-019
 
 ---
