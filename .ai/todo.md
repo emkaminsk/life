@@ -141,6 +141,7 @@ Without dogs, wolf populations are unchecked, leading to human extinction scenar
 - [x] Dogs move toward wolves with appropriate probability
 - [x] Dogs deal 35 damage to adjacent wolves
 - [ ] Wolf health decreases by configured damage, dogs health decreases by half of the configured damage
+  - ⚠️ **INCOMPLETE**: Currently wolves don't counter-attack dogs at all. PRD US-019 requires wolves to deal half damage back to dogs. See Phase 5.7 for fix.
 - [x] Statistics panel shows accurate dog count
 - [x] All visual feedback working (emoji, border, flash)
 - [x] No compilation or runtime errors
@@ -150,6 +151,8 @@ Without dogs, wolf populations are unchecked, leading to human extinction scenar
 **Actual Time**: 1 hour (implementation + testing)
 **Blocking**: None - can be implemented independently
 **PRD Alignment**: US-019, Sections 3.4.3-3.4.4, 3.7.7, 3.10.1
+
+**Note**: Dog implementation is functionally complete except for wolf counter-attack behavior. This is a minor PRD compliance issue tracked in Phase 5.7.
 
 ## 🍄 Phase 5.6: Mushroom Implementation (CRITICAL - Missing from PoC)
 
@@ -237,6 +240,14 @@ Mushrooms are poisonous plants fully specified in PRD but completely missing fro
 **Priority**: HIGH - Required for PRD compliance
 **Reference**: Recent PRD updates requiring system changes
 
+### Dog vs Wolf Counter-Attack (US-019)
+- [ ] Update `src/systems/CombatSystem.ts` dog vs wolf combat:
+  - [ ] Currently wolves don't counter-attack dogs at all
+  - [ ] PRD US-019 requires: "Wolf health decreases by configured damage, dogs health decreases by half of the configured damage"
+  - [ ] Add wolf counter-attack dealing half of `damageToWolf` back to dog
+  - [ ] Console logging: show both damage values
+  - [ ] Test: Verify both dog and wolf take damage in combat
+
 ### Eating System Correction (PRD 3.5.4)
 - [ ] Update `src/systems/EatingSystem.ts`:
   - [ ] Change fruit eating logic from "first adjacent ripe fruit" to "one random human with health < max"
@@ -265,12 +276,13 @@ Mushrooms are poisonous plants fully specified in PRD but completely missing fro
   - [ ] Console logging: show damage dealt and energy transfer
 
 ### Testing Corrections
+- [ ] Test dog vs wolf: verify both take damage (wolf full, dog half)
 - [ ] Test updated eating: verify only humans with health < 100 eat fruits
 - [ ] Test birth death: pregnant woman dies when no adjacent space, baby occupies her position
 - [ ] Test male combat: verify energy transfer mechanics work correctly
 - [ ] Integration test: run simulation with all corrections active
 
-**Estimated Time**: 1-2 hours
+**Estimated Time**: 2-3 hours
 **Blocking**: Must complete after existing systems are stable
 
 ## 🎨 Phase 6: Visual Polish ✅ COMPLETE
@@ -419,18 +431,33 @@ Mushrooms are poisonous plants fully specified in PRD but completely missing fro
 ## 🚀 MVP Definition of Done
 
 MVP is complete when:
-1. ✅ All 7 system phases implemented and functional
-2. ✅ All 10 success criteria pass
-3. ✅ Performance target met (30+ FPS with 200+ creatures)
+1. ⚠️ All 7 system phases implemented and functional (6/7 complete - missing Mushrooms)
+2. ❌ All 10 success criteria pass (pending PRD corrections and testing)
+3. ❌ Performance target met (30+ FPS with 200+ creatures) - needs testing
 4. ✅ All visual indicators working (flashes, borders, pregnancy)
-5. ✅ Basic README.md with run instructions
-6. ✅ No critical bugs blocking simulation
+5. ❌ Basic README.md with run instructions
+6. ⚠️ No critical bugs blocking simulation (one PRD compliance issue: wolf counter-attack)
+
+## 📊 Current Implementation Status (as of latest review)
+
+### Completed Phases:
+- ✅ **Phases 1-4**: Core Systems (Board, Entities, All 7 system phases)
+- ✅ **Phase 5**: Plant System (Fruits with ripening and consumption)
+- ✅ **Phase 5.5**: Dog Implementation (functionally complete, one PRD issue)
+- ✅ **Phase 6**: Visual Polish (pregnancy indicator, fruit ripening, all effects, FPS counter)
+
+### In Progress / Not Started:
+- ❌ **Phase 5.6**: Mushroom Implementation (NOT STARTED - HIGH PRIORITY)
+- ❌ **Phase 5.7**: PRD Corrections (NOT STARTED - includes wolf counter-attack, eating logic, birth edge case, male combat energy transfer)
+- ❌ **Phase 7**: UI/UX Enhancements (NOT STARTED - button consolidation, reset functionality)
+- 🔶 **Phase 8**: Performance Optimization (PARTIAL - dirty rectangles ✅, emoji caching ✅, testing needed)
+- ❌ **Testing & Validation**: Edge cases, performance benchmarks
+- ❌ **Documentation**: README.md, code comments
 
 ## 📋 Post-MVP Enhancements (Future)
 
 Items deferred beyond MVP scope:
 - [ ] Configurable simulation speed slider
-- [ ] Reset/Restart button
 - [ ] Save/Load simulation state
 - [ ] Export simulation data (CSV/JSON)
 - [ ] Advanced statistics (avg age, population graphs)
@@ -443,5 +470,11 @@ Items deferred beyond MVP scope:
 
 ---
 
-**Estimated Remaining Work**: ~4-6 hours for MVP completion
-**Priority Order**: Phase 5.5 (Dog Implementation) ✅ COMPLETE → Phase 5.6 (Mushroom Implementation) → Phase 5.7 (PRD Corrections) → Phase 7 (UI/UX Enhancements) → Phase 8 (Performance) → Testing → Documentation
+**Estimated Remaining Work**: ~8-12 hours for MVP completion
+**Priority Order**:
+1. Phase 5.6 (Mushroom Implementation) - 2 hours
+2. Phase 5.7 (PRD Corrections) - 2-3 hours
+3. Phase 7 (UI/UX - Reset button) - 1 hour
+4. Phase 8 (Performance Testing) - 1-2 hours
+5. Testing & Validation - 2-3 hours
+6. Documentation (README.md) - 1 hour
