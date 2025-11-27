@@ -446,7 +446,13 @@ MVP is complete when:
 - ⚠️ **Phase 7**: UI/UX Enhancements (PARTIAL - Reset button ✅, button consolidation deferred)
 
 ### ⚠️ In Progress / Not Started:
-- ❌ **Phase 9**: Configuration UI (NOT STARTED - **CRITICAL MVP BLOCKER**)
+- ❌ **Phase 9**: Notification System (NOT STARTED - extinction alerts, capacity warnings)
+- ❌ **Phase 10**: Population Graph (NOT STARTED - **REQUIRED FOR MVP** per PRD 4.1)
+- ❌ **Phase 11**: Rules Reference Modal (NOT STARTED - "?" button with documentation)
+- ❌ **Phase 12**: Configuration UI (NOT STARTED - **CRITICAL MVP BLOCKER**)
+- ❌ **Phase 13**: Speed Control & Additional UI Controls (NOT STARTED - speed slider, finish button, keyboard shortcuts)
+- ❌ **Phase 14**: Overcrowding Death System (NOT STARTED - death multiplier implementation)
+- ❌ **Phase 15**: Large Board Initialization Progress (NOT STARTED - progress indicator)
 - ⚠️ **Phase 5.7**: PRD Corrections (PARTIAL - 1 of 4 complete)
   - ✅ Dog vs Wolf counter-attack
   - ❌ Eating logic (only injured humans eat)
@@ -456,7 +462,123 @@ MVP is complete when:
 - ❌ **Testing & Validation**: Edge cases, performance benchmarks
 - ✅ **Documentation**: README.md complete with usage instructions
 
-## 🎛️ Phase 9: Configuration UI Implementation (CRITICAL - MISSING MVP FEATURE)
+## 🔔 Phase 9: Notification System (MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Required for MVP
+**Reference**: PRD Section 3.12, User Stories US-021, US-022
+
+### Background
+The PRD specifies a notification system for critical population events and capacity warnings. Currently, no notification/alert system exists.
+
+### Extinction Alerts (US-021)
+- [ ] Implement notification component (non-intrusive overlay)
+- [ ] Track previous male/female counts each round
+- [ ] Detect when all males die (count goes from >0 to 0)
+- [ ] Display alert: "All males have died - reproduction no longer possible"
+- [ ] Detect when all females die (count goes from >0 to 0)
+- [ ] Display alert: "All females have died - reproduction no longer possible"
+- [ ] Prevent duplicate alerts for same extinction event
+- [ ] Auto-dismiss after timeout or user click
+
+### Capacity Warning (US-022)
+- [ ] Calculate board capacity: total creatures / total fields
+- [ ] Detect when capacity reaches 90%
+- [ ] Display warning: "Board nearly full - ecosystem may become unstable"
+- [ ] Prevent duplicate warnings (clear flag when drops below 90%)
+- [ ] Non-intrusive overlay styling
+
+### Implementation
+- [ ] Create notification queue system
+- [ ] CSS for notification overlay (non-blocking, dismissible)
+- [ ] Integration with game loop to check conditions each round
+
+**Estimated Time**: 2-3 hours
+**PRD Alignment**: PRD 3.12.1-3.12.4, US-021, US-022
+
+---
+
+## 📊 Phase 10: Population Graph (MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - **Required for MVP** (listed in PRD Section 4.1 In Scope)
+**Reference**: PRD Sections 3.10.2-3.10.3, User Story US-016
+
+### Background
+PRD Section 4.1 explicitly lists "Statistics panel with population graph" as in-scope for MVP. The graph is critical for students to observe long-term population trends and understand predator-prey dynamics.
+
+### Graph Requirements
+- [ ] Line graph in statistics panel showing human population over time
+- [ ] X-axis: Rounds elapsed
+- [ ] Y-axis: Total human population (males + females)
+- [ ] Real-time updates as simulation progresses
+- [ ] Maintain full history from game start
+- [ ] Auto-scaling to data range
+- [ ] Clear axis labels and readable design
+
+### Implementation Options
+- [ ] Option A: Canvas-based graph (consistent with game rendering)
+- [ ] Option B: SVG-based graph (cleaner scaling)
+- [ ] Option C: Simple HTML/CSS bar chart (minimal complexity)
+
+### Technical Tasks
+- [ ] Add population history array to Game class
+- [ ] Record population each round
+- [ ] Create graph rendering function
+- [ ] Add graph container to statistics panel HTML
+- [ ] Update graph rendering in UI update loop
+- [ ] Clear history on game reset
+
+**Estimated Time**: 3-4 hours
+**PRD Alignment**: PRD 3.10.2-3.10.3, 4.1, US-016
+
+---
+
+## ❓ Phase 11: Rules Reference Modal (MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM-HIGH - Required for MVP
+**Reference**: PRD Section 3.11, User Story US-017
+
+### Background
+The PRD specifies a comprehensive rules reference system with "?" button. This is critical for educational use - students need to reference game mechanics without stopping simulation.
+
+### Modal Structure (US-017)
+- [ ] Add "?" button to top-right corner of header
+- [ ] Create modal overlay component
+- [ ] Implement tabbed sections:
+  - [ ] **Game Rules** tab: Priority order prominently displayed
+  - [ ] **Creature Types** tab: Qualitative descriptions (e.g., "Wolves hunt humans")
+  - [ ] **Plant Types** tab: Fruit and mushroom mechanics
+  - [ ] **Controls** tab: All keyboard shortcuts documented
+
+### Content Requirements
+- [ ] Document 7-phase priority order clearly
+- [ ] Describe each creature type behavior
+- [ ] Explain fruit ripening and mushroom poisoning
+- [ ] List all keyboard shortcuts
+- [ ] Use student-friendly language (ages 11-15)
+
+### Interaction
+- [ ] Modal closeable by clicking outside
+- [ ] Modal closeable by pressing Escape key
+- [ ] Modal closeable by clicking close button
+- [ ] Simulation continues while modal open
+- [ ] Tab switching functionality
+
+### Implementation
+- [ ] Add "?" button to index.html header
+- [ ] Create modal HTML structure
+- [ ] CSS for modal overlay and tabs
+- [ ] JavaScript for show/hide/tab switching
+- [ ] Escape key handler
+
+**Estimated Time**: 3-4 hours
+**PRD Alignment**: PRD 3.11.1-3.11.7, US-017
+
+---
+
+## 🎛️ Phase 12: Configuration UI Implementation (CRITICAL - MISSING MVP FEATURE)
 
 **Status**: ❌ NOT STARTED
 **Priority**: CRITICAL - **BLOCKING MVP COMPLETION**
@@ -605,10 +727,137 @@ The PRD extensively documents a configuration panel system, but it's not impleme
 
 ---
 
+## ⚡ Phase 13: Speed Control & Additional UI Controls (MISSING MVP FEATURES)
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM-HIGH - Required for MVP
+**Reference**: PRD Sections 3.8.5-3.8.7, User Stories US-005, US-020, US-023
+
+### Background
+Several UI controls specified in PRD are missing from implementation:
+1. **Speed Slider** - Currently in "Post-MVP" but PRD 3.8.6 and US-005 explicitly require it for MVP
+2. **Finish Game Button** - PRD 3.8.5 requires this to end simulation and return to config
+3. **Keyboard Shortcuts** - Only Space is implemented; missing 4 additional shortcuts
+
+### Speed Control Slider (US-005)
+- [ ] Add speed slider to controls panel
+- [ ] Three speed settings:
+  - [ ] Slow: 500ms per round
+  - [ ] Medium: 200ms per round (current default)
+  - [ ] Fast: 50ms per round
+- [ ] Speed changes take effect immediately during continuous execution
+- [ ] Speed setting persists when pausing and resuming
+- [ ] Update game loop to use selected speed
+
+### Finish Game Button (US-023)
+- [ ] Add "Finish Game" button to controls panel
+- [ ] Clicking stops simulation immediately
+- [ ] Returns to configuration panel (Phase 12 dependency)
+- [ ] Previous configuration values retained (US-033)
+- [ ] Statistics reset to zero
+- [ ] Graph cleared (Phase 10 dependency)
+- [ ] Board cleared
+- [ ] "Start Game" re-enabled for new simulation
+
+### Complete Keyboard Shortcuts (US-020, PRD 3.8.7)
+Currently implemented:
+- [x] Space: Pause/play toggle
+
+Missing shortcuts:
+- [ ] Right arrow: Advance 1 round when paused
+- [ ] Up arrow: Advance 5 rounds when paused
+- [ ] Down arrow: Pause continuous simulation
+- [ ] Left arrow: Pause continuous simulation
+- [ ] Prevent shortcuts when input fields focused
+- [ ] Document all shortcuts in rules modal (Phase 11)
+
+### Implementation
+- [ ] Add speed slider HTML input
+- [ ] Add "Finish Game" button to HTML
+- [ ] Implement speed change handler
+- [ ] Implement finish game handler
+- [ ] Add keyboard event listeners for arrow keys
+- [ ] Update Game class to accept speed parameter
+- [ ] Test all keyboard shortcuts work correctly
+
+**Estimated Time**: 2-3 hours
+**PRD Alignment**: PRD 3.8.5-3.8.7, US-005, US-020, US-023
+
+---
+
+## 🎲 Phase 14: Overcrowding Death System (MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM - Required for MVP
+**Reference**: PRD Section 3.2.7, User Story US-014
+
+### Background
+PRD 3.2.7 specifies: "When population exceeds overcrowding threshold, death probability multiplied by configured overcrowding multiplier". The overcrowding parameters exist in config.ts but are NOT implemented in DeathSystem.
+
+### Current Implementation Gap
+- ✅ Overcrowding config parameters added to config.ts
+- ❌ DeathSystem does NOT check population thresholds
+- ❌ DeathSystem does NOT apply multiplier to death probability
+
+### Implementation Requirements
+- [ ] Track total human count each round
+- [ ] Track total animal count (wolves + dogs) each round
+- [ ] In DeathSystem.execute():
+  - [ ] Check if humanCount > config.overcrowding.humanThreshold
+  - [ ] Check if animalCount > config.overcrowding.animalThreshold
+  - [ ] Apply multiplier to Gompertz death probability for affected populations
+  - [ ] Console log overcrowding status when active
+
+### Gompertz Multiplier Logic
+- [ ] Modify Gompertz.shouldDie() to accept optional multiplier parameter
+- [ ] Current: `P(death) = 1 - e^(-A × e^(B × age))`
+- [ ] With overcrowding: `P(death) = 1 - e^(-A × multiplier × e^(B × age))`
+- [ ] OR: Calculate base probability, then multiply result by overcrowding multiplier
+
+### Testing
+- [ ] Set low thresholds (e.g., 20 humans)
+- [ ] Observe increased death rate when threshold exceeded
+- [ ] Verify console logging shows overcrowding active
+- [ ] Verify death rate returns to normal when population drops
+
+**Estimated Time**: 2-3 hours
+**PRD Alignment**: PRD 3.2.7, US-014
+
+---
+
+## 🔄 Phase 15: Large Board Initialization Progress (MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: LOW-MEDIUM - Required for MVP (large boards only)
+**Reference**: PRD Sections 3.13.1-3.13.2, User Story US-029
+
+### Background
+PRD 3.13.1-3.13.2 specifies progress indicators for boards >50x50 to prevent browser appearing frozen during initialization.
+
+### Requirements
+- [ ] Detect when board dimensions > 50x50
+- [ ] Display "Initializing game..." message overlay
+- [ ] Show progress indicator: "Spawning creatures: X%"
+- [ ] Update progress at least every 10% increment
+- [ ] Ensure initialization doesn't freeze browser (use async if needed)
+- [ ] Hide message when initialization complete
+- [ ] Simulation starts automatically after initialization
+
+### Implementation
+- [ ] Add initialization overlay HTML/CSS
+- [ ] Modify Game.initializeBoard() to accept progress callback
+- [ ] Calculate total cells and report progress
+- [ ] Use requestAnimationFrame or setTimeout for async initialization
+- [ ] Test with 100x100 board
+
+**Estimated Time**: 2-3 hours
+**PRD Alignment**: PRD 3.13.1-3.13.2, US-029
+
+---
+
 ## 📋 Post-MVP Enhancements (Future)
 
 Items deferred beyond MVP scope:
-- [ ] Configurable simulation speed slider
 - [ ] Save/Load simulation state to file
 - [ ] Export simulation data (CSV/JSON)
 - [ ] Advanced statistics (avg age, population graphs)
@@ -620,15 +869,36 @@ Items deferred beyond MVP scope:
 
 ---
 
-**Estimated Remaining Work**: ~12-18 hours for full MVP completion
-**Priority Order**:
-1. ✅ ~~Phase 5.6 (Mushroom Implementation)~~ - COMPLETE
-2. ✅ ~~Phase 5.7.1 (Dog vs Wolf Counter-Attack)~~ - COMPLETE
-3. ✅ ~~Phase 7 (Reset Button)~~ - COMPLETE
-4. ✅ ~~Documentation (README.md)~~ - COMPLETE
-5. **Phase 9 (Configuration UI) - CRITICAL MVP BLOCKER** - 8-12 hours
-6. Phase 5.7 (Remaining PRD Corrections - Optional) - 2-3 hours
-7. Phase 8 (Performance Testing) - 1-2 hours
-8. Testing & Validation - 1-2 hours
+**Estimated Remaining Work**: ~30-40 hours for full MVP completion
 
-**Current MVP Status**: Core game mechanics complete, but **CONFIGURATION UI IS MISSING** - this is a critical blocker for MVP as users cannot modify parameters between games.
+**Priority Order** (Revised based on PRD requirements):
+
+**CRITICAL PATH (Must complete for MVP):**
+1. **Phase 12: Configuration UI** - 8-12 hours (BLOCKER - required for parameter modification)
+2. **Phase 10: Population Graph** - 3-4 hours (Explicitly listed in PRD 4.1 In Scope)
+3. **Phase 13: Speed Control & UI Controls** - 2-3 hours (Speed slider + Finish Game button + keyboard shortcuts)
+
+**HIGH PRIORITY (MVP features):**
+4. **Phase 9: Notification System** - 2-3 hours (Extinction alerts + capacity warnings)
+5. **Phase 11: Rules Reference Modal** - 3-4 hours (Educational requirement)
+6. **Phase 14: Overcrowding Death System** - 2-3 hours (Game mechanic specified in PRD)
+
+**MEDIUM PRIORITY (MVP features):**
+7. **Phase 15: Large Board Initialization** - 2-3 hours (UX for large boards)
+8. **Phase 5.7: PRD Corrections** - 2-3 hours (Optional refinements)
+9. **Phase 8: Performance Testing** - 1-2 hours (Validation)
+
+**FINAL:**
+10. **Testing & Validation** - 2-3 hours (Integration testing)
+
+**Current MVP Status**: Core game mechanics complete, but **7 MAJOR MVP FEATURES ARE MISSING**:
+1. ❌ Configuration UI (CRITICAL)
+2. ❌ Population Graph (Required per PRD 4.1)
+3. ❌ Rules Reference Modal
+4. ❌ Speed Control Slider
+5. ❌ Finish Game Button
+6. ❌ Complete Keyboard Shortcuts
+7. ❌ Notification System
+8. ❌ Overcrowding System Implementation
+
+Users currently cannot modify parameters between games, cannot see population trends, cannot reference rules, and missing several core UI controls specified in PRD.
