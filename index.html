@@ -157,9 +157,537 @@
       font-weight: bold;
       color: #333;
     }
+
+    /* Notification System */
+    #notificationContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      max-width: 400px;
+    }
+
+    .notification {
+      background: white;
+      border-left: 4px solid #ff9800;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 4px;
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      animation: slideIn 0.3s ease-out;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .notification:hover {
+      opacity: 0.9;
+    }
+
+    .notification.error {
+      border-left-color: #f44336;
+    }
+
+    .notification.warning {
+      border-left-color: #ff9800;
+    }
+
+    .notification.info {
+      border-left-color: #2196F3;
+    }
+
+    .notification-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .notification-message {
+      font-size: 13px;
+      color: #666;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Rules Modal */
+    #rulesModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #rulesModal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      max-width: 700px;
+      max-height: 80vh;
+      width: 90%;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .modal-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      background: #f8f9fa;
+    }
+
+    .modal-tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+    }
+
+    .modal-tab:hover {
+      background: #e9ecef;
+    }
+
+    .modal-tab.active {
+      color: #007bff;
+      border-bottom-color: #007bff;
+      background: white;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: calc(80vh - 140px);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content h3 {
+      margin-top: 15px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .tab-content p, .tab-content li {
+      line-height: 1.6;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .tab-content ul {
+      margin-left: 20px;
+    }
+
+    .help-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 100;
+      transition: background 0.2s;
+    }
+
+    .help-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Initialization Progress */
+    #initProgress {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #initProgress.active {
+      display: flex;
+    }
+
+    .progress-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      min-width: 300px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .progress-content h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #45a049);
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Configuration Modal */
+    .config-modal {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .config-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .config-content h1 {
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      color: #333;
+    }
+
+    .config-subtitle {
+      margin: 0 0 25px 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .config-section {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .config-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: #f8f8f8;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .config-section-header:hover {
+      background: #f0f0f0;
+    }
+
+    .config-section-header h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .toggle-icon {
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+
+    .config-section.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    .config-section.collapsed .config-section-body {
+      display: none;
+    }
+
+    .config-section-body {
+      padding: 20px;
+    }
+
+    .config-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .config-row label {
+      font-size: 14px;
+      color: #555;
+      flex: 1;
+    }
+
+    .config-row input {
+      width: 100px;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .config-row input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .config-divider {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 20px 0;
+    }
+
+    .validation-message {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .validation-error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef5350;
+    }
+
+    .validation-warning {
+      background: #fff3e0;
+      color: #e65100;
+      border: 1px solid #ff9800;
+    }
+
+    .validation-success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #4CAF50;
+    }
+
+    .expected-counts {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+    }
+
+    .config-controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .config-controls button {
+      flex: 1;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #45a049;
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
   </style>
 </head>
 <body>
+  <button id="helpBtn" class="help-btn" title="View Rules">?</button>
+  <div id="notificationContainer"></div>
+
+  <!-- Initialization Progress -->
+  <div id="initProgress">
+    <div class="progress-content">
+      <h3>⏳ Initializing Game...</h3>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text" id="progressText">Spawning creatures: 0%</div>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div id="rulesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📖 Game Rules & Reference</h2>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="rules">Game Rules</button>
+        <button class="modal-tab" data-tab="creatures">Creatures</button>
+        <button class="modal-tab" data-tab="plants">Plants</button>
+        <button class="modal-tab" data-tab="controls">Controls</button>
+      </div>
+      <div class="modal-body">
+        <div class="tab-content active" id="rules-tab">
+          <h3>🎮 How the Game Works</h3>
+          <p>This simulator shows how populations interact in an ecosystem. Each round, all creatures follow these phases in order:</p>
+          <ol>
+            <li><strong>Movement</strong> - Creatures move to nearby cells</li>
+            <li><strong>Combat</strong> - Males fight each other, wolves attack humans, dogs attack wolves</li>
+            <li><strong>Eating</strong> - Humans eat fruits and mushrooms</li>
+            <li><strong>Reproduction</strong> - Males and females may reproduce</li>
+            <li><strong>Death</strong> - Creatures age and may die naturally</li>
+            <li><strong>Birth</strong> - Pregnant females give birth</li>
+            <li><strong>Plant Spawning</strong> - New fruits and mushrooms appear</li>
+          </ol>
+          <h3>⚡ Important Rules</h3>
+          <ul>
+            <li>All creatures complete each phase before the next phase begins</li>
+            <li>Creatures age every round and may die of old age (Gompertz mortality)</li>
+            <li>When populations exceed thresholds, death rates increase (overcrowding)</li>
+            <li>The round counter increases after all 7 phases complete</li>
+          </ul>
+        </div>
+        <div class="tab-content" id="creatures-tab">
+          <h3>👨 Male Humans</h3>
+          <p>Males can fight each other and wolves. They can reproduce with females. Males move toward nearby fruits when hungry.</p>
+          <h3>👩 Female Humans</h3>
+          <p>Females can reproduce with males. After mating, females become pregnant for 3 rounds, then give birth. They have a cooldown period before they can reproduce again.</p>
+          <h3>🐺 Wolves</h3>
+          <p>Wolves hunt humans aggressively. They have a wider perception range than humans and move toward nearby humans. Wolves age and die naturally over time.</p>
+          <h3>🐕 Dogs</h3>
+          <p>Dogs protect humans by attacking wolves. They move toward nearby wolves and can counter-attack when wolves attack them. Dogs age and die naturally.</p>
+        </div>
+        <div class="tab-content" id="plants-tab">
+          <h3>🍎 Fruits</h3>
+          <p>Fruits provide energy to humans. They take 2 rounds to ripen (shown by color change). Only ripe fruits can be eaten. Humans heal when eating fruits.</p>
+          <h3>🍄 Mushrooms</h3>
+          <p>Mushrooms are poisonous! When humans eat mushrooms, they lose health instead of gaining it. Be careful - mushrooms look similar to fruits but are dangerous.</p>
+          <h3>🌱 Plant Spawning</h3>
+          <p>New fruits and mushrooms spawn randomly on empty cells each round. Fruits are more common than mushrooms.</p>
+        </div>
+        <div class="tab-content" id="controls-tab">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+          <ul>
+            <li><strong>Space</strong> - Pause/Resume simulation</li>
+            <li><strong>Right Arrow (→)</strong> - Advance 1 round when paused</li>
+            <li><strong>Up Arrow (↑)</strong> - Advance 5 rounds when paused</li>
+            <li><strong>Down Arrow (↓)</strong> - Pause continuous simulation</li>
+            <li><strong>Left Arrow (←)</strong> - Pause continuous simulation</li>
+            <li><strong>Escape (Esc)</strong> - Close this modal</li>
+          </ul>
+          <h3>🖱️ Mouse Controls</h3>
+          <ul>
+            <li><strong>Start Game</strong> - Begin simulation with random entities</li>
+            <li><strong>Pause/Resume</strong> - Toggle continuous execution</li>
+            <li><strong>Step</strong> - Execute one round manually</li>
+            <li><strong>Run</strong> - Resume continuous execution</li>
+            <li><strong>Reset</strong> - Clear board and restart</li>
+            <li><strong>Finish Game</strong> - End simulation and return to start</li>
+            <li><strong>Speed</strong> - Choose Slow/Medium/Fast execution speed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <h1>Game of Life Educational Simulator</h1>
@@ -183,6 +711,15 @@
             <button id="stepBtn" class="btn-primary">Step</button>
             <button id="runBtn" class="btn-primary" disabled>Run</button>
             <button id="resetBtn" class="btn-danger" disabled>Reset</button>
+            <button id="finishBtn" class="btn-danger" disabled>Finish Game</button>
+            <div style="margin-top: 15px;">
+              <label style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Speed</label>
+              <select id="speedSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="500">Slow (500ms)</option>
+                <option value="200" selected>Medium (200ms)</option>
+                <option value="50">Fast (50ms)</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -218,7 +755,74 @@
               <span class="stat-value" id="mushroomCount">0</span>
             </div>
           </div>
+          <div style="margin-top: 15px;">
+            <h3 style="font-size: 14px; margin-bottom: 10px; color: #666;">Population Over Time</h3>
+            <canvas id="populationGraph" width="220" height="120" style="border: 1px solid #ddd; background: #fafafa;"></canvas>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration Panel Modal -->
+  <div id="configPanel" class="config-modal">
+    <div class="config-content">
+      <h1>Game Configuration</h1>
+      <p class="config-subtitle">Configure parameters before starting the simulation</p>
+
+      <!-- Board & Spawn Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>📐 Board & Spawn Probabilities</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="boardWidth">Board Width (10-100):</label>
+            <input type="number" id="boardWidth" min="10" max="100" value="30">
+          </div>
+          <div class="config-row">
+            <label for="boardHeight">Board Height (10-100):</label>
+            <input type="number" id="boardHeight" min="10" max="100" value="30">
+          </div>
+          <div class="config-row">
+            <label for="injuredThreshold">Injured Threshold % (0-100):</label>
+            <input type="number" id="injuredThreshold" min="0" max="100" value="50">
+          </div>
+          <hr class="config-divider">
+          <div class="config-row">
+            <label for="spawnMaleHuman">Male Human Spawn (0-1):</label>
+            <input type="number" id="spawnMaleHuman" min="0" max="1" step="0.01" value="0.15">
+          </div>
+          <div class="config-row">
+            <label for="spawnFemaleHuman">Female Human Spawn (0-1):</label>
+            <input type="number" id="spawnFemaleHuman" min="0" max="1" step="0.01" value="0.15">
+          </div>
+          <div class="config-row">
+            <label for="spawnWolf">Wolf Spawn (0-1):</label>
+            <input type="number" id="spawnWolf" min="0" max="1" step="0.01" value="0.05">
+          </div>
+          <div class="config-row">
+            <label for="spawnDog">Dog Spawn (0-1):</label>
+            <input type="number" id="spawnDog" min="0" max="1" step="0.01" value="0.03">
+          </div>
+          <div class="config-row">
+            <label for="spawnFruit">Fruit Spawn (0-1):</label>
+            <input type="number" id="spawnFruit" min="0" max="1" step="0.01" value="0.10">
+          </div>
+          <div class="config-row">
+            <label for="spawnMushroom">Mushroom Spawn (0-1):</label>
+            <input type="number" id="spawnMushroom" min="0" max="1" step="0.01" value="0.01">
+          </div>
+          <div id="spawnValidation" class="validation-message"></div>
+          <div id="expectedCounts" class="expected-counts"></div>
+        </div>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="config-controls">
+        <button id="resetConfigBtn" class="btn-secondary">Reset to Defaults</button>
+        <button id="startGameBtn" class="btn-primary">Start Game</button>
       </div>
     </div>
   </div>

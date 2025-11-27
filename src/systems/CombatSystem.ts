@@ -70,10 +70,69 @@ export class CombatSystem {
     if (entity1 instanceof Human && entity1.isMale() &&
         entity2 instanceof Human && entity2.isMale()) {
       const damage = DEFAULT_CONFIG.human.maleVsMaleDamage;
+
+      // Store initial health before combat (for energy transfer)
+      const male1InitialHealth = entity1.health;
+      const male2InitialHealth = entity2.health;
+
+      // Both males take damage simultaneously
       entity1.takeDamage(damage);
       entity2.takeDamage(damage);
 
       console.log(`[Combat] Male vs Male at (${entity1.x},${entity1.y}) and (${entity2.x},${entity2.y}): both take ${damage} damage`);
+
+      // Handle energy transfer if one or both males have health <= 0
+      const male1Dying = entity1.health <= 0;
+      const male2Dying = entity2.health <= 0;
+
+      if (male1Dying && male2Dying) {
+        // Both would die - only one dies, determined by health level
+        let survivor: Human;
+        let dyingMale: Human;
+        let dyingInitialHealth: number;
+
+        if (entity1.health < entity2.health) {
+          // entity1 has lower health, dies
+          survivor = entity2;
+          dyingMale = entity1;
+          dyingInitialHealth = male1InitialHealth;
+        } else if (entity2.health < entity1.health) {
+          // entity2 has lower health, dies
+          survivor = entity1;
+          dyingMale = entity2;
+          dyingInitialHealth = male2InitialHealth;
+        } else {
+          // Equal health - random selection
+          if (Math.random() < 0.5) {
+            survivor = entity1;
+            dyingMale = entity2;
+            dyingInitialHealth = male2InitialHealth;
+          } else {
+            survivor = entity2;
+            dyingMale = entity1;
+            dyingInitialHealth = male1InitialHealth;
+          }
+        }
+
+        // Survivor gains dying male's initial health
+        survivor.heal(dyingInitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        console.log(`[Combat] Both males would die: ${dyingMale === entity1 ? 'Male1' : 'Male2'} dies, survivor gains ${dyingInitialHealth} health`);
+
+        // Set survivor's health to 1 to ensure they survive
+        if (survivor.health <= 0) {
+          survivor.health = 1;
+        }
+
+      } else if (male1Dying) {
+        // Only entity1 dies, entity2 gains energy
+        entity2.heal(male1InitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        console.log(`[Combat] Male at (${entity1.x},${entity1.y}) dies, survivor at (${entity2.x},${entity2.y}) gains ${male1InitialHealth} health`);
+
+      } else if (male2Dying) {
+        // Only entity2 dies, entity1 gains energy
+        entity1.heal(male2InitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        console.log(`[Combat] Male at (${entity2.x},${entity2.y}) dies, survivor at (${entity1.x},${entity1.y}) gains ${male2InitialHealth} health`);
+      }
 
       this.addCombatEffect(entity1.x, entity1.y);
       this.addCombatEffect(entity2.x, entity2.y);

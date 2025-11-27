@@ -5,7 +5,7 @@ import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
 import { Mushroom } from '../entities/Mushroom';
-import { Sex } from '../types';
+import { Sex, EntityType } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { MovementSystem } from '../systems/MovementSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -27,19 +27,23 @@ export class Game {
   private plantSpawnSystem: PlantSpawnSystem;
   private isRunning: boolean;
   private roundInterval: number | null;
+  private populationHistory: number[]; // Track human population over time
+  private currentSpeed: number; // Current simulation speed in ms
 
   constructor(board: Board, renderer: Renderer) {
     this.board = board;
     this.renderer = renderer;
-    this.movementSystem = new MovementSystem();
+    this.movementSystem = new MovementSystem(renderer);
     this.combatSystem = new CombatSystem(renderer);
     this.eatingSystem = new EatingSystem(renderer);
     this.reproductionSystem = new ReproductionSystem(renderer);
-    this.deathSystem = new DeathSystem();
+    this.deathSystem = new DeathSystem(renderer);
     this.birthSystem = new BirthSystem(renderer);
-    this.plantSpawnSystem = new PlantSpawnSystem();
+    this.plantSpawnSystem = new PlantSpawnSystem(renderer);
     this.isRunning = false;
     this.roundInterval = null;
+    this.populationHistory = [];
+    this.currentSpeed = DEFAULT_CONFIG.simulation.defaultSpeed;
   }
 
   /**
@@ -91,6 +95,9 @@ export class Game {
 
     console.log(`[Game] Spawned: ${maleCount} males, ${femaleCount} females, ${wolfCount} wolves, ${dogCount} dogs, ${fruitCount} fruits, ${mushroomCount} mushrooms`);
 
+    // Record initial population
+    this.recordPopulation();
+
     // Mark all cells dirty for initial render
     this.renderer.markAllDirty(this.board);
     this.renderer.render(this.board);
@@ -123,11 +130,11 @@ export class Game {
     // Phase 7: Plant Spawn
     this.plantSpawnSystem.execute(this.board);
 
-    // Mark entire board dirty to clear cells that became empty (moved/dead entities)
-    this.renderer.markAllDirty(this.board);
-
     // Increment round counter
     this.board.incrementRound();
+
+    // Record population after round
+    this.recordPopulation();
 
     // Render changes
     this.renderer.render(this.board);
@@ -143,7 +150,7 @@ export class Game {
     this.isRunning = true;
     this.roundInterval = window.setInterval(() => {
       this.executeRound();
-    }, DEFAULT_CONFIG.simulation.defaultSpeed);
+    }, this.currentSpeed);
   }
 
   /**
@@ -195,10 +202,51 @@ export class Game {
     // Clear the board
     this.board.reset();
 
+    // Clear population history
+    this.populationHistory = [];
+
     // Mark all cells dirty and render empty board
     this.renderer.markAllDirty(this.board);
     this.renderer.render(this.board);
 
     console.log('[Game] Game reset complete');
+  }
+
+  /**
+   * Record current human population
+   */
+  private recordPopulation(): void {
+    const entities = this.board.getAllEntities();
+    const humanCount = entities.filter(
+      e => e.type === EntityType.MALE || e.type === EntityType.FEMALE
+    ).length;
+    this.populationHistory.push(humanCount);
+  }
+
+  /**
+   * Get population history for graphing
+   */
+  getPopulationHistory(): number[] {
+    return this.populationHistory;
+  }
+
+  /**
+   * Set simulation speed
+   */
+  setSpeed(speedMs: number): void {
+    this.currentSpeed = speedMs;
+
+    // If currently running, restart with new speed
+    if (this.isRunning) {
+      this.pause();
+      this.start();
+    }
+  }
+
+  /**
+   * Get current speed
+   */
+  getSpeed(): number {
+    return this.currentSpeed;
   }
 }

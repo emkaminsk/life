@@ -4,11 +4,18 @@ import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
+import { Renderer } from '../core/Renderer';
 import { EntityType } from '../types';
 import { Random } from '../utils/Random';
 import { DEFAULT_CONFIG } from '../config';
 
 export class MovementSystem {
+  private renderer: Renderer;
+
+  constructor(renderer: Renderer) {
+    this.renderer = renderer;
+  }
+
   execute(board: Board): void {
     const entities = board.getAllEntities();
     const movedEntities = new Set<Entity>();
@@ -48,7 +55,15 @@ export class MovementSystem {
     }
 
     if (targetPosition) {
-      return board.moveEntity(creature.x, creature.y, targetPosition.x, targetPosition.y);
+      const oldX = creature.x;
+      const oldY = creature.y;
+      const moved = board.moveEntity(oldX, oldY, targetPosition.x, targetPosition.y);
+      if (moved) {
+        // Mark both old and new positions dirty
+        this.renderer.markDirty(oldX, oldY);
+        this.renderer.markDirty(targetPosition.x, targetPosition.y);
+      }
+      return moved;
     }
 
     return false;
