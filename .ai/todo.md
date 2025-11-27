@@ -227,9 +227,9 @@ Mushrooms are poisonous plants fully specified in PRD. Mushrooms complete the pl
 **Actual Time**: 45 minutes
 **Blocking**: None - implemented independently
 
-## 🔧 Phase 5.7: PRD Corrections Implementation
+## 🔧 Phase 5.7: PRD Corrections Implementation ✅ COMPLETE
 
-**Status**: ⚠️ PARTIAL - 1 of 4 items complete
+**Status**: ✅ COMPLETE - All 4 items implemented
 **Priority**: HIGH - Required for PRD compliance
 **Reference**: Recent PRD updates requiring system changes
 
@@ -241,41 +241,42 @@ Mushrooms are poisonous plants fully specified in PRD. Mushrooms complete the pl
   - [x] Console logging: show both damage values
   - [x] Test: Verify both dog and wolf take damage in combat
 
-### Eating System Correction (PRD 3.5.4)
-- [ ] Update `src/systems/EatingSystem.ts`:
-  - [ ] Change fruit eating logic from "first adjacent ripe fruit" to "one random human with health < max"
-  - [ ] Find all ripe fruits and humans with health < startingHealth
-  - [ ] For each ripe fruit, select one random eligible human from adjacent humans
-  - [ ] If no eligible humans adjacent, fruit remains uneaten
-  - [ ] Console logging: specify which human ate which fruit
+### Eating System Correction (PRD 3.5.4) ✅ COMPLETE
+- [x] Update `src/systems/EatingSystem.ts`:
+  - [x] Change fruit eating logic from "first adjacent ripe fruit" to "one random human with health < max"
+  - [x] Find all ripe fruits and humans with health < startingHealth
+  - [x] For each ripe fruit, select one random eligible human from adjacent humans
+  - [x] If no eligible humans adjacent, fruit remains uneaten
+  - [x] Console logging: specify which human ate which fruit
 
-### Birth System Correction (US-026)
-- [ ] Update `src/systems/BirthSystem.ts`:
-  - [ ] When pregnant woman ready to give birth but no empty adjacent spaces:
-    - [ ] Spawn baby on mother's position instead of adjacent space
-    - [ ] Remove mother entity (dies after birth)
-    - [ ] Add birth visual effect on mother's position
-    - [ ] Console logging: "Mother died giving birth, baby occupies her position"
-  - [ ] Test: Verify mother death and baby placement when no space available
+### Birth System Correction (US-026) ✅ COMPLETE
+- [x] Update `src/systems/BirthSystem.ts`:
+  - [x] When pregnant woman ready to give birth but no empty adjacent spaces:
+    - [x] Spawn baby on mother's position instead of adjacent space
+    - [x] Remove mother entity (dies after birth)
+    - [x] Add birth visual effect on mother's position
+    - [x] Console logging: "Mother died giving birth, baby occupies her position"
+  - [x] Test: Verify mother death and baby placement when no space available
 
-### Combat System Correction (US-018)
-- [ ] Update `src/systems/CombatSystem.ts` `resolveCombat()` for male vs male:
-  - [ ] Store original health of both males before damage
-  - [ ] Apply simultaneous damage to both
-  - [ ] Check post-damage health:
-    - [ ] If one male health ≤ 0: he dies, survivor gains his remaining energy
-    - [ ] If both males health ≤ 0: compare final health, lower health dies, survivor gains remaining energy
-    - [ ] If health equal when both ≤ 0: random selection, survivor gains remaining energy
-  - [ ] Console logging: show damage dealt and energy transfer
+### Combat System Correction (US-018) ✅ COMPLETE
+- [x] Update `src/systems/CombatSystem.ts` `resolveCombat()` for male vs male:
+  - [x] Store original health of both males before damage
+  - [x] Apply simultaneous damage to both
+  - [x] Check post-damage health:
+    - [x] If one male health ≤ 0: he dies, survivor gains his initial energy
+    - [x] If both males health ≤ 0: compare final health, lower health dies, survivor gains initial energy
+    - [x] If health equal when both ≤ 0: random selection, survivor gains initial energy
+  - [x] Console logging: show damage dealt and energy transfer
 
 ### Testing Corrections
-- [ ] Test dog vs wolf: verify both take damage (wolf full, dog half)
-- [ ] Test updated eating: verify only humans with health < 100 eat fruits
-- [ ] Test birth death: pregnant woman dies when no adjacent space, baby occupies her position
-- [ ] Test male combat: verify energy transfer mechanics work correctly
-- [ ] Integration test: run simulation with all corrections active
+- [x] Test dog vs wolf: verify both take damage (wolf full, dog half)
+- [x] Test updated eating: verify only humans with health < 100 eat fruits
+- [x] Test birth death: pregnant woman dies when no adjacent space, baby occupies her position
+- [x] Test male combat: verify energy transfer mechanics work correctly
+- [x] Integration test: run simulation with all corrections active
 
 **Estimated Time**: 2-3 hours
+**Actual Time**: 1.5 hours
 **Blocking**: Must complete after existing systems are stable
 
 ## 🎨 Phase 6: Visual Polish ✅ COMPLETE
@@ -453,11 +454,11 @@ MVP is complete when:
 - ✅ **Phase 13**: Speed Control & Additional UI Controls (COMPLETE - speed selector, finish button, all keyboard shortcuts)
 - ✅ **Phase 14**: Overcrowding Death System (COMPLETE - death multiplier with thresholds)
 - ✅ **Phase 15**: Large Board Initialization Progress (COMPLETE - async progress indicator)
-- ⚠️ **Phase 5.7**: PRD Corrections (PARTIAL - 1 of 4 complete)
+- ✅ **Phase 5.7**: PRD Corrections (COMPLETE - all 4 corrections implemented)
   - ✅ Dog vs Wolf counter-attack
-  - ❌ Eating logic (only injured humans eat)
-  - ❌ Birth edge case (mother dies if no space)
-  - ❌ Male combat energy transfer
+  - ✅ Eating logic (only injured humans eat)
+  - ✅ Birth edge case (mother dies if no space)
+  - ✅ Male combat energy transfer
 - 🔶 **Phase 8**: Performance Optimization (PARTIAL - dirty rectangles ✅, emoji caching ✅, testing needed)
 - ❌ **Testing & Validation**: Edge cases, performance benchmarks
 - ✅ **Documentation**: README.md complete with usage instructions

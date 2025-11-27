@@ -47,7 +47,26 @@ export class BirthSystem {
             console.log(`[Birth] ${babySex} baby born at (${birthPosition.x},${birthPosition.y})`);
           }
         } else {
-          console.log(`[Birth] No space available for birth at (${female.x},${female.y})`);
+          // No space available - baby spawns at mother's position, mother dies
+          const babySex = Random.chance(0.5) ? Sex.MALE : Sex.FEMALE;
+          const baby = new Human(female.x, female.y, babySex);
+
+          // Remove mother and place baby
+          board.removeEntity(female.x, female.y);
+          board.setEntity(female.x, female.y, baby);
+          birthCount++;
+
+          // Add birth visual effect
+          this.renderer.addVisualEffect({
+            type: 'reproduction',
+            x: female.x,
+            y: female.y,
+            startTime: Date.now(),
+            duration: 500 // 500ms green flash
+          });
+          this.renderer.markDirty(female.x, female.y);
+
+          console.log(`[Birth] Mother died giving birth, ${babySex} baby occupies her position at (${female.x},${female.y})`);
         }
 
         // Pregnancy completed (advance was already called in ReproductionSystem)
