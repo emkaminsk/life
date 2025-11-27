@@ -35,8 +35,10 @@ export class Game {
   private currentSpeed: number; // Current simulation speed in ms
   private animationDuration: number; // Animation duration in ms
   private isAnimating: boolean; // Track if animations are currently running
+  private isStepping: boolean; // Track if we're executing a step (allows animations during step mode)
   private animationFrameId: number | null; // Track animation frame request ID
   private currentConfig: GameConfig;
+  public onStepComplete?: () => void; // Callback for when step completes (for UI updates)
 
   constructor(board: Board, renderer: Renderer) {
     this.board = board;
@@ -55,6 +57,7 @@ export class Game {
     this.currentSpeed = DEFAULT_CONFIG.simulation.defaultSpeed;
     this.animationDuration = 300; // Default 300ms animation duration
     this.isAnimating = false;
+    this.isStepping = false;
     this.animationFrameId = null;
     this.currentConfig = this.createDefaultConfig();
   }
@@ -211,13 +214,19 @@ export class Game {
       this.animateMovements(movements, () => {
         // Animation complete callback - continue with remaining phases
         this.isAnimating = false;
+        this.isStepping = false; // Clear step flag when animations complete
         this.continueRoundAfterAnimation();
+        // Notify UI that step is complete (for re-enabling step button)
+        this.onStepComplete?.();
       });
       return; // Exit early, continueRoundAfterAnimation will be called when animations complete
     }
 
     // No movements, proceed directly to remaining phases
+    this.isStepping = false; // Clear step flag
     this.continueRoundAfterAnimation();
+    // Notify UI that step is complete
+    this.onStepComplete?.();
   }
 
   /**
@@ -232,9 +241,9 @@ export class Game {
 
     // Enter animation loop using requestAnimationFrame
     const animationLoop = () => {
-      // Check if game was paused during animation
-      if (!this.isRunning && this.isAnimating) {
-        // Game paused - stop animation loop and sync positions
+      // Check if game was paused during animation (but allow animations during step mode)
+      if (!this.isRunning && !this.isStepping && this.isAnimating) {
+        // Game paused (not stepping) - stop animation loop and sync positions
         this.stopAnimations(movements);
         return;
       }
@@ -371,7 +380,22 @@ export class Game {
    * Execute single step
    */
   step(): void {
+    // Prevent stepping if animations are still running
+    if (this.isAnimating) {
+      console.log('[Game] Cannot step - animations still in progress');
+      return;
+    }
+    
+    // Set step flag to allow animations during step mode
+    this.isStepping = true;
     this.executeRound();
+  }
+
+  /**
+   * Check if animations are currently running
+   */
+  isAnimatingNow(): boolean {
+    return this.isAnimating;
   }
 
   /**

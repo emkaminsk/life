@@ -136,9 +136,17 @@ export class ConfigPanel {
     const resetBtn = document.getElementById('resetConfigBtn');
     resetBtn?.addEventListener('click', () => this.resetToDefaults());
 
-    // Start game button
+    // Start game button (bottom)
     const startBtn = document.getElementById('startGameBtn');
     startBtn?.addEventListener('click', () => this.handleStartGame());
+
+    // Start game button (top)
+    const startBtnTop = document.getElementById('startGameBtnTop');
+    startBtnTop?.addEventListener('click', () => this.handleStartGame());
+
+    // Collapse all button
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    collapseAllBtn?.addEventListener('click', () => this.toggleCollapseAll());
 
     // Collapsible sections
     const sectionHeaders = document.querySelectorAll('.config-section-header');
@@ -197,6 +205,30 @@ export class ConfigPanel {
   private toggleSection(header: HTMLElement): void {
     const section = header.parentElement;
     section?.classList.toggle('collapsed');
+  }
+
+  private toggleCollapseAll(): void {
+    const sections = document.querySelectorAll('.config-section');
+    const collapseBtn = document.getElementById('collapseAllBtn') as HTMLButtonElement;
+    
+    if (!collapseBtn) return;
+
+    // Check if all sections are collapsed
+    const allCollapsed = Array.from(sections).every(section => 
+      section.classList.contains('collapsed')
+    );
+
+    // Toggle all sections
+    sections.forEach(section => {
+      if (allCollapsed) {
+        section.classList.remove('collapsed');
+      } else {
+        section.classList.add('collapsed');
+      }
+    });
+
+    // Update button text
+    collapseBtn.textContent = allCollapsed ? 'Collapse' : 'Expand';
   }
 
   private resetToDefaults(): void {
@@ -289,6 +321,7 @@ export class ConfigPanel {
 
     const validationMsg = document.getElementById('spawnValidation');
     const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
+    const startBtnTop = document.getElementById('startGameBtnTop') as HTMLButtonElement;
 
     if (total > 1.0) {
       if (validationMsg) {
@@ -296,6 +329,7 @@ export class ConfigPanel {
         validationMsg.className = 'validation-error';
       }
       if (startBtn) startBtn.disabled = true;
+      if (startBtnTop) startBtnTop.disabled = true;
       return false;
     } else if (total > 0.9) {
       if (validationMsg) {
@@ -303,6 +337,7 @@ export class ConfigPanel {
         validationMsg.className = 'validation-warning';
       }
       if (startBtn) startBtn.disabled = false;
+      if (startBtnTop) startBtnTop.disabled = false;
       return true;
     } else {
       if (validationMsg) {
@@ -310,6 +345,7 @@ export class ConfigPanel {
         validationMsg.className = 'validation-success';
       }
       if (startBtn) startBtn.disabled = false;
+      if (startBtnTop) startBtnTop.disabled = false;
       return true;
     }
   }

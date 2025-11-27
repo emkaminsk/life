@@ -404,8 +404,15 @@ pauseBtn.addEventListener('click', () => {
 
 stepBtn.addEventListener('click', () => {
   console.log('[UI] Step clicked');
+  // Disable step button during animations
+  stepBtn.disabled = true;
   game.step();
 });
+
+// Set up callback to re-enable step button when animations complete
+game.onStepComplete = () => {
+  stepBtn.disabled = false;
+};
 
 runBtn.addEventListener('click', () => {
   console.log('[UI] Run clicked');
