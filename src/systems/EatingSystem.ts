@@ -1,8 +1,8 @@
-import { Board } from '../core/Board';
+import type { Board } from '../core/Board';
 import { Human } from '../entities/Human';
 import { Fruit } from '../entities/Fruit';
 import { Mushroom } from '../entities/Mushroom';
-import { Renderer } from '../core/Renderer';
+import type { Renderer } from '../core/Renderer';
 import { DEFAULT_CONFIG } from '../config';
 import { Random } from '../utils/Random';
 

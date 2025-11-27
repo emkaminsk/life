@@ -1,4 +1,4 @@
-import { EntityType } from '../types';
+import type { EntityType } from '../types';
 
 export abstract class Entity {
   x: number; // Logical position (for game rules)

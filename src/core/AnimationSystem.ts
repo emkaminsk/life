@@ -1,4 +1,4 @@
-import { Entity } from '../entities/Entity';
+import type { Entity } from '../entities/Entity';
 
 /**
  * Record of entity movement for animation purposes
@@ -57,14 +57,14 @@ export class AnimationSystem {
    * Provides more natural-feeling movement
    */
   private easeOutEasing(t: number): number {
-    return 1 - Math.pow(1 - t, 2);
+    return 1 - (1 - t) ** 2;
   }
 
   /**
    * Ease-in-out easing function (acceleration and deceleration)
    */
   private easeInOutEasing(t: number): number {
-    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
   }
 
   /**

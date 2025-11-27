@@ -22,7 +22,7 @@ export class Gompertz {
    * Determine if entity dies based on age
    */
   static shouldDie(age: number, A: number, B: number, multiplier: number = 1): boolean {
-    const probability = this.deathProbability(age, A, B, multiplier);
+    const probability = Gompertz.deathProbability(age, A, B, multiplier);
     return Math.random() < probability;
   }
 }

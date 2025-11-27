@@ -1,5 +1,5 @@
-import { Board } from './Board';
-import { Renderer } from './Renderer';
+import type { Board } from './Board';
+import type { Renderer } from './Renderer';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
@@ -13,10 +13,10 @@ import { EatingSystem } from '../systems/EatingSystem';
 import { ReproductionSystem } from '../systems/ReproductionSystem';
 import { DeathSystem } from '../systems/DeathSystem';
 import { BirthSystem } from '../systems/BirthSystem';
-import { PlantSpawnSystem } from '../systems/PlantSpawnSystem';
-import { AnimationSystem, MovementRecord } from './AnimationSystem';
+import { SpawnSystem } from '../systems/SpawnSystem';
+import { AnimationSystem, type MovementRecord } from './AnimationSystem';
 
-import { GameConfig } from '../ui/ConfigPanel';
+import type { GameConfig } from '../ui/ConfigPanel';
 
 export class Game {
   private board: Board;
@@ -27,7 +27,7 @@ export class Game {
   private reproductionSystem: ReproductionSystem;
   private deathSystem: DeathSystem;
   private birthSystem: BirthSystem;
-  private plantSpawnSystem: PlantSpawnSystem;
+  private spawnSystem: SpawnSystem;
   private animationSystem: AnimationSystem;
   private isRunning: boolean;
   private roundInterval: number | null;
@@ -49,7 +49,7 @@ export class Game {
     this.reproductionSystem = new ReproductionSystem(renderer);
     this.deathSystem = new DeathSystem(renderer);
     this.birthSystem = new BirthSystem(renderer);
-    this.plantSpawnSystem = new PlantSpawnSystem(renderer);
+    this.spawnSystem = new SpawnSystem(renderer);
     this.animationSystem = new AnimationSystem();
     this.isRunning = false;
     this.roundInterval = null;
@@ -94,6 +94,7 @@ export class Game {
         damageToHuman: DEFAULT_CONFIG.wolf.damageToHuman,
         perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
         moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
+        spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
         gompertzA: DEFAULT_CONFIG.wolf.gompertzA,
         gompertzB: DEFAULT_CONFIG.wolf.gompertzB,
       },
@@ -102,6 +103,7 @@ export class Game {
         damageToWolf: DEFAULT_CONFIG.dog.damageToWolf,
         perceptionRange: DEFAULT_CONFIG.dog.perceptionRange,
         moveTowardWolfProbability: DEFAULT_CONFIG.dog.moveTowardWolfProbability,
+        spawnProbability: DEFAULT_CONFIG.dog.spawnProbability,
         gompertzA: DEFAULT_CONFIG.dog.gompertzA,
         gompertzB: DEFAULT_CONFIG.dog.gompertzB,
       },
@@ -132,7 +134,7 @@ export class Game {
     // this.reproductionSystem.updateConfig(config);
     // this.deathSystem.updateConfig(config);
     // this.birthSystem.updateConfig(config);
-    // this.plantSpawnSystem.updateConfig(config);
+    // this.spawnSystem.updateConfig(config);
   }
 
   /**
@@ -332,8 +334,8 @@ export class Game {
     // Phase 6: Birth
     this.birthSystem.execute(this.board);
 
-    // Phase 7: Plant Spawn
-    this.plantSpawnSystem.execute(this.board);
+    // Phase 7: Spawn (plants and animals)
+    this.spawnSystem.execute(this.board, this.currentConfig);
 
     // Increment round counter
     this.board.incrementRound();

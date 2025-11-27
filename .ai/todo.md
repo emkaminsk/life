@@ -1176,3 +1176,135 @@ Currently, entities move instantaneously between cells each round. This feature 
 - Document any architectural decisions in CLAUDE.md
 
 ---
+
+## 🐺🐕 Phase 17: Animal Spawn System (PRD 3.4.5) ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: MEDIUM-HIGH - Required for MVP (PRD Section 3.4.5)
+**Reference**: PRD Section 3.4.5, "Animals spawn randomly on empty squares with configured probability per round"
+
+### Background
+PRD 3.4.5 specifies that animals (wolves and dogs) should spawn randomly on empty squares each round with configurable probabilities, similar to how plants (fruits and mushrooms) spawn. This adds dynamic population regeneration for animals, creating more interesting ecosystem dynamics where animal populations can recover even after extinction events.
+
+Currently, animals only spawn during initial board setup. This feature will add ongoing animal spawning during gameplay.
+
+**Design Decision**: Instead of creating a separate `AnimalSpawnSystem` that would iterate through empty cells twice (once for plants, once for animals), we will extend the existing `PlantSpawnSystem` to handle all spawning in a single pass. This is more efficient and follows the DRY principle.
+
+**Design Decision**: Instead of creating a separate `AnimalSpawnSystem` that would iterate through empty cells twice (once for plants, once for animals), we will extend the existing `PlantSpawnSystem` to handle all spawning in a single pass. This is more efficient and follows the DRY principle.
+
+### Foundation Tasks (Phase 17.1)
+- [ ] Add spawn probability configs to `src/config.ts`:
+  - [ ] `wolf.spawnProbability: 0.002` (0.2% per empty cell per round, default low to prevent overpopulation)
+  - [ ] `dog.spawnProbability: 0.001` (0.1% per empty cell per round, default low)
+- [ ] Update `GameConfig` interface in `src/ui/ConfigPanel.ts`:
+  - [ ] Add `spawnProbability: number` to `wolf` section
+  - [ ] Add `spawnProbability: number` to `dog` section
+- [ ] Update `DEFAULT_CONFIG` in `src/config.ts`:
+  - [ ] Add `spawnProbability: 0.002` to `wolf` config
+  - [ ] Add `spawnProbability: 0.001` to `dog` config
+
+### Extend PlantSpawnSystem (Phase 17.2)
+- [ ] Update `src/systems/PlantSpawnSystem.ts`:
+  - [ ] Rename class to `SpawnSystem` (optional, or keep name but expand functionality)
+  - [ ] Import `Wolf`, `Dog`, `GameConfig` (in addition to existing imports)
+  - [ ] Update `execute()` method signature: `execute(board: Board, config: GameConfig)` (accept config parameter)
+  - [ ] Add animal spawn counters: `let wolfSpawnCount = 0; let dogSpawnCount = 0;`
+  - [ ] Extend the empty cell iteration loop (lines 33-52):
+    - [ ] Keep existing fruit/mushroom spawning logic
+    - [ ] After mushroom check, add animal spawning:
+      - [ ] If fruit didn't spawn AND mushroom didn't spawn:
+        - [ ] Check `Random.chance(config.wolf.spawnProbability)` → spawn Wolf
+        - [ ] Else check `Random.chance(config.dog.spawnProbability)` → spawn Dog
+      - [ ] Only one entity spawns per cell per round (priority: fruit → mushroom → wolf → dog)
+    - [ ] Mark spawned cells dirty for rendering
+  - [ ] Update console logging to include animals:
+    - [ ] `[Spawn] Spawned ${fruitSpawnCount} fruits, ${mushroomSpawnCount} mushrooms, ${wolfSpawnCount} wolves, ${dogSpawnCount} dogs`
+  - [ ] Replace `DEFAULT_CONFIG` references with `config` parameter
+- [ ] Update `src/core/Game.ts`:
+  - [ ] Update `plantSpawnSystem.execute()` call to pass config:
+    - [ ] Change `this.plantSpawnSystem.execute(this.board)` 
+    - [ ] To `this.plantSpawnSystem.execute(this.board, this.currentConfig)`
+  - [ ] Update comment: "Phase 7: Plant Spawn" → "Phase 7: Spawn" (or "Phase 7: Resource & Animal Spawn")
+  - [ ] Update `createDefaultConfig()` to include wolf/dog spawn probabilities
+
+### Configuration UI (Phase 17.3)
+- [ ] Update `src/ui/ConfigPanel.ts`:
+  - [ ] Add spawn probability fields to `getDefaultConfig()`:
+    - [ ] `wolf: { ..., spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability }`
+    - [ ] `dog: { ..., spawnProbability: DEFAULT_CONFIG.dog.spawnProbability }`
+  - [ ] Update `populateInputs()`:
+    - [ ] Add `this.setInputValue('wolfSpawn', this.config.wolf.spawnProbability)`
+    - [ ] Add `this.setInputValue('dogSpawn', this.config.dog.spawnProbability)`
+  - [ ] Update `readConfig()`:
+    - [ ] Add `wolf: { ..., spawnProbability: this.getInputValue('wolfSpawn') }`
+    - [ ] Add `dog: { ..., spawnProbability: this.getInputValue('dogSpawn') }`
+- [ ] Update `index.html`:
+  - [ ] Add input field to Wolf Configuration section (after "Move Toward Human Probability"):
+    ```html
+    <div class="config-row">
+      <label for="wolfSpawn" title="Probability to spawn wolf per empty cell per round (0-1)">Spawn Probability (per round):</label>
+      <input type="number" id="wolfSpawn" min="0" max="1" step="0.0001" value="0.002">
+    </div>
+    ```
+  - [ ] Add input field to Dog Configuration section (after "Move Toward Wolf Probability"):
+    ```html
+    <div class="config-row">
+      <label for="dogSpawn" title="Probability to spawn dog per empty cell per round (0-1)">Spawn Probability (per round):</label>
+      <input type="number" id="dogSpawn" min="0" max="1" step="0.0001" value="0.001">
+    </div>
+    ```
+
+### Integration & Testing (Phase 17.4)
+- [ ] Verify SpawnSystem (formerly PlantSpawnSystem) executes in Phase 7
+- [ ] Test animal spawning:
+  - [ ] Run simulation for 50+ rounds
+  - [ ] Verify wolves spawn on empty cells with configured probability
+  - [ ] Verify dogs spawn on empty cells with configured probability
+  - [ ] Verify only one entity spawns per cell per round (fruit/mushroom/wolf/dog priority)
+  - [ ] Verify spawned animals have correct health and config values
+  - [ ] Verify fruit ripening still works correctly
+- [ ] Test configuration UI:
+  - [ ] Verify spawn probability inputs appear in Wolf and Dog sections
+  - [ ] Verify values persist when changing config
+  - [ ] Verify "Reset to Defaults" restores spawn probabilities
+  - [ ] Verify game uses configured spawn probabilities
+- [ ] Test edge cases:
+  - [ ] Spawn probability = 0 (no animals spawn, plants still spawn)
+  - [ ] Spawn probability = 1 (animals spawn on all empty cells, may cause overcrowding)
+  - [ ] Board nearly full (few empty cells, spawn rate decreases naturally)
+  - [ ] All animals extinct (spawning allows recovery)
+  - [ ] Multiple spawn types enabled (verify priority: fruit → mushroom → wolf → dog)
+- [ ] Performance testing:
+  - [ ] Verify no performance degradation (single iteration is more efficient than two)
+  - [ ] Test with large boards (50x50+) and many empty cells
+  - [ ] Monitor console logs for spawn counts (all entity types)
+  - [ ] Compare performance: before (plant spawn only) vs after (all spawns in one loop)
+
+### Success Criteria
+- [ ] Animals spawn randomly on empty squares each round
+- [ ] Spawn probabilities configurable per animal type (wolf/dog)
+- [ ] Configuration UI includes spawn probability inputs in Wolf and Dog sections
+- [ ] Spawning occurs in Phase 7 (single unified spawn phase)
+- [ ] Console logging shows spawn counts for all entity types each round
+- [ ] No performance degradation (actually improved - single iteration vs double)
+- [ ] Default spawn probabilities prevent overpopulation (low values: 0.1-0.2%)
+- [ ] Animals spawn with correct health and config values
+- [ ] Only one entity spawns per cell per round (priority order maintained)
+- [ ] Works correctly with all existing systems (movement, combat, death, etc.)
+- [ ] Fruit ripening logic still works correctly
+
+### Implementation Notes
+- **Efficiency**: Single iteration through empty cells instead of separate loops (more efficient)
+- **Priority Order**: fruit → mushroom → wolf → dog (only one spawns per cell)
+- Use config parameter instead of DEFAULT_CONFIG for configurability
+- Default spawn probabilities should be low (0.1-0.2%) to prevent rapid overpopulation
+- Spawning occurs in Phase 7 (unified spawn phase, not separate phases)
+- Consider that high spawn probabilities may cause ecosystem instability
+- Animal spawning allows populations to recover after extinction events
+- Keep fruit ripening logic separate from spawning logic (handles existing fruits)
+
+**Estimated Time**: 2-3 hours
+**Blocking**: None - can be implemented independently
+**PRD Alignment**: PRD 3.4.5
+
+---

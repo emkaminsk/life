@@ -1,4 +1,4 @@
-import { Entity } from '../entities/Entity';
+import type { Entity } from '../entities/Entity';
 import { DEFAULT_CONFIG } from '../config';
 
 export class Board {

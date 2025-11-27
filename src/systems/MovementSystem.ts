@@ -1,14 +1,14 @@
-import { Board } from '../core/Board';
-import { Entity } from '../entities/Entity';
+import type { Board } from '../core/Board';
+import type { Entity } from '../entities/Entity';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
-import { Renderer } from '../core/Renderer';
+import type { Renderer } from '../core/Renderer';
 import { EntityType } from '../types';
 import { Random } from '../utils/Random';
 import { DEFAULT_CONFIG } from '../config';
-import { MovementRecord } from '../core/AnimationSystem';
+import type { MovementRecord } from '../core/AnimationSystem';
 
 export class MovementSystem {
   private renderer: Renderer;

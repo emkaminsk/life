@@ -3,7 +3,7 @@ import { Renderer } from './core/Renderer';
 import { Game } from './core/Game';
 import { Human } from './entities/Human';
 import { EntityType } from './types';
-import { ConfigPanel, GameConfig } from './ui/ConfigPanel';
+import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
 
 // Initialize
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -458,7 +458,7 @@ finishBtn.addEventListener('click', () => {
 
 // Speed control
 speedSelect.addEventListener('change', () => {
-  const speed = parseInt(speedSelect.value);
+  const speed = parseInt(speedSelect.value, 10);
   console.log(`[UI] Speed changed to ${speed}ms`);
   game.setSpeed(speed);
 });

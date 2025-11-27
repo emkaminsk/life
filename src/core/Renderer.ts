@@ -1,11 +1,11 @@
-import { Board } from './Board';
-import { Entity } from '../entities/Entity';
+import type { Board } from './Board';
+import type { Entity } from '../entities/Entity';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Fruit } from '../entities/Fruit';
-import { EntityType, VisualEffect } from '../types';
+import { EntityType, type VisualEffect } from '../types';
 import { DEFAULT_CONFIG } from '../config';
-import { AnimationSystem } from './AnimationSystem';
+import type { AnimationSystem } from './AnimationSystem';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -77,8 +77,9 @@ export class Renderer {
 
   private cacheEmoji(emoji: string, size: number): HTMLCanvasElement {
     const key = `${emoji}_${size}`;
-    if (this.emojiCache.has(key)) {
-      return this.emojiCache.get(key)!;
+    const cached = this.emojiCache.get(key);
+    if (cached) {
+      return cached;
     }
 
     const offscreenCanvas = document.createElement('canvas');

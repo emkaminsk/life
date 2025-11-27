@@ -1,6 +1,6 @@
-import { Board } from '../core/Board';
+import type { Board } from '../core/Board';
 import { Human } from '../entities/Human';
-import { Renderer } from '../core/Renderer';
+import type { Renderer } from '../core/Renderer';
 import { Random } from '../utils/Random';
 import { DEFAULT_CONFIG } from '../config';
 

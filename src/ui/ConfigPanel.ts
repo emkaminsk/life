@@ -31,6 +31,7 @@ export interface GameConfig {
     damageToHuman: number;
     perceptionRange: number;
     moveTowardHumanProbability: number;
+    spawnProbability: number;
     gompertzA: number;
     gompertzB: number;
   };
@@ -39,6 +40,7 @@ export interface GameConfig {
     damageToWolf: number;
     perceptionRange: number;
     moveTowardWolfProbability: number;
+    spawnProbability: number;
     gompertzA: number;
     gompertzB: number;
   };
@@ -102,6 +104,7 @@ export class ConfigPanel {
         damageToHuman: DEFAULT_CONFIG.wolf.damageToHuman,
         perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
         moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
+        spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
         gompertzA: DEFAULT_CONFIG.wolf.gompertzA,
         gompertzB: DEFAULT_CONFIG.wolf.gompertzB,
       },
@@ -110,6 +113,7 @@ export class ConfigPanel {
         damageToWolf: DEFAULT_CONFIG.dog.damageToWolf,
         perceptionRange: DEFAULT_CONFIG.dog.perceptionRange,
         moveTowardWolfProbability: DEFAULT_CONFIG.dog.moveTowardWolfProbability,
+        spawnProbability: DEFAULT_CONFIG.dog.spawnProbability,
         gompertzA: DEFAULT_CONFIG.dog.gompertzA,
         gompertzB: DEFAULT_CONFIG.dog.gompertzB,
       },
@@ -270,6 +274,7 @@ export class ConfigPanel {
     this.setInputValue('wolfGompertzB', this.config.wolf.gompertzB);
     this.setInputValue('wolfPerception', this.config.wolf.perceptionRange);
     this.setInputValue('wolfHumanProb', this.config.wolf.moveTowardHumanProbability);
+    this.setInputValue('wolfSpawn', this.config.wolf.spawnProbability);
 
     // Dog configuration
     this.setInputValue('dogHealth', this.config.dog.startingHealth);
@@ -278,6 +283,7 @@ export class ConfigPanel {
     this.setInputValue('dogGompertzB', this.config.dog.gompertzB);
     this.setInputValue('dogPerception', this.config.dog.perceptionRange);
     this.setInputValue('dogWolfProb', this.config.dog.moveTowardWolfProbability);
+    this.setInputValue('dogSpawn', this.config.dog.spawnProbability);
 
     // Fruit configuration
     this.setInputValue('fruitHealing', this.config.fruit.energyHealed);
@@ -401,6 +407,7 @@ export class ConfigPanel {
     this.config.wolf.gompertzB = this.getInputValue('wolfGompertzB');
     this.config.wolf.perceptionRange = this.getInputValue('wolfPerception');
     this.config.wolf.moveTowardHumanProbability = this.getInputValue('wolfHumanProb');
+    this.config.wolf.spawnProbability = this.getInputValue('wolfSpawn');
 
     // Dog configuration
     this.config.dog.startingHealth = this.getInputValue('dogHealth');
@@ -409,6 +416,7 @@ export class ConfigPanel {
     this.config.dog.gompertzB = this.getInputValue('dogGompertzB');
     this.config.dog.perceptionRange = this.getInputValue('dogPerception');
     this.config.dog.moveTowardWolfProbability = this.getInputValue('dogWolfProb');
+    this.config.dog.spawnProbability = this.getInputValue('dogSpawn');
 
     // Fruit configuration
     this.config.fruit.energyHealed = this.getInputValue('fruitHealing');

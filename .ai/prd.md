@@ -86,6 +86,8 @@ The solution must enable exploration-based learning where students discover prin
 
 3.4.4 When dog on square adjacent to wolf at round end, dog deals configured damage to wolf
 
+3.4.5 Animals spawn randomly on empty squares with configured probability per round
+
 ### 3.5 Plant Mechanics
 
 3.5.1 Fruits spawn randomly on empty squares with configured probability per round

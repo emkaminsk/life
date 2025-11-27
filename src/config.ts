@@ -32,6 +32,7 @@ export const DEFAULT_CONFIG = {
     damageToHuman: 30,
     perceptionRange: 7,
     moveTowardHumanProbability: 0.8,
+    spawnProbability: 0.002, // per empty cell per round (0.2%)
     gompertzA: 0.0002,
     gompertzB: 0.12,
   },
@@ -41,6 +42,7 @@ export const DEFAULT_CONFIG = {
     damageToWolf: 35,
     perceptionRange: 6,
     moveTowardWolfProbability: 0.75,
+    spawnProbability: 0.001, // per empty cell per round (0.1%)
     gompertzA: 0.00015,
     gompertzB: 0.11,
   },
