@@ -819,6 +819,190 @@
         </div>
       </div>
 
+      <!-- Human Configuration Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>👨👩 Human Configuration</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="humanHealth" title="Starting health for humans (1-1000)">Starting Health:</label>
+            <input type="number" id="humanHealth" min="1" max="1000" value="100">
+          </div>
+          <div class="config-row">
+            <label for="humanMaleDamage" title="Damage when males fight each other (0-100)">Male vs Male Damage:</label>
+            <input type="number" id="humanMaleDamage" min="0" max="100" value="20">
+          </div>
+          <div class="config-row">
+            <label for="humanWolfDamage" title="Damage when males fight wolves (0-100)">Male vs Wolf Damage:</label>
+            <input type="number" id="humanWolfDamage" min="0" max="100" value="25">
+          </div>
+          <div class="config-row">
+            <label for="humanReproduction" title="Probability of pregnancy per round (0-1)">Reproduction Probability:</label>
+            <input type="number" id="humanReproduction" min="0" max="1" step="0.01" value="0.3">
+          </div>
+          <div class="config-row">
+            <label for="humanPregnancy" title="Number of rounds pregnancy lasts (1-20)">Pregnancy Period (rounds):</label>
+            <input type="number" id="humanPregnancy" min="1" max="20" value="3">
+          </div>
+          <div class="config-row">
+            <label for="humanCooldown" title="Cooldown rounds after birth (0-20)">Cooldown Period (rounds):</label>
+            <input type="number" id="humanCooldown" min="0" max="20" value="2">
+          </div>
+          <div class="config-row">
+            <label for="humanGompertzA" title="Gompertz mortality rate A (0.00001-0.01)">Gompertz A (mortality rate):</label>
+            <input type="number" id="humanGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.0001">
+          </div>
+          <div class="config-row">
+            <label for="humanGompertzB" title="Gompertz acceleration B (0.01-1)">Gompertz B (acceleration):</label>
+            <input type="number" id="humanGompertzB" min="0.01" max="1" step="0.01" value="0.1">
+          </div>
+          <div class="config-row">
+            <label for="humanPerception" title="Perception range in cells (1-20)">Perception Range (cells):</label>
+            <input type="number" id="humanPerception" min="1" max="20" value="5">
+          </div>
+          <div class="config-row">
+            <label for="humanFruitProb" title="Probability to move toward fruit (0-1)">Move Toward Fruit Probability:</label>
+            <input type="number" id="humanFruitProb" min="0" max="1" step="0.01" value="0.7">
+          </div>
+        </div>
+      </div>
+
+      <!-- Wolf Configuration Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>🐺 Wolf Configuration</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="wolfHealth" title="Starting health for wolves (1-1000)">Starting Health:</label>
+            <input type="number" id="wolfHealth" min="1" max="1000" value="80">
+          </div>
+          <div class="config-row">
+            <label for="wolfDamage" title="Damage wolves deal to humans (0-100)">Damage to Human:</label>
+            <input type="number" id="wolfDamage" min="0" max="100" value="30">
+          </div>
+          <div class="config-row">
+            <label for="wolfGompertzA" title="Gompertz mortality rate A (0.00001-0.01)">Gompertz A (mortality rate):</label>
+            <input type="number" id="wolfGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.0002">
+          </div>
+          <div class="config-row">
+            <label for="wolfGompertzB" title="Gompertz acceleration B (0.01-1)">Gompertz B (acceleration):</label>
+            <input type="number" id="wolfGompertzB" min="0.01" max="1" step="0.01" value="0.12">
+          </div>
+          <div class="config-row">
+            <label for="wolfPerception" title="Perception range in cells (1-20)">Perception Range (cells):</label>
+            <input type="number" id="wolfPerception" min="1" max="20" value="7">
+          </div>
+          <div class="config-row">
+            <label for="wolfHumanProb" title="Probability to move toward human (0-1)">Move Toward Human Probability:</label>
+            <input type="number" id="wolfHumanProb" min="0" max="1" step="0.01" value="0.8">
+          </div>
+        </div>
+      </div>
+
+      <!-- Dog Configuration Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>🐕 Dog Configuration</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="dogHealth" title="Starting health for dogs (1-1000)">Starting Health:</label>
+            <input type="number" id="dogHealth" min="1" max="1000" value="70">
+          </div>
+          <div class="config-row">
+            <label for="dogDamage" title="Damage dogs deal to wolves (0-100)">Damage to Wolf:</label>
+            <input type="number" id="dogDamage" min="0" max="100" value="35">
+          </div>
+          <div class="config-row">
+            <label for="dogGompertzA" title="Gompertz mortality rate A (0.00001-0.01)">Gompertz A (mortality rate):</label>
+            <input type="number" id="dogGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.00015">
+          </div>
+          <div class="config-row">
+            <label for="dogGompertzB" title="Gompertz acceleration B (0.01-1)">Gompertz B (acceleration):</label>
+            <input type="number" id="dogGompertzB" min="0.01" max="1" step="0.01" value="0.11">
+          </div>
+          <div class="config-row">
+            <label for="dogPerception" title="Perception range in cells (1-20)">Perception Range (cells):</label>
+            <input type="number" id="dogPerception" min="1" max="20" value="6">
+          </div>
+          <div class="config-row">
+            <label for="dogWolfProb" title="Probability to move toward wolf (0-1)">Move Toward Wolf Probability:</label>
+            <input type="number" id="dogWolfProb" min="0" max="1" step="0.01" value="0.75">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fruit Configuration Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>🍎 Fruit Configuration</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="fruitHealing" title="Energy healed when fruit is eaten (1-100)">Energy Healed:</label>
+            <input type="number" id="fruitHealing" min="1" max="100" value="30">
+          </div>
+          <div class="config-row">
+            <label for="fruitSpawn" title="Spawn probability per empty cell per round (0-1)">Spawn Probability (per round):</label>
+            <input type="number" id="fruitSpawn" min="0" max="1" step="0.001" value="0.01">
+          </div>
+          <div class="config-row">
+            <label for="fruitRipen" title="Number of rounds for fruit to ripen (0-10)">Rounds to Ripen:</label>
+            <input type="number" id="fruitRipen" min="0" max="10" value="2">
+          </div>
+        </div>
+      </div>
+
+      <!-- Mushroom Configuration Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>🍄 Mushroom Configuration</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="mushroomDamage" title="Energy removed/damage when mushroom is eaten (1-100)">Energy Removed (damage):</label>
+            <input type="number" id="mushroomDamage" min="1" max="100" value="40">
+          </div>
+          <div class="config-row">
+            <label for="mushroomSpawn" title="Spawn probability per empty cell per round (0-1)">Spawn Probability (per round):</label>
+            <input type="number" id="mushroomSpawn" min="0" max="1" step="0.001" value="0.005">
+          </div>
+        </div>
+      </div>
+
+      <!-- Population Control Section -->
+      <div class="config-section">
+        <div class="config-section-header">
+          <h2>⚖️ Population Control</h2>
+          <span class="toggle-icon">▼</span>
+        </div>
+        <div class="config-section-body">
+          <div class="config-row">
+            <label for="humanThreshold" title="Population threshold for human overcrowding (10-1000)">Human Overcrowding Threshold:</label>
+            <input type="number" id="humanThreshold" min="10" max="1000" value="100">
+          </div>
+          <div class="config-row">
+            <label for="humanMultiplier" title="Death probability multiplier when threshold exceeded (1-10)">Human Overcrowding Multiplier:</label>
+            <input type="number" id="humanMultiplier" min="1" max="10" step="0.1" value="2">
+          </div>
+          <div class="config-row">
+            <label for="animalThreshold" title="Population threshold for animal overcrowding (10-1000)">Animal Overcrowding Threshold:</label>
+            <input type="number" id="animalThreshold" min="10" max="1000" value="50">
+          </div>
+          <div class="config-row">
+            <label for="animalMultiplier" title="Death probability multiplier when threshold exceeded (1-10)">Animal Overcrowding Multiplier:</label>
+            <input type="number" id="animalMultiplier" min="1" max="10" step="0.1" value="2">
+          </div>
+        </div>
+      </div>
+
       <!-- Control Buttons -->
       <div class="config-controls">
         <button id="resetConfigBtn" class="btn-secondary">Reset to Defaults</button>

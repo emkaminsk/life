@@ -149,9 +149,15 @@ export class Renderer {
 
   private drawVisualEffects(): void {
     const now = Date.now();
+    const expiredEffects: VisualEffect[] = [];
+
     this.visualEffects = this.visualEffects.filter(effect => {
       const elapsed = now - effect.startTime;
-      if (elapsed > effect.duration) return false;
+      if (elapsed > effect.duration) {
+        // Effect expired - will be marked dirty one more time when next render clears it
+        expiredEffects.push(effect);
+        return false;
+      }
 
       const alpha = 1 - (elapsed / effect.duration);
       const cellX = effect.x * this.cellSize;
@@ -175,6 +181,11 @@ export class Renderer {
 
       return true;
     });
+
+    // Mark cells with expired effects as dirty for final cleanup
+    expiredEffects.forEach(effect => {
+      this.markDirty(effect.x, effect.y);
+    });
   }
 
   private updateFps(): void {
@@ -192,6 +203,12 @@ export class Renderer {
   }
 
   render(board: Board): void {
+    // Mark cells with active visual effects as dirty before rendering
+    // This ensures they're redrawn each frame to prevent color accumulation
+    this.visualEffects.forEach(effect => {
+      this.markDirty(effect.x, effect.y);
+    });
+
     // Render only dirty rectangles
     this.dirtyRects.forEach(coord => {
       const [x, y] = coord.split(',').map(Number);
