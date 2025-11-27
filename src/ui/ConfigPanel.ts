@@ -172,6 +172,47 @@ export class ConfigPanel {
     this.setInputValue('spawnFruit', this.config.spawn.fruitProbability);
     this.setInputValue('spawnMushroom', this.config.spawn.mushroomProbability);
 
+    // Human configuration
+    this.setInputValue('humanHealth', this.config.human.startingHealth);
+    this.setInputValue('humanMaleVsMaleDamage', this.config.human.maleVsMaleDamage);
+    this.setInputValue('humanMaleVsWolfDamage', this.config.human.maleVsWolfDamage);
+    this.setInputValue('humanReproductionProb', this.config.human.reproductionProbability);
+    this.setInputValue('humanPregnancyPeriod', this.config.human.pregnancyPeriod);
+    this.setInputValue('humanCooldownPeriod', this.config.human.cooldownPeriod);
+    this.setInputValue('humanPerceptionRange', this.config.human.perceptionRange);
+    this.setInputValue('humanMoveTowardFruitProb', this.config.human.moveTowardFruitProbability);
+    this.setInputValue('humanGompertzA', this.config.human.gompertzA);
+    this.setInputValue('humanGompertzB', this.config.human.gompertzB);
+
+    // Wolf configuration
+    this.setInputValue('wolfHealth', this.config.wolf.startingHealth);
+    this.setInputValue('wolfDamageToHuman', this.config.wolf.damageToHuman);
+    this.setInputValue('wolfPerceptionRange', this.config.wolf.perceptionRange);
+    this.setInputValue('wolfMoveTowardHumanProb', this.config.wolf.moveTowardHumanProbability);
+    this.setInputValue('wolfGompertzA', this.config.wolf.gompertzA);
+    this.setInputValue('wolfGompertzB', this.config.wolf.gompertzB);
+
+    // Dog configuration
+    this.setInputValue('dogHealth', this.config.dog.startingHealth);
+    this.setInputValue('dogDamageToWolf', this.config.dog.damageToWolf);
+    this.setInputValue('dogPerceptionRange', this.config.dog.perceptionRange);
+    this.setInputValue('dogMoveTowardWolfProb', this.config.dog.moveTowardWolfProbability);
+    this.setInputValue('dogGompertzA', this.config.dog.gompertzA);
+    this.setInputValue('dogGompertzB', this.config.dog.gompertzB);
+
+    // Plant configuration
+    this.setInputValue('fruitEnergyHealed', this.config.fruit.energyHealed);
+    this.setInputValue('fruitSpawnProb', this.config.fruit.spawnProbability);
+    this.setInputValue('fruitRoundsToRipen', this.config.fruit.roundsToRipen);
+    this.setInputValue('mushroomEnergyRemoved', this.config.mushroom.energyRemoved);
+    this.setInputValue('mushroomSpawnProb', this.config.mushroom.spawnProbability);
+
+    // Population control (overcrowding)
+    this.setInputValue('humanOvercrowdingThreshold', this.config.overcrowding.humanThreshold);
+    this.setInputValue('humanOvercrowdingMultiplier', this.config.overcrowding.humanMultiplier);
+    this.setInputValue('animalOvercrowdingThreshold', this.config.overcrowding.animalThreshold);
+    this.setInputValue('animalOvercrowdingMultiplier', this.config.overcrowding.animalMultiplier);
+
     this.updateExpectedCounts();
     this.validateSpawnProbabilities();
   }
@@ -255,6 +296,47 @@ export class ConfigPanel {
     this.config.spawn.dogProbability = this.getInputValue('spawnDog');
     this.config.spawn.fruitProbability = this.getInputValue('spawnFruit');
     this.config.spawn.mushroomProbability = this.getInputValue('spawnMushroom');
+
+    // Human configuration
+    this.config.human.startingHealth = this.getInputValue('humanHealth');
+    this.config.human.maleVsMaleDamage = this.getInputValue('humanMaleVsMaleDamage');
+    this.config.human.maleVsWolfDamage = this.getInputValue('humanMaleVsWolfDamage');
+    this.config.human.reproductionProbability = this.getInputValue('humanReproductionProb');
+    this.config.human.pregnancyPeriod = this.getInputValue('humanPregnancyPeriod');
+    this.config.human.cooldownPeriod = this.getInputValue('humanCooldownPeriod');
+    this.config.human.perceptionRange = this.getInputValue('humanPerceptionRange');
+    this.config.human.moveTowardFruitProbability = this.getInputValue('humanMoveTowardFruitProb');
+    this.config.human.gompertzA = this.getInputValue('humanGompertzA');
+    this.config.human.gompertzB = this.getInputValue('humanGompertzB');
+
+    // Wolf configuration
+    this.config.wolf.startingHealth = this.getInputValue('wolfHealth');
+    this.config.wolf.damageToHuman = this.getInputValue('wolfDamageToHuman');
+    this.config.wolf.perceptionRange = this.getInputValue('wolfPerceptionRange');
+    this.config.wolf.moveTowardHumanProbability = this.getInputValue('wolfMoveTowardHumanProb');
+    this.config.wolf.gompertzA = this.getInputValue('wolfGompertzA');
+    this.config.wolf.gompertzB = this.getInputValue('wolfGompertzB');
+
+    // Dog configuration
+    this.config.dog.startingHealth = this.getInputValue('dogHealth');
+    this.config.dog.damageToWolf = this.getInputValue('dogDamageToWolf');
+    this.config.dog.perceptionRange = this.getInputValue('dogPerceptionRange');
+    this.config.dog.moveTowardWolfProbability = this.getInputValue('dogMoveTowardWolfProb');
+    this.config.dog.gompertzA = this.getInputValue('dogGompertzA');
+    this.config.dog.gompertzB = this.getInputValue('dogGompertzB');
+
+    // Plant configuration
+    this.config.fruit.energyHealed = this.getInputValue('fruitEnergyHealed');
+    this.config.fruit.spawnProbability = this.getInputValue('fruitSpawnProb');
+    this.config.fruit.roundsToRipen = this.getInputValue('fruitRoundsToRipen');
+    this.config.mushroom.energyRemoved = this.getInputValue('mushroomEnergyRemoved');
+    this.config.mushroom.spawnProbability = this.getInputValue('mushroomSpawnProb');
+
+    // Population control (overcrowding)
+    this.config.overcrowding.humanThreshold = this.getInputValue('humanOvercrowdingThreshold');
+    this.config.overcrowding.humanMultiplier = this.getInputValue('humanOvercrowdingMultiplier');
+    this.config.overcrowding.animalThreshold = this.getInputValue('animalOvercrowdingThreshold');
+    this.config.overcrowding.animalMultiplier = this.getInputValue('animalOvercrowdingMultiplier');
   }
 
   private handleStartGame(): void {
