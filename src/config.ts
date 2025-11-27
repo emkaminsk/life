@@ -11,6 +11,7 @@ export const DEFAULT_CONFIG = {
     wolfProbability: 0.05,
     dogProbability: 0.03,
     fruitProbability: 0.10,
+    mushroomProbability: 0.01, // 1% spawn rate for mushrooms
   },
 
   human: {
@@ -48,6 +49,11 @@ export const DEFAULT_CONFIG = {
     energyHealed: 30,
     spawnProbability: 0.01, // per empty cell per round
     roundsToRipen: 2,
+  },
+
+  mushroom: {
+    energyRemoved: 40, // damage to human
+    spawnProbability: 0.005, // per empty cell per round (0.5%)
   },
 
   simulation: {

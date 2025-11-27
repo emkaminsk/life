@@ -38,6 +38,7 @@ function updateStatistics(): void {
   const wolfCount = entities.filter(e => e.type === EntityType.WOLF).length;
   const dogCount = entities.filter(e => e.type === EntityType.DOG).length;
   const fruitCount = entities.filter(e => e.type === EntityType.FRUIT).length;
+  const mushroomCount = entities.filter(e => e.type === EntityType.MUSHROOM).length;
   const pregnantCount = entities.filter(e => e instanceof Human && e.isPregnant()).length;
 
   document.getElementById('maleCount')!.textContent = maleCount.toString();
@@ -46,6 +47,7 @@ function updateStatistics(): void {
   document.getElementById('wolfCount')!.textContent = wolfCount.toString();
   document.getElementById('dogCount')!.textContent = dogCount.toString();
   document.getElementById('fruitCount')!.textContent = fruitCount.toString();
+  document.getElementById('mushroomCount')!.textContent = mushroomCount.toString();
 }
 
 // Update UI periodically
@@ -60,6 +62,7 @@ const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
 const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
 const runBtn = document.getElementById('runBtn') as HTMLButtonElement;
+const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
 
 startBtn.addEventListener('click', () => {
   console.log('[UI] Start game clicked');
@@ -69,6 +72,7 @@ startBtn.addEventListener('click', () => {
   pauseBtn.disabled = false;
   stepBtn.disabled = false;
   runBtn.disabled = false;
+  resetBtn.disabled = false;
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -97,6 +101,19 @@ runBtn.addEventListener('click', () => {
   pauseBtn.textContent = 'Pause';
   runBtn.disabled = true;
   stepBtn.disabled = true;
+});
+
+resetBtn.addEventListener('click', () => {
+  console.log('[UI] Reset clicked');
+  game.reset();
+  updateStatistics();
+  // Re-enable start button, disable others
+  startBtn.disabled = false;
+  pauseBtn.disabled = true;
+  pauseBtn.textContent = 'Pause';
+  stepBtn.disabled = true;
+  runBtn.disabled = true;
+  resetBtn.disabled = true;
 });
 
 // Spacebar toggle

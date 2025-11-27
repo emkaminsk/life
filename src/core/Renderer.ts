@@ -51,6 +51,8 @@ export class Renderer {
           return entity.isRipe() ? '🍎' : '🍏';
         }
         return '🍎';
+      case EntityType.MUSHROOM:
+        return '🍄';
       default:
         return '❓';
     }

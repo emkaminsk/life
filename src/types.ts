@@ -3,7 +3,8 @@ export enum EntityType {
   FEMALE = 'FEMALE',
   WOLF = 'WOLF',
   DOG = 'DOG',
-  FRUIT = 'FRUIT'
+  FRUIT = 'FRUIT',
+  MUSHROOM = 'MUSHROOM'
 }
 
 export enum Sex {

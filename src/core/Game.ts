@@ -4,6 +4,7 @@ import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
+import { Mushroom } from '../entities/Mushroom';
 import { Sex } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { MovementSystem } from '../systems/MovementSystem';
@@ -52,6 +53,7 @@ export class Game {
     let wolfCount = 0;
     let dogCount = 0;
     let fruitCount = 0;
+    let mushroomCount = 0;
 
     for (let y = 0; y < this.board.height; y++) {
       for (let x = 0; x < this.board.width; x++) {
@@ -62,6 +64,7 @@ export class Game {
         const cumulativeWolf = cumulativeFemale + DEFAULT_CONFIG.spawn.wolfProbability;
         const cumulativeDog = cumulativeWolf + DEFAULT_CONFIG.spawn.dogProbability;
         const cumulativeFruit = cumulativeDog + DEFAULT_CONFIG.spawn.fruitProbability;
+        const cumulativeMushroom = cumulativeFruit + DEFAULT_CONFIG.spawn.mushroomProbability;
 
         if (rand < cumulativeMale) {
           this.board.setEntity(x, y, new Human(x, y, Sex.MALE));
@@ -78,12 +81,15 @@ export class Game {
         } else if (rand < cumulativeFruit) {
           this.board.setEntity(x, y, new Fruit(x, y));
           fruitCount++;
+        } else if (rand < cumulativeMushroom) {
+          this.board.setEntity(x, y, new Mushroom(x, y));
+          mushroomCount++;
         }
         // else: cell remains empty
       }
     }
 
-    console.log(`[Game] Spawned: ${maleCount} males, ${femaleCount} females, ${wolfCount} wolves, ${dogCount} dogs, ${fruitCount} fruits`);
+    console.log(`[Game] Spawned: ${maleCount} males, ${femaleCount} females, ${wolfCount} wolves, ${dogCount} dogs, ${fruitCount} fruits, ${mushroomCount} mushrooms`);
 
     // Mark all cells dirty for initial render
     this.renderer.markAllDirty(this.board);
@@ -173,5 +179,26 @@ export class Game {
    */
   getBoard(): Board {
     return this.board;
+  }
+
+  /**
+   * Reset the game to initial state
+   */
+  reset(): void {
+    console.log('[Game] Resetting game...');
+
+    // Pause if running
+    if (this.isRunning) {
+      this.pause();
+    }
+
+    // Clear the board
+    this.board.reset();
+
+    // Mark all cells dirty and render empty board
+    this.renderer.markAllDirty(this.board);
+    this.renderer.render(this.board);
+
+    console.log('[Game] Game reset complete');
   }
 }

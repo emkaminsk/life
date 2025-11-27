@@ -96,4 +96,15 @@ export class Board {
   incrementRound(): void {
     this.round++;
   }
+
+  reset(): void {
+    // Clear all cells
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.grid[y][x] = null;
+      }
+    }
+    // Reset round counter
+    this.round = 0;
+  }
 }
