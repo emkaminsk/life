@@ -59,4 +59,11 @@ export const DEFAULT_CONFIG = {
   simulation: {
     defaultSpeed: 200, // ms per round
   },
+
+  overcrowding: {
+    humanThreshold: 100, // threshold for humans overcrowding effect
+    humanMultiplier: 2, // death probability multiplier when threshold exceeded
+    animalThreshold: 50, // threshold for animals (wolves + dogs) overcrowding effect
+    animalMultiplier: 2, // death probability multiplier when threshold exceeded
+  },
 };
