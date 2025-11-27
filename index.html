@@ -157,9 +157,348 @@
       font-weight: bold;
       color: #333;
     }
+
+    /* Notification System */
+    #notificationContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      max-width: 400px;
+    }
+
+    .notification {
+      background: white;
+      border-left: 4px solid #ff9800;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 4px;
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      animation: slideIn 0.3s ease-out;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .notification:hover {
+      opacity: 0.9;
+    }
+
+    .notification.error {
+      border-left-color: #f44336;
+    }
+
+    .notification.warning {
+      border-left-color: #ff9800;
+    }
+
+    .notification.info {
+      border-left-color: #2196F3;
+    }
+
+    .notification-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .notification-message {
+      font-size: 13px;
+      color: #666;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Rules Modal */
+    #rulesModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #rulesModal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      max-width: 700px;
+      max-height: 80vh;
+      width: 90%;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .modal-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      background: #f8f9fa;
+    }
+
+    .modal-tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+    }
+
+    .modal-tab:hover {
+      background: #e9ecef;
+    }
+
+    .modal-tab.active {
+      color: #007bff;
+      border-bottom-color: #007bff;
+      background: white;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: calc(80vh - 140px);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content h3 {
+      margin-top: 15px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .tab-content p, .tab-content li {
+      line-height: 1.6;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .tab-content ul {
+      margin-left: 20px;
+    }
+
+    .help-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 100;
+      transition: background 0.2s;
+    }
+
+    .help-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Initialization Progress */
+    #initProgress {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #initProgress.active {
+      display: flex;
+    }
+
+    .progress-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      min-width: 300px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .progress-content h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #45a049);
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
+  <button id="helpBtn" class="help-btn" title="View Rules">?</button>
+  <div id="notificationContainer"></div>
+
+  <!-- Initialization Progress -->
+  <div id="initProgress">
+    <div class="progress-content">
+      <h3>⏳ Initializing Game...</h3>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text" id="progressText">Spawning creatures: 0%</div>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div id="rulesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📖 Game Rules & Reference</h2>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="rules">Game Rules</button>
+        <button class="modal-tab" data-tab="creatures">Creatures</button>
+        <button class="modal-tab" data-tab="plants">Plants</button>
+        <button class="modal-tab" data-tab="controls">Controls</button>
+      </div>
+      <div class="modal-body">
+        <div class="tab-content active" id="rules-tab">
+          <h3>🎮 How the Game Works</h3>
+          <p>This simulator shows how populations interact in an ecosystem. Each round, all creatures follow these phases in order:</p>
+          <ol>
+            <li><strong>Movement</strong> - Creatures move to nearby cells</li>
+            <li><strong>Combat</strong> - Males fight each other, wolves attack humans, dogs attack wolves</li>
+            <li><strong>Eating</strong> - Humans eat fruits and mushrooms</li>
+            <li><strong>Reproduction</strong> - Males and females may reproduce</li>
+            <li><strong>Death</strong> - Creatures age and may die naturally</li>
+            <li><strong>Birth</strong> - Pregnant females give birth</li>
+            <li><strong>Plant Spawning</strong> - New fruits and mushrooms appear</li>
+          </ol>
+          <h3>⚡ Important Rules</h3>
+          <ul>
+            <li>All creatures complete each phase before the next phase begins</li>
+            <li>Creatures age every round and may die of old age (Gompertz mortality)</li>
+            <li>When populations exceed thresholds, death rates increase (overcrowding)</li>
+            <li>The round counter increases after all 7 phases complete</li>
+          </ul>
+        </div>
+        <div class="tab-content" id="creatures-tab">
+          <h3>👨 Male Humans</h3>
+          <p>Males can fight each other and wolves. They can reproduce with females. Males move toward nearby fruits when hungry.</p>
+          <h3>👩 Female Humans</h3>
+          <p>Females can reproduce with males. After mating, females become pregnant for 3 rounds, then give birth. They have a cooldown period before they can reproduce again.</p>
+          <h3>🐺 Wolves</h3>
+          <p>Wolves hunt humans aggressively. They have a wider perception range than humans and move toward nearby humans. Wolves age and die naturally over time.</p>
+          <h3>🐕 Dogs</h3>
+          <p>Dogs protect humans by attacking wolves. They move toward nearby wolves and can counter-attack when wolves attack them. Dogs age and die naturally.</p>
+        </div>
+        <div class="tab-content" id="plants-tab">
+          <h3>🍎 Fruits</h3>
+          <p>Fruits provide energy to humans. They take 2 rounds to ripen (shown by color change). Only ripe fruits can be eaten. Humans heal when eating fruits.</p>
+          <h3>🍄 Mushrooms</h3>
+          <p>Mushrooms are poisonous! When humans eat mushrooms, they lose health instead of gaining it. Be careful - mushrooms look similar to fruits but are dangerous.</p>
+          <h3>🌱 Plant Spawning</h3>
+          <p>New fruits and mushrooms spawn randomly on empty cells each round. Fruits are more common than mushrooms.</p>
+        </div>
+        <div class="tab-content" id="controls-tab">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+          <ul>
+            <li><strong>Space</strong> - Pause/Resume simulation</li>
+            <li><strong>Right Arrow (→)</strong> - Advance 1 round when paused</li>
+            <li><strong>Up Arrow (↑)</strong> - Advance 5 rounds when paused</li>
+            <li><strong>Down Arrow (↓)</strong> - Pause continuous simulation</li>
+            <li><strong>Left Arrow (←)</strong> - Pause continuous simulation</li>
+            <li><strong>Escape (Esc)</strong> - Close this modal</li>
+          </ul>
+          <h3>🖱️ Mouse Controls</h3>
+          <ul>
+            <li><strong>Start Game</strong> - Begin simulation with random entities</li>
+            <li><strong>Pause/Resume</strong> - Toggle continuous execution</li>
+            <li><strong>Step</strong> - Execute one round manually</li>
+            <li><strong>Run</strong> - Resume continuous execution</li>
+            <li><strong>Reset</strong> - Clear board and restart</li>
+            <li><strong>Finish Game</strong> - End simulation and return to start</li>
+            <li><strong>Speed</strong> - Choose Slow/Medium/Fast execution speed</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <h1>Game of Life Educational Simulator</h1>
