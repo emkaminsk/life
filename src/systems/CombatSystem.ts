@@ -90,12 +90,15 @@ export class CombatSystem {
       const dogDamage = DEFAULT_CONFIG.dog.damageToWolf;
       wolf.takeDamage(dogDamage);
 
-      console.log(`[Combat] Dog at (${dog.x},${dog.y}) attacks Wolf at (${wolf.x},${wolf.y}): ${dogDamage} damage`);
+      // Wolf counter-attacks with half damage (PRD US-019)
+      const wolfCounterDamage = Math.floor(dogDamage / 2);
+      dog.takeDamage(wolfCounterDamage);
+
+      console.log(`[Combat] Dog at (${dog.x},${dog.y}) vs Wolf at (${wolf.x},${wolf.y}): Dog deals ${dogDamage}, Wolf deals ${wolfCounterDamage}`);
 
       this.addCombatEffect(wolf.x, wolf.y);
       this.addCombatEffect(dog.x, dog.y);
 
-      // Wolf does NOT counter-attack (key difference from human combat)
       return;
     }
 

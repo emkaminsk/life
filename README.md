@@ -155,9 +155,70 @@ The built files will be in the `dist/` directory, ready for deployment to any st
 - **Rendering**: Dirty rectangle optimization to redraw only changed cells and neighbors
 - **Caching**: PNG sprite caching to avoid repeated rendering overhead
 
+## 🎮 How to Use
+
+### Controls
+
+**Buttons:**
+- **Start Game** - Initialize the board with random entities
+- **Pause/Resume** - Toggle continuous simulation
+- **Step** - Execute exactly one round when paused
+- **Run** - Start continuous simulation
+- **Reset** - Clear the board and return to initial state
+
+**Keyboard Shortcuts:**
+- **Spacebar** - Toggle pause/resume
+
+### Understanding the Simulation
+
+**Round Priority Order:**
+Each round executes in this fixed order:
+1. Movement
+2. Combat/Damage
+3. Eating (plants)
+4. Reproduction
+5. Death/Removal
+6. Birth
+7. Plant Spawning
+
+**Visual Indicators:**
+- 🍏 Green apple = Unripe fruit (not edible yet)
+- 🍎 Red apple = Ripe fruit (ready to eat, heals +30 HP)
+- 🍄 Mushroom = Poisonous (damages -40 HP)
+- 🤰 Pregnant indicator = Pink border
+- Red border = Injured creature (health < 50%)
+- Red flash = Combat or poisoning
+- Green flash = Reproduction or birth
+- Yellow flash = Fruit consumption
+
 ## 📊 Project Status
 
-**Current Phase**: MVP Development
+**Current Phase**: MVP Complete ✅
+
+### Implemented Features
+
+**Core Systems:**
+- ✅ All 7 game phases working (Movement, Combat, Eating, Reproduction, Death, Birth, Plant Spawn)
+- ✅ Complete entity ecosystem (Humans, Wolves, Dogs, Fruits, Mushrooms)
+- ✅ Age-based mortality (Gompertz function)
+- ✅ Perception-based movement
+- ✅ Visual feedback system (flashes, borders, pregnancy indicator)
+
+**User Interface:**
+- ✅ Real-time statistics panel
+- ✅ Game controls (Start, Pause, Step, Run, Reset)
+- ✅ Rounds/sec performance counter
+- ✅ Population tracking
+
+**Performance:**
+- ✅ Dirty rectangle rendering optimization
+- ✅ Emoji caching for performance
+- ✅ 30+ FPS target on default configuration
+
+**PRD Compliance:**
+- ✅ Mushroom implementation (poisonous plants)
+- ✅ Dog-Wolf combat with counter-attack
+- ✅ Reset functionality
 
 ### Success Criteria
 
