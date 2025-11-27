@@ -50,11 +50,89 @@ function updateStatistics(): void {
   document.getElementById('mushroomCount')!.textContent = mushroomCount.toString();
 }
 
+// Render population graph
+function renderPopulationGraph(): void {
+  const graphCanvas = document.getElementById('populationGraph') as HTMLCanvasElement;
+  if (!graphCanvas) return;
+
+  const ctx = graphCanvas.getContext('2d');
+  if (!ctx) return;
+
+  const history = game.getPopulationHistory();
+  const width = graphCanvas.width;
+  const height = graphCanvas.height;
+  const padding = 20;
+
+  // Clear canvas
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(0, 0, width, height);
+
+  if (history.length < 2) {
+    // Not enough data to draw
+    ctx.fillStyle = '#999';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Waiting for data...', width / 2, height / 2);
+    return;
+  }
+
+  // Find min/max for scaling
+  const maxPop = Math.max(...history, 1);
+  const minPop = Math.min(...history, 0);
+  const range = maxPop - minPop || 1;
+
+  // Draw axes
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  // Draw Y-axis labels
+  ctx.fillStyle = '#666';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxPop.toString(), padding - 5, padding + 5);
+  ctx.fillText(minPop.toString(), padding - 5, height - padding + 5);
+
+  // Draw line graph
+  ctx.strokeStyle = '#4CAF50';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  const graphWidth = width - 2 * padding;
+  const graphHeight = height - 2 * padding;
+  const xStep = graphWidth / Math.max(history.length - 1, 1);
+
+  history.forEach((pop, index) => {
+    const x = padding + index * xStep;
+    const y = height - padding - ((pop - minPop) / range) * graphHeight;
+
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+
+  ctx.stroke();
+
+  // Draw X-axis label (rounds)
+  ctx.fillStyle = '#666';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Round ${history.length - 1}`, width - padding, height - padding + 15);
+  ctx.fillText('Round 0', padding, height - padding + 15);
+}
+
 // Update UI periodically
 setInterval(() => {
   updateRoundCounter();
   updateStatistics();
   updateRoundsPerSec();
+  renderPopulationGraph();
 }, 100);
 
 // Button handlers
@@ -63,6 +141,8 @@ const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
 const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
 const runBtn = document.getElementById('runBtn') as HTMLButtonElement;
 const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
+const finishBtn = document.getElementById('finishBtn') as HTMLButtonElement;
+const speedSelect = document.getElementById('speedSelect') as HTMLSelectElement;
 
 startBtn.addEventListener('click', () => {
   console.log('[UI] Start game clicked');
@@ -73,6 +153,7 @@ startBtn.addEventListener('click', () => {
   stepBtn.disabled = false;
   runBtn.disabled = false;
   resetBtn.disabled = false;
+  finishBtn.disabled = false;
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -107,6 +188,7 @@ resetBtn.addEventListener('click', () => {
   console.log('[UI] Reset clicked');
   game.reset();
   updateStatistics();
+  renderPopulationGraph();
   // Re-enable start button, disable others
   startBtn.disabled = false;
   pauseBtn.disabled = true;
@@ -114,13 +196,66 @@ resetBtn.addEventListener('click', () => {
   stepBtn.disabled = true;
   runBtn.disabled = true;
   resetBtn.disabled = true;
+  finishBtn.disabled = true;
 });
 
-// Spacebar toggle
+finishBtn.addEventListener('click', () => {
+  console.log('[UI] Finish game clicked');
+  game.reset();
+  updateStatistics();
+  renderPopulationGraph();
+  // Re-enable start button, disable others
+  startBtn.disabled = false;
+  pauseBtn.disabled = true;
+  pauseBtn.textContent = 'Pause';
+  stepBtn.disabled = true;
+  runBtn.disabled = true;
+  resetBtn.disabled = true;
+  finishBtn.disabled = true;
+});
+
+// Speed control
+speedSelect.addEventListener('change', () => {
+  const speed = parseInt(speedSelect.value);
+  console.log(`[UI] Speed changed to ${speed}ms`);
+  game.setSpeed(speed);
+});
+
+// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    e.preventDefault();
-    pauseBtn.click();
+  // Ignore if user is typing in an input field
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
+    return;
+  }
+
+  switch (e.code) {
+    case 'Space':
+      e.preventDefault();
+      pauseBtn.click();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      if (!game.running() && !stepBtn.disabled) {
+        stepBtn.click();
+      }
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      if (!game.running() && !stepBtn.disabled) {
+        // Run 5 rounds
+        for (let i = 0; i < 5; i++) {
+          game.step();
+        }
+        console.log('[UI] Ran 5 rounds via Up arrow');
+      }
+      break;
+    case 'ArrowDown':
+    case 'ArrowLeft':
+      e.preventDefault();
+      if (game.running()) {
+        pauseBtn.click();
+      }
+      break;
   }
 });
 
