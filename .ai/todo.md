@@ -446,6 +446,7 @@ MVP is complete when:
 - ⚠️ **Phase 7**: UI/UX Enhancements (PARTIAL - Reset button ✅, button consolidation deferred)
 
 ### ⚠️ In Progress / Not Started:
+- ❌ **Phase 9**: Configuration UI (NOT STARTED - **CRITICAL MVP BLOCKER**)
 - ⚠️ **Phase 5.7**: PRD Corrections (PARTIAL - 1 of 4 complete)
   - ✅ Dog vs Wolf counter-attack
   - ❌ Eating logic (only injured humans eat)
@@ -455,14 +456,162 @@ MVP is complete when:
 - ❌ **Testing & Validation**: Edge cases, performance benchmarks
 - ✅ **Documentation**: README.md complete with usage instructions
 
+## 🎛️ Phase 9: Configuration UI Implementation (CRITICAL - MISSING MVP FEATURE)
+
+**Status**: ❌ NOT STARTED
+**Priority**: CRITICAL - **BLOCKING MVP COMPLETION**
+**Reference**: PRD Sections 3.7.1-3.7.17, User Stories US-007, US-008, US-024, US-030, US-033, US-038
+
+### Background
+The configuration UI is **completely missing** from the current implementation. Parameters are hardcoded in `config.ts` with no way for users to modify them between games. This violates the core requirement: "allow users to modify parameters between games (so that new game is run on current set of parameters defined in UI)".
+
+The PRD extensively documents a configuration panel system, but it's not implemented and was missing from the TODO entirely.
+
+### Configuration Panel Structure
+- [x] Modal overlay design (displays before game starts or after game finishes)
+- [ ] Create `src/ui/ConfigPanel.ts` module
+- [ ] Implement panel visibility state management:
+  - [ ] Show on application load (before first game)
+  - [ ] Show after "Finish Game" clicked
+  - [ ] Hide when "Start Game" clicked
+  - [ ] Lock/disable during active simulation
+
+### Configuration Sections (Collapsible)
+- [ ] **Board Setup Section**:
+  - [ ] Width input (10-100, default 30)
+  - [ ] Height input (10-100, default 30)
+  - [ ] Injured threshold input (0-100, default 50)
+  - [ ] Male human spawn probability (0-1, default 0.15)
+  - [ ] Female human spawn probability (0-1, default 0.15)
+  - [ ] Wolf spawn probability (0-1, default 0.05)
+  - [ ] Dog spawn probability (0-1, default 0.03)
+  - [ ] Fruit spawn probability (0-1, default 0.10)
+  - [ ] Mushroom spawn probability (0-1, default 0.01)
+
+- [ ] **Human Configuration Section**:
+  - [ ] Starting health (1-200, default 100)
+  - [ ] Male vs male damage (1-100, default 20)
+  - [ ] Male vs wolf damage (1-100, default 25)
+  - [ ] Reproduction probability (0-1, default 0.3)
+  - [ ] Pregnancy period rounds (1-20, default 3)
+  - [ ] Cooldown period rounds (0-20, default 2)
+  - [ ] Perception range (1-15, default 5)
+  - [ ] Move toward fruit probability (0-1, default 0.7)
+  - [ ] Gompertz A (0.0001-0.01, default 0.0001)
+  - [ ] Gompertz B (0.01-0.5, default 0.1)
+
+- [ ] **Wolf Configuration Section**:
+  - [ ] Starting health (1-200, default 80)
+  - [ ] Damage to human (1-100, default 30)
+  - [ ] Perception range (1-15, default 7)
+  - [ ] Move toward human probability (0-1, default 0.8)
+  - [ ] Gompertz A (0.0001-0.01, default 0.0002)
+  - [ ] Gompertz B (0.01-0.5, default 0.12)
+
+- [ ] **Dog Configuration Section**:
+  - [ ] Starting health (1-200, default 70)
+  - [ ] Damage to wolf (1-100, default 35)
+  - [ ] Perception range (1-15, default 6)
+  - [ ] Move toward wolf probability (0-1, default 0.75)
+  - [ ] Gompertz A (0.0001-0.01, default 0.00015)
+  - [ ] Gompertz B (0.01-0.5, default 0.11)
+
+- [ ] **Plant Configuration Section**:
+  - [ ] Fruit energy healed (1-100, default 30)
+  - [ ] Fruit spawn probability per round (0-0.1, default 0.01)
+  - [ ] Rounds to ripen (0-10, default 2)
+  - [ ] Mushroom energy removed (1-100, default 40)
+  - [ ] Mushroom spawn probability per round (0-0.1, default 0.005)
+
+- [ ] **Population Control Section**:
+  - [ ] Human overcrowding threshold (10-1000, default 100)
+  - [ ] Human overcrowding multiplier (1-10, default 2)
+  - [ ] Animal overcrowding threshold (10-1000, default 50)
+  - [ ] Animal overcrowding multiplier (1-10, default 2)
+
+### UI Components
+- [ ] Input field component with validation
+- [ ] Tooltip system for parameter descriptions
+- [ ] Collapsible section component
+- [ ] Visual error indicators (red borders for invalid values)
+- [ ] Real-time spawn probability validation
+- [ ] Expected creature count calculator
+
+### Validation System
+- [ ] Real-time numeric range validation
+- [ ] Spawn probability sum validation (≤ 100%)
+- [ ] Warning at 90% total spawn probability
+- [ ] Display "Expected starting creatures: ~X"
+- [ ] Disable "Start Game" when validation fails
+- [ ] Clear error messages with tooltips
+
+### Control Buttons
+- [ ] "Reset to Defaults" button
+  - [ ] Restore all parameters to DEFAULT_CONFIG values
+  - [ ] Visual confirmation of reset
+- [ ] "Start Game" button
+  - [ ] Apply configuration to game
+  - [ ] Hide configuration panel
+  - [ ] Initialize game with custom config
+  - [ ] Enable/disable based on validation state
+
+### Configuration State Management
+- [ ] Add `currentConfig` state variable to Game class
+- [ ] Initialize with DEFAULT_CONFIG
+- [ ] Update config when user modifies UI
+- [ ] Persist config between games (US-033)
+- [ ] Pass config to entity constructors on spawn
+- [ ] Make config immutable during gameplay (PRD 3.7.2)
+
+### Integration with Game Class
+- [ ] Modify `Game.ts` constructor to accept config parameter
+- [ ] Update `initializeBoard()` to use `this.config` instead of DEFAULT_CONFIG
+- [ ] Update all entity spawning to use current config
+- [ ] Update all system classes to access config from game instance
+
+### CSS Styling
+- [ ] Modal overlay backdrop
+- [ ] Configuration panel styling (white, collapsible sections)
+- [ ] Input field styling
+- [ ] Validation error styling (red borders)
+- [ ] Tooltip styling
+- [ ] Responsive layout (two-column for space efficiency)
+- [ ] Section header styling
+
+### Testing
+- [ ] Test configuration panel shows on load
+- [ ] Test all inputs accept and validate values
+- [ ] Test spawn probability validation
+- [ ] Test "Reset to Defaults" functionality
+- [ ] Test "Start Game" applies configuration
+- [ ] Test config persists after "Finish Game"
+- [ ] Test config is immutable during gameplay
+- [ ] Test invalid configs prevent game start
+- [ ] Test expected creature count updates in real-time
+
+### Success Criteria
+- [ ] Configuration panel visible before game starts
+- [ ] All 50+ parameters editable via UI
+- [ ] Real-time validation with visual feedback
+- [ ] Games start with user-configured parameters
+- [ ] Configuration persists between games
+- [ ] "Reset to Defaults" restores all values
+- [ ] Invalid configurations prevented
+- [ ] Expected creature count calculated correctly
+
+**Estimated Time**: 8-12 hours
+**Blocking**: This is a CRITICAL MVP feature that was completely missing
+**PRD Alignment**: US-007, US-008, US-024, US-030, US-033, US-038, Sections 3.7.1-3.7.17
+
+---
+
 ## 📋 Post-MVP Enhancements (Future)
 
 Items deferred beyond MVP scope:
 - [ ] Configurable simulation speed slider
-- [ ] Save/Load simulation state
+- [ ] Save/Load simulation state to file
 - [ ] Export simulation data (CSV/JSON)
 - [ ] Advanced statistics (avg age, population graphs)
-- [ ] Different board sizes (configurable)
 - [ ] Additional entity types (predator/prey variations)
 - [ ] Sound effects
 - [ ] Mobile responsive design
@@ -471,14 +620,15 @@ Items deferred beyond MVP scope:
 
 ---
 
-**Estimated Remaining Work**: ~4-6 hours for full MVP completion (optional PRD corrections)
+**Estimated Remaining Work**: ~12-18 hours for full MVP completion
 **Priority Order**:
 1. ✅ ~~Phase 5.6 (Mushroom Implementation)~~ - COMPLETE
 2. ✅ ~~Phase 5.7.1 (Dog vs Wolf Counter-Attack)~~ - COMPLETE
 3. ✅ ~~Phase 7 (Reset Button)~~ - COMPLETE
 4. ✅ ~~Documentation (README.md)~~ - COMPLETE
-5. Phase 5.7 (Remaining PRD Corrections - Optional) - 2-3 hours
-6. Phase 8 (Performance Testing) - 1-2 hours
-7. Testing & Validation - 1-2 hours
+5. **Phase 9 (Configuration UI) - CRITICAL MVP BLOCKER** - 8-12 hours
+6. Phase 5.7 (Remaining PRD Corrections - Optional) - 2-3 hours
+7. Phase 8 (Performance Testing) - 1-2 hours
+8. Testing & Validation - 1-2 hours
 
-**Current MVP Status**: Core features complete and functional. Remaining items are refinements and edge cases.
+**Current MVP Status**: Core game mechanics complete, but **CONFIGURATION UI IS MISSING** - this is a critical blocker for MVP as users cannot modify parameters between games.

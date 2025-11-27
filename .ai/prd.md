@@ -118,6 +118,8 @@ The solution must enable exploration-based learning where students discover prin
 
 ### 3.7 Configuration System
 
+**CRITICAL MVP FEATURE**: The configuration system allows users to modify all game parameters between games, enabling experimentation and learning through parameter variation.
+
 3.7.1 Configuration panel accessible only before game starts or after game finishes
 
 3.7.2 Configuration locked (read-only) once game starts
@@ -136,7 +138,7 @@ The solution must enable exploration-based learning where students discover prin
 
 3.7.9 Mushroom configuration includes: energy removed from human, spawn probability per round
 
-3.7.10 Population Control configuration includes: human overcrowding threshold, human overcrowding multiplier, animal overcrowding threshold, animal overcrowding multiplier
+3.7.10 Population Control configuration includes: human overcrowding threshold (10-1000, default 100), human overcrowding multiplier (1-10, default 2), animal overcrowding threshold (10-1000, default 50), animal overcrowding multiplier (1-10, default 2)
 
 3.7.11 Real-time validation with visual indicators (red border for invalid values)
 
