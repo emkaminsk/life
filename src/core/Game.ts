@@ -43,8 +43,9 @@ export class Game {
   constructor(board: Board, renderer: Renderer) {
     this.board = board;
     this.renderer = renderer;
+    this.currentConfig = this.createDefaultConfig();
     this.movementSystem = new MovementSystem(renderer);
-    this.combatSystem = new CombatSystem(renderer);
+    this.combatSystem = new CombatSystem(renderer, this.currentConfig);
     this.eatingSystem = new EatingSystem(renderer);
     this.reproductionSystem = new ReproductionSystem(renderer);
     this.deathSystem = new DeathSystem(renderer);
@@ -59,7 +60,6 @@ export class Game {
     this.isAnimating = false;
     this.isStepping = false;
     this.animationFrameId = null;
-    this.currentConfig = this.createDefaultConfig();
   }
 
   private createDefaultConfig(): GameConfig {
@@ -91,7 +91,9 @@ export class Game {
       },
       wolf: {
         startingHealth: DEFAULT_CONFIG.wolf.startingHealth,
-        damageToHuman: DEFAULT_CONFIG.wolf.damageToHuman,
+        damageToMale: DEFAULT_CONFIG.wolf.damageToMale,
+        damageToFemale: DEFAULT_CONFIG.wolf.damageToFemale,
+        damageToDog: DEFAULT_CONFIG.wolf.damageToDog,
         perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
         moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
         spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
@@ -129,7 +131,7 @@ export class Game {
     this.currentConfig = config;
     // TODO: Update systems with new config
     // this.movementSystem.updateConfig(config);
-    // this.combatSystem.updateConfig(config);
+    this.combatSystem.updateConfig(config);
     // this.eatingSystem.updateConfig(config);
     // this.reproductionSystem.updateConfig(config);
     // this.deathSystem.updateConfig(config);

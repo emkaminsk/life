@@ -29,7 +29,9 @@ export const DEFAULT_CONFIG = {
 
   wolf: {
     startingHealth: 80,
-    damageToHuman: 30,
+    damageToMale: 30, // Damage to male humans (males counter-attack)
+    damageToFemale: 40, // Damage to female humans (females don't counter-attack, so higher)
+    damageToDog: 17, // Counter-damage to dogs (typically half of dog's damage)
     perceptionRange: 7,
     moveTowardHumanProbability: 0.8,
     spawnProbability: 0.002, // per empty cell per round (0.2%)

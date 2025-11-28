@@ -701,8 +701,8 @@
     <header>
       <h1 data-i18n="header.title">Game of Life Educational Simulator</h1>
       <div style="display: flex; gap: 20px; align-items: center;">
-        <div class="round-counter"><span data-i18n="header.round">Round</span>: <span id="round">0</span></div>
-        <div class="round-counter"><span data-i18n="header.roundsPerSec">Rounds/sec</span>: <span id="roundsPerSec">0</span></div>
+        <div class="round-counter" id="round">Round: 0</div>
+        <div class="round-counter" id="roundsPerSec">Rounds/sec: 0</div>
       </div>
     </header>
 
@@ -736,31 +736,31 @@
           <h2 data-i18n="stats.statistics">Statistics</h2>
           <div class="stats-grid">
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.males">👨 Males</span>
+              <span class="stat-label">👨 <span data-i18n="stats.males">Males</span></span>
               <span class="stat-value" id="maleCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.females">👩 Females</span>
+              <span class="stat-label">👩 <span data-i18n="stats.females">Females</span></span>
               <span class="stat-value" id="femaleCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.pregnant">🤰 Pregnant</span>
+              <span class="stat-label">🤰 <span data-i18n="stats.pregnant">Pregnant</span></span>
               <span class="stat-value" id="pregnantCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.wolves">🐺 Wolves</span>
+              <span class="stat-label">🐺 <span data-i18n="stats.wolves">Wolves</span></span>
               <span class="stat-value" id="wolfCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.dogs">🐕 Dogs</span>
+              <span class="stat-label">🐕 <span data-i18n="stats.dogs">Dogs</span></span>
               <span class="stat-value" id="dogCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.fruits">🍎 Fruits</span>
+              <span class="stat-label">🍎 <span data-i18n="stats.fruits">Fruits</span></span>
               <span class="stat-value" id="fruitCount">0</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label" data-i18n="stats.mushrooms">🍄 Mushrooms</span>
+              <span class="stat-label">🍄 <span data-i18n="stats.mushrooms">Mushrooms</span></span>
               <span class="stat-value" id="mushroomCount">0</span>
             </div>
           </div>
@@ -903,8 +903,16 @@
             <input type="number" id="wolfHealth" min="1" max="1000" value="80">
           </div>
           <div class="config-row">
-            <label for="wolfDamage" data-i18n="config.wolfDamage">Damage to Human:</label>
-            <input type="number" id="wolfDamage" min="0" max="100" value="30">
+            <label for="wolfDamageToMale" data-i18n="config.wolfDamageToMale">Damage to Male Human:</label>
+            <input type="number" id="wolfDamageToMale" min="0" max="100" value="30" title="Damage dealt to male humans (males fight back with configured counter-damage)">
+          </div>
+          <div class="config-row">
+            <label for="wolfDamageToFemale" data-i18n="config.wolfDamageToFemale">Damage to Female Human:</label>
+            <input type="number" id="wolfDamageToFemale" min="0" max="100" value="40" title="Damage dealt to female humans (females do not fight back)">
+          </div>
+          <div class="config-row">
+            <label for="wolfDamageToDog" data-i18n="config.wolfDamageToDog">Counter-Damage to Dog:</label>
+            <input type="number" id="wolfDamageToDog" min="0" max="100" value="17" title="Damage dealt to dogs when dogs attack wolves (typically half of dog's damage)">
           </div>
           <div class="config-row">
             <label for="wolfGompertzA" data-i18n="config.wolfGompertzA">Gompertz A (mortality rate):</label>

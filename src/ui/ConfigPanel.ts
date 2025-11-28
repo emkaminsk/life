@@ -29,7 +29,9 @@ export interface GameConfig {
   };
   wolf: {
     startingHealth: number;
-    damageToHuman: number;
+    damageToMale: number;
+    damageToFemale: number;
+    damageToDog: number;
     perceptionRange: number;
     moveTowardHumanProbability: number;
     spawnProbability: number;
@@ -102,7 +104,9 @@ export class ConfigPanel {
       },
       wolf: {
         startingHealth: DEFAULT_CONFIG.wolf.startingHealth,
-        damageToHuman: DEFAULT_CONFIG.wolf.damageToHuman,
+        damageToMale: DEFAULT_CONFIG.wolf.damageToMale,
+        damageToFemale: DEFAULT_CONFIG.wolf.damageToFemale,
+        damageToDog: DEFAULT_CONFIG.wolf.damageToDog,
         perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
         moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
         spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
@@ -192,9 +196,10 @@ export class ConfigPanel {
       input.addEventListener('change', () => this.validateInput(input as HTMLInputElement));
     });
 
-    // Listen for language changes to update button text
+    // Listen for language changes to update UI text
     i18n.onLanguageChange(() => {
       this.updateButtonTexts();
+      this.updateLabels();
     });
   }
 
@@ -275,7 +280,9 @@ export class ConfigPanel {
 
     // Wolf configuration
     this.setInputValue('wolfHealth', this.config.wolf.startingHealth);
-    this.setInputValue('wolfDamage', this.config.wolf.damageToHuman);
+    this.setInputValue('wolfDamageToMale', this.config.wolf.damageToMale);
+    this.setInputValue('wolfDamageToFemale', this.config.wolf.damageToFemale);
+    this.setInputValue('wolfDamageToDog', this.config.wolf.damageToDog);
     this.setInputValue('wolfGompertzA', this.config.wolf.gompertzA);
     this.setInputValue('wolfGompertzB', this.config.wolf.gompertzB);
     this.setInputValue('wolfPerception', this.config.wolf.perceptionRange);
@@ -408,7 +415,9 @@ export class ConfigPanel {
 
     // Wolf configuration
     this.config.wolf.startingHealth = this.getInputValue('wolfHealth');
-    this.config.wolf.damageToHuman = this.getInputValue('wolfDamage');
+    this.config.wolf.damageToMale = this.getInputValue('wolfDamageToMale');
+    this.config.wolf.damageToFemale = this.getInputValue('wolfDamageToFemale');
+    this.config.wolf.damageToDog = this.getInputValue('wolfDamageToDog');
     this.config.wolf.gompertzA = this.getInputValue('wolfGompertzA');
     this.config.wolf.gompertzB = this.getInputValue('wolfGompertzB');
     this.config.wolf.perceptionRange = this.getInputValue('wolfPerception');
@@ -457,6 +466,7 @@ export class ConfigPanel {
     this.panel.style.display = 'flex';
     this.populateInputs();
     this.updateButtonTexts();
+    this.updateLabels();
     // Disable the old start button in sidebar when config panel is shown
     const oldStartBtn = document.getElementById('startBtn') as HTMLButtonElement;
     if (oldStartBtn) {
@@ -482,6 +492,17 @@ export class ConfigPanel {
       );
       collapseBtn.textContent = allCollapsed ? i18n.t('config.expand') : i18n.t('config.collapse');
     }
+  }
+
+  private updateLabels(): void {
+    // Update all elements with data-i18n attributes
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(element => {
+      const key = element.getAttribute('data-i18n');
+      if (key) {
+        element.textContent = i18n.t(key);
+      }
+    });
   }
 
   getConfig(): GameConfig {

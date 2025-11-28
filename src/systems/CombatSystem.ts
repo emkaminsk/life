@@ -4,13 +4,19 @@ import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import type { Renderer } from '../core/Renderer';
-import { DEFAULT_CONFIG } from '../config';
+import type { GameConfig } from '../ui/ConfigPanel';
 
 export class CombatSystem {
   private renderer: Renderer;
+  private config: GameConfig;
 
-  constructor(renderer: Renderer) {
+  constructor(renderer: Renderer, config: GameConfig) {
     this.renderer = renderer;
+    this.config = config;
+  }
+
+  updateConfig(config: GameConfig): void {
+    this.config = config;
   }
 
   execute(board: Board): void {
@@ -69,7 +75,7 @@ export class CombatSystem {
     // Male vs Male combat
     if (entity1 instanceof Human && entity1.isMale() &&
         entity2 instanceof Human && entity2.isMale()) {
-      const damage = DEFAULT_CONFIG.human.maleVsMaleDamage;
+      const damage = this.config.human.maleVsMaleDamage;
 
       // Store initial health before combat (for energy transfer)
       const male1InitialHealth = entity1.health;
@@ -115,7 +121,7 @@ export class CombatSystem {
         }
 
         // Survivor gains dying male's initial health
-        survivor.heal(dyingInitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        survivor.heal(dyingInitialHealth, this.config.human.startingHealth);
         console.log(`[Combat] Both males would die: ${dyingMale === entity1 ? 'Male1' : 'Male2'} dies, survivor gains ${dyingInitialHealth} health`);
 
         // Set survivor's health to 1 to ensure they survive
@@ -125,12 +131,12 @@ export class CombatSystem {
 
       } else if (male1Dying) {
         // Only entity1 dies, entity2 gains energy
-        entity2.heal(male1InitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        entity2.heal(male1InitialHealth, this.config.human.startingHealth);
         console.log(`[Combat] Male at (${entity1.x},${entity1.y}) dies, survivor at (${entity2.x},${entity2.y}) gains ${male1InitialHealth} health`);
 
       } else if (male2Dying) {
         // Only entity2 dies, entity1 gains energy
-        entity1.heal(male2InitialHealth, DEFAULT_CONFIG.human.startingHealth);
+        entity1.heal(male2InitialHealth, this.config.human.startingHealth);
         console.log(`[Combat] Male at (${entity2.x},${entity2.y}) dies, survivor at (${entity1.x},${entity1.y}) gains ${male2InitialHealth} health`);
       }
 
@@ -146,11 +152,11 @@ export class CombatSystem {
       const wolf = entity1 instanceof Wolf ? entity1 : entity2;
 
       // Dog deals damage to wolf
-      const dogDamage = DEFAULT_CONFIG.dog.damageToWolf;
+      const dogDamage = this.config.dog.damageToWolf;
       wolf.takeDamage(dogDamage);
 
-      // Wolf counter-attacks with half damage (PRD US-019)
-      const wolfCounterDamage = Math.floor(dogDamage / 2);
+      // Wolf counter-attacks with configured damage (PRD US-019)
+      const wolfCounterDamage = this.config.wolf.damageToDog;
       dog.takeDamage(wolfCounterDamage);
 
       console.log(`[Combat] Dog at (${dog.x},${dog.y}) vs Wolf at (${wolf.x},${wolf.y}): Dog deals ${dogDamage}, Wolf deals ${wolfCounterDamage}`);
@@ -175,8 +181,8 @@ export class CombatSystem {
       return;
     }
 
-    // Wolf attacks human
-    const wolfDamage = DEFAULT_CONFIG.wolf.damageToHuman;
+    // Wolf attacks human with differentiated damage
+    const wolfDamage = human.isMale() ? this.config.wolf.damageToMale : this.config.wolf.damageToFemale;
     human.takeDamage(wolfDamage);
 
     console.log(`[Combat] Wolf at (${wolf.x},${wolf.y}) attacks ${human.sex} at (${human.x},${human.y}): ${wolfDamage} damage`);
@@ -185,7 +191,7 @@ export class CombatSystem {
 
     // Male human counter-attacks
     if (human.isMale()) {
-      const counterDamage = DEFAULT_CONFIG.human.maleVsWolfDamage;
+      const counterDamage = this.config.human.maleVsWolfDamage;
       wolf.takeDamage(counterDamage);
 
       console.log(`[Combat] Male counter-attacks wolf: ${counterDamage} damage`);

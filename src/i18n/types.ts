@@ -96,6 +96,9 @@ export interface TranslationKeys {
     wolfConfig: string;
     wolfHealth: string;
     wolfDamage: string;
+    wolfDamageToMale: string;
+    wolfDamageToFemale: string;
+    wolfDamageToDog: string;
     wolfPerception: string;
     moveTowardHuman: string;
     wolfGompertzA: string;

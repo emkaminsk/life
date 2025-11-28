@@ -208,7 +208,7 @@ function checkForAlerts(): void {
 function updateRoundCounter(): void {
   const roundElement = document.getElementById('round');
   if (roundElement) {
-    roundElement.textContent = board.round.toString();
+    roundElement.textContent = i18n.t('header.round', board.round);
   }
 }
 
@@ -216,7 +216,7 @@ function updateRoundCounter(): void {
 function updateRoundsPerSec(): void {
   const roundsPerSecElement = document.getElementById('roundsPerSec');
   if (roundsPerSecElement) {
-    roundsPerSecElement.textContent = renderer.getCurrentFps().toString();
+    roundsPerSecElement.textContent = i18n.t('header.roundsPerSec', renderer.getCurrentFps());
   }
 }
 
