@@ -49,6 +49,8 @@ export const translations: Translations = {
       collapse: 'Collapse',
       expand: 'Expand',
       resetDefaults: 'Reset to Defaults',
+      saveConfig: 'Save Configuration',
+      loadConfig: 'Load Configuration',
       expectedCreatures: 'Expected starting creatures: ~{0}',
       expectedCreaturesDetailed: 'Expected creatures: ~{0}♂ {1}♀ {2}🐺 {3}🐕 {4}🍎 {5}🍄',
 
@@ -125,6 +127,12 @@ export const translations: Translations = {
       allFemalesDied: 'All females have died - reproduction is no longer possible',
       boardNearlyFullTitle: '⚠️ Board Nearly Full',
       boardNearlyFull: 'Board is at 90% capacity - ecosystem may become unstable',
+      configSavedTitle: '✅ Configuration Saved',
+      configSaved: 'Configuration exported to {0}',
+      configLoadedTitle: '✅ Configuration Loaded',
+      configLoaded: 'Configuration loaded from {0}',
+      configLoadErrorTitle: '❌ Load Error',
+      configLoadError: 'Failed to load configuration: {0}',
     },
 
     rules: {
@@ -228,6 +236,8 @@ export const translations: Translations = {
       collapse: 'Zwiń',
       expand: 'Rozwiń',
       resetDefaults: 'Przywróć Domyślne',
+      saveConfig: 'Zapisz Konfigurację',
+      loadConfig: 'Wczytaj Konfigurację',
       expectedCreatures: 'Oczekiwane stworzenia na start: ~{0}',
       expectedCreaturesDetailed: 'Oczekiwane stworzenia: ~{0}♂ {1}♀ {2}🐺 {3}🐕 {4}🍎 {5}🍄',
 
@@ -304,6 +314,12 @@ export const translations: Translations = {
       allFemalesDied: 'Wszystkie kobiety wymarły - rozmnażanie nie jest już możliwe',
       boardNearlyFullTitle: '⚠️ Plansza Prawie Pełna',
       boardNearlyFull: 'Plansza jest zapełniona w 90% - ekosystem może stać się niestabilny',
+      configSavedTitle: '✅ Zapisano Konfigurację',
+      configSaved: 'Konfiguracja wyeksportowana do {0}',
+      configLoadedTitle: '✅ Wczytano Konfigurację',
+      configLoaded: 'Konfiguracja wczytana z {0}',
+      configLoadErrorTitle: '❌ Błąd Wczytywania',
+      configLoadError: 'Nie udało się wczytać konfiguracji: {0}',
     },
 
     rules: {

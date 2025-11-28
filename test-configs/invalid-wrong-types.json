@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-11-28T10:00:00.000Z",
+  "config": {
+    "board": {
+      "width": "thirty",
+      "height": 30,
+      "injuredThreshold": 50
+    },
+    "spawn": {
+      "maleHumanProbability": "high",
+      "femaleHumanProbability": 0.03,
+      "wolfProbability": 0.005,
+      "dogProbability": 0.005,
+      "fruitProbability": 0.02,
+      "mushroomProbability": 0.01
+    },
+    "human": {
+      "startingHealth": true,
+      "maleVsMaleDamage": 20,
+      "maleVsWolfDamage": 15,
+      "reproductionProbability": 0.5,
+      "pregnancyPeriod": 10,
+      "cooldownPeriod": 5,
+      "perceptionRange": 5,
+      "moveTowardFruitProbability": 0.7,
+      "gompertzA": 0.0001,
+      "gompertzB": 0.1
+    },
+    "wolf": {
+      "startingHealth": 80,
+      "damageToMale": 30,
+      "damageToFemale": 40,
+      "damageToDog": 17,
+      "perceptionRange": 7,
+      "moveTowardHumanProbability": 0.8,
+      "spawnProbability": 0.002,
+      "gompertzA": 0.0002,
+      "gompertzB": 0.12
+    },
+    "dog": {
+      "startingHealth": 70,
+      "damageToWolf": 35,
+      "perceptionRange": 8,
+      "moveTowardWolfProbability": 0.9,
+      "spawnProbability": 0.002,
+      "gompertzA": 0.00015,
+      "gompertzB": 0.11
+    },
+    "fruit": {
+      "energyValue": 30,
+      "spawnProbability": 0.01,
+      "roundsToRipen": 5
+    },
+    "mushroom": {
+      "damageValue": 25,
+      "spawnProbability": 0.005
+    },
+    "simulation": {
+      "defaultSpeed": 500
+    },
+    "overcrowding": {
+      "humanThreshold": 100,
+      "humanMultiplier": 2,
+      "animalThreshold": 50,
+      "animalMultiplier": 2
+    }
+  }
+}

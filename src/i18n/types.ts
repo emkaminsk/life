@@ -58,6 +58,8 @@ export interface TranslationKeys {
     collapse: string;
     expand: string;
     resetDefaults: string;
+    saveConfig: string;
+    loadConfig: string;
     expectedCreatures: string;
     expectedCreaturesDetailed: string;
 
@@ -142,6 +144,12 @@ export interface TranslationKeys {
     allFemalesDied: string;
     boardNearlyFullTitle: string;
     boardNearlyFull: string;
+    configSavedTitle: string;
+    configSaved: string;
+    configLoadedTitle: string;
+    configLoaded: string;
+    configLoadErrorTitle: string;
+    configLoadError: string;
   };
 
   // Rules modal

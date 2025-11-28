@@ -128,7 +128,7 @@ let maleExtinctionAlerted = false;
 let femaleExtinctionAlerted = false;
 let capacityWarningShown = false;
 
-function showNotification(title: string, message: string, type: 'error' | 'warning' | 'info' = 'info'): void {
+export function showNotification(title: string, message: string, type: 'error' | 'warning' | 'info' = 'info'): void {
   const container = document.getElementById('notificationContainer');
   if (!container) return;
 
