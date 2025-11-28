@@ -377,6 +377,8 @@ Acceptance Criteria:
 - Tooltips show valid ranges on hover
 - "Reset to Defaults" restores all values
 - "Start Game" applies configuration
+- User can save full set of configuration parameters to locally stored JSON file
+- User can load locally stored JSON file into the set of configuration parameters, overwriting previous values
 
 ### US-008: Configuration Validation
 Title: Receive feedback on invalid configuration
@@ -724,7 +726,7 @@ Acceptance Criteria:
 - Male vs. male combat: both males take damage simultaneously
 - Human male vs. wolf: both take damage simultaneously
 - Wolf vs. human female: only female takes damage
-- Dog vs. wolf: only wolf takes damage
+- Dog vs. wolf: both take damage in unequal amount
 - All combat damage applied in combat phase (phase 2)
 - Deaths from combat processed in death phase (phase 5)
 

@@ -136,8 +136,11 @@ export interface TranslationKeys {
 
   // Notifications
   notifications: {
+    maleExtinctionTitle: string;
     allMalesDied: string;
+    femaleExtinctionTitle: string;
     allFemalesDied: string;
+    boardNearlyFullTitle: string;
     boardNearlyFull: string;
   };
 

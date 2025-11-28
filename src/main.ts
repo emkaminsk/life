@@ -170,8 +170,8 @@ function checkForAlerts(): void {
   // Extinction alerts
   if (previousMaleCount > 0 && maleCount === 0 && !maleExtinctionAlerted) {
     showNotification(
-      '⚠️ Male Extinction',
-      'All males have died - reproduction is no longer possible',
+      i18n.t('notifications.maleExtinctionTitle'),
+      i18n.t('notifications.allMalesDied'),
       'error'
     );
     maleExtinctionAlerted = true;
@@ -179,8 +179,8 @@ function checkForAlerts(): void {
 
   if (previousFemaleCount > 0 && femaleCount === 0 && !femaleExtinctionAlerted) {
     showNotification(
-      '⚠️ Female Extinction',
-      'All females have died - reproduction is no longer possible',
+      i18n.t('notifications.femaleExtinctionTitle'),
+      i18n.t('notifications.allFemalesDied'),
       'error'
     );
     femaleExtinctionAlerted = true;
@@ -189,8 +189,8 @@ function checkForAlerts(): void {
   // Capacity warning
   if (capacity >= 0.9 && !capacityWarningShown) {
     showNotification(
-      '⚠️ Board Nearly Full',
-      'Board is at 90% capacity - ecosystem may become unstable',
+      i18n.t('notifications.boardNearlyFullTitle'),
+      i18n.t('notifications.boardNearlyFull'),
       'warning'
     );
     capacityWarningShown = true;

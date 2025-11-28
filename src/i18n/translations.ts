@@ -119,9 +119,12 @@ export const translations: Translations = {
     },
 
     notifications: {
-      allMalesDied: 'All males have died - reproduction no longer possible',
-      allFemalesDied: 'All females have died - reproduction no longer possible',
-      boardNearlyFull: 'Board nearly full - ecosystem may become unstable',
+      maleExtinctionTitle: '⚠️ Male Extinction',
+      allMalesDied: 'All males have died - reproduction is no longer possible',
+      femaleExtinctionTitle: '⚠️ Female Extinction',
+      allFemalesDied: 'All females have died - reproduction is no longer possible',
+      boardNearlyFullTitle: '⚠️ Board Nearly Full',
+      boardNearlyFull: 'Board is at 90% capacity - ecosystem may become unstable',
     },
 
     rules: {
@@ -212,7 +215,7 @@ export const translations: Translations = {
       dogs: 'Psy',
       fruits: 'Owoce',
       ripeUnripe: '{0} dojrzałe / {1} niedojrzałe',
-      mushrooms: 'Grzyby',
+      mushrooms: 'Muchomory',
       total: 'Łącznie stworzeń: {0}/{1}',
       populationGraph: 'Wykres Populacji',
       waitingForData: 'Oczekiwanie na dane...',
@@ -243,7 +246,7 @@ export const translations: Translations = {
       wolfSpawn: 'Prawdopodobieństwo Pojawienia Wilków',
       dogSpawn: 'Prawdopodobieństwo Pojawienia Psów',
       fruitSpawn: 'Prawdopodobieństwo Pojawienia Owoców',
-      mushroomSpawn: 'Prawdopodobieństwo Pojawienia Grzybów',
+      mushroomSpawn: 'Prawdopodobieństwo Pojawienia Muchomorów',
 
       humanConfig: 'Konfiguracja Ludzi',
       humanHealth: 'Początkowe Zdrowie',
@@ -283,7 +286,7 @@ export const translations: Translations = {
       fruitSpawnProb: 'Prawdopodobieństwo Pojawienia na Rundę',
       roundsToRipen: 'Rundy do Dojrzałości',
 
-      mushroomConfig: 'Konfiguracja Grzybów',
+      mushroomConfig: 'Konfiguracja Muchomorów',
       mushroomEnergy: 'Utracona Energia',
       mushroomSpawnProb: 'Prawdopodobieństwo Pojawienia na Rundę',
 
@@ -295,9 +298,12 @@ export const translations: Translations = {
     },
 
     notifications: {
-      allMalesDied: 'Wszyscy mężczyźni wymarli - rozmnażanie niemożliwe',
-      allFemalesDied: 'Wszystkie kobiety wymarły - rozmnażanie niemożliwe',
-      boardNearlyFull: 'Plansza prawie pełna - ekosystem może być niestabilny',
+      maleExtinctionTitle: '⚠️ Wyginięcie Mężczyzn',
+      allMalesDied: 'Wszyscy mężczyźni wymarli - rozmnażanie nie jest już możliwe',
+      femaleExtinctionTitle: '⚠️ Wyginięcie Kobiet',
+      allFemalesDied: 'Wszystkie kobiety wymarły - rozmnażanie nie jest już możliwe',
+      boardNearlyFullTitle: '⚠️ Plansza Prawie Pełna',
+      boardNearlyFull: 'Plansza jest zapełniona w 90% - ekosystem może stać się niestabilny',
     },
 
     rules: {
@@ -335,9 +341,9 @@ export const translations: Translations = {
       plantsTitle: 'Typy Roślin',
       fruitsTitle: '🍎 Owoce',
       fruitsDesc: 'Owoce leczą ludzi gdy są zjedzone. Nowe owoce są niedojrzałe (🍏) i stają się dojrzałe (🍎) po kilku rundach. Tylko dojrzałe owoce mogą być zjedzone.',
-      mushroomsTitle: '🍄 Grzyby',
-      mushroomsDesc: 'Grzyby są trującymi roślinami które ranią ludzi gdy są zjedzone. Pojawiają się losowo i są natychmiast niebezpieczne.',
-      mushroomsWarning: '⚠️ Uwaga: Grzyby zmniejszają zdrowie!',
+      mushroomsTitle: '🍄 Muchomory',
+      mushroomsDesc: 'Muchomory są trującymi roślinami które ranią ludzi gdy są zjedzone. Pojawiają się losowo i są natychmiast niebezpieczne.',
+      mushroomsWarning: '⚠️ Uwaga: Muchomory zmniejszają zdrowie!',
 
       controlsTitle: 'Sterowanie',
       keyboardShortcutsTitle: 'Skróty Klawiszowe',
