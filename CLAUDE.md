@@ -62,7 +62,7 @@ src/
 │   ├── ReproductionSystem.ts   # Phase 4: Pregnancy initiation
 │   ├── DeathSystem.ts          # Phase 5: Health-based removal + Gompertz
 │   ├── BirthSystem.ts          # Phase 6: Spawn from pregnancy
-│   └── PlantSpawnSystem.ts     # Phase 7: Probabilistic spawning
+│   └── SpawnSystem.ts     # Phase 7: Probabilistic spawning
 ├── utils/
 │   ├── Gompertz.ts       # Age-based mortality calculation
 │   └── Random.ts         # Seeded random utilities

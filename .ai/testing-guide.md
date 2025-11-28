@@ -91,7 +91,7 @@ Open browser DevTools (F12) → Console tab
 [Reproduction] M new pregnancies
 [Death] Total deaths: A (health: B, age: C)
 [Birth] Total births this round: D
-[PlantSpawn] Spawned E new fruits
+[Spawn] Spawned E new fruits
 ```
 
 ---

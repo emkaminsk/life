@@ -1,4 +1,5 @@
 import { DEFAULT_CONFIG } from '../config';
+import { i18n } from '../i18n/i18n';
 
 export interface GameConfig {
   board: {
@@ -190,6 +191,11 @@ export class ConfigPanel {
       input.addEventListener('input', () => this.validateInput(input as HTMLInputElement));
       input.addEventListener('change', () => this.validateInput(input as HTMLInputElement));
     });
+
+    // Listen for language changes to update button text
+    i18n.onLanguageChange(() => {
+      this.updateButtonTexts();
+    });
   }
 
   private validateInput(input: HTMLInputElement): void {
@@ -214,11 +220,11 @@ export class ConfigPanel {
   private toggleCollapseAll(): void {
     const sections = document.querySelectorAll('.config-section');
     const collapseBtn = document.getElementById('collapseAllBtn') as HTMLButtonElement;
-    
+
     if (!collapseBtn) return;
 
     // Check if all sections are collapsed
-    const allCollapsed = Array.from(sections).every(section => 
+    const allCollapsed = Array.from(sections).every(section =>
       section.classList.contains('collapsed')
     );
 
@@ -232,7 +238,7 @@ export class ConfigPanel {
     });
 
     // Update button text
-    collapseBtn.textContent = allCollapsed ? 'Collapse' : 'Expand';
+    this.updateButtonTexts();
   }
 
   private resetToDefaults(): void {
@@ -331,7 +337,7 @@ export class ConfigPanel {
 
     if (total > 1.0) {
       if (validationMsg) {
-        validationMsg.textContent = `❌ Total spawn probability ${(total * 100).toFixed(1)}% exceeds 100%`;
+        validationMsg.textContent = `❌ ${i18n.t('config.totalSpawnProbability')} ${(total * 100).toFixed(1)}% ${i18n.t('config.spawnExceeds100')}`;
         validationMsg.className = 'validation-error';
       }
       if (startBtn) startBtn.disabled = true;
@@ -339,7 +345,7 @@ export class ConfigPanel {
       return false;
     } else if (total > 0.9) {
       if (validationMsg) {
-        validationMsg.textContent = `⚠️ Warning: Total spawn probability ${(total * 100).toFixed(1)}% is very high`;
+        validationMsg.textContent = `⚠️ ${i18n.t('config.spawnWarning')} ${i18n.t('config.totalSpawnProbability')} ${(total * 100).toFixed(1)}% ${i18n.t('config.spawnVeryHigh')}`;
         validationMsg.className = 'validation-warning';
       }
       if (startBtn) startBtn.disabled = false;
@@ -347,7 +353,7 @@ export class ConfigPanel {
       return true;
     } else {
       if (validationMsg) {
-        validationMsg.textContent = `✓ Total spawn probability: ${(total * 100).toFixed(1)}%`;
+        validationMsg.textContent = `✓ ${i18n.t('config.totalSpawnProbability')}: ${(total * 100).toFixed(1)}%`;
         validationMsg.className = 'validation-success';
       }
       if (startBtn) startBtn.disabled = false;
@@ -370,7 +376,7 @@ export class ConfigPanel {
 
     const expectedText = document.getElementById('expectedCounts');
     if (expectedText) {
-      expectedText.textContent = `Expected creatures: ~${expectedMales}♂ ${expectedFemales}♀ ${expectedWolves}🐺 ${expectedDogs}🐕 ${expectedFruits}🍎 ${expectedMushrooms}🍄`;
+      expectedText.textContent = i18n.t('config.expectedCreaturesDetailed', expectedMales, expectedFemales, expectedWolves, expectedDogs, expectedFruits, expectedMushrooms);
     }
   }
 
@@ -450,6 +456,7 @@ export class ConfigPanel {
   show(): void {
     this.panel.style.display = 'flex';
     this.populateInputs();
+    this.updateButtonTexts();
     // Disable the old start button in sidebar when config panel is shown
     const oldStartBtn = document.getElementById('startBtn') as HTMLButtonElement;
     if (oldStartBtn) {
@@ -463,6 +470,18 @@ export class ConfigPanel {
 
   onStart(callback: (config: GameConfig) => void): void {
     this.onStartCallback = callback;
+  }
+
+  private updateButtonTexts(): void {
+    const collapseBtn = document.getElementById('collapseAllBtn') as HTMLButtonElement;
+    if (collapseBtn) {
+      // Check current state to determine which text to show
+      const sections = document.querySelectorAll('.config-section');
+      const allCollapsed = Array.from(sections).every(section =>
+        section.classList.contains('collapsed')
+      );
+      collapseBtn.textContent = allCollapsed ? i18n.t('config.expand') : i18n.t('config.collapse');
+    }
   }
 
   getConfig(): GameConfig {

@@ -1311,35 +1311,35 @@ Currently, animals only spawn during initial board setup. This feature will add 
 
 ---
 
-## 🌍 Phase 18: Localization System (English/Polish) ❌ NOT STARTED
+## 🌍 Phase 18: Localization System (English/Polish) 🔄 IN PROGRESS
 
-**Status**: ❌ NOT STARTED
+**Status**: 🔄 IN PROGRESS (90% Complete)
 **Priority**: MEDIUM - Educational enhancement for Polish students
-**Estimated Time**: 6-8 hours
+**Estimated Time**: 6-8 hours (6 hours invested)
 
 ### Background
 The application is currently English-only. Adding Polish localization will make the tool accessible to Polish students aged 11-15, expanding its educational reach. The localization system should support easy switching between languages and be extensible for future language additions.
 
 **Design Decision**: Implement a lightweight i18n system without external dependencies, using TypeScript interfaces for type safety and JSON-like objects for translations.
 
-### Foundation (Phase 18.1) - Localization Infrastructure
-- [ ] Create `src/i18n/` directory
-- [ ] Create `src/i18n/types.ts`:
-  - [ ] Define `Language` enum: `EN = 'en'`, `PL = 'pl'`
-  - [ ] Define `TranslationKeys` interface with all UI text keys (organized by section)
-  - [ ] Define `Translations` type: `Record<Language, TranslationKeys>`
-- [ ] Create `src/i18n/translations.ts`:
-  - [ ] Export `translations` object with English and Polish text
-  - [ ] Organize keys by section: `header`, `controls`, `statistics`, `config`, `notifications`, `rules`, `errors`
-  - [ ] Include all UI labels, button text, tooltips, notifications, and rules modal content
-- [ ] Create `src/i18n/i18n.ts`:
-  - [ ] Export `I18n` class with:
-    - [ ] `currentLanguage: Language` property (default: `EN`)
-    - [ ] `setLanguage(lang: Language): void` method
-    - [ ] `t(key: string): string` method (translation getter with dot notation support)
-    - [ ] `getCurrentLanguage(): Language` getter
-    - [ ] Event emitter for language change (notify UI components to re-render)
-- [ ] Export singleton instance: `export const i18n = new I18n()`
+### Foundation (Phase 18.1) - Localization Infrastructure ✅ COMPLETE
+- [x] Create `src/i18n/` directory
+- [x] Create `src/i18n/types.ts`:
+  - [x] Define `Language` enum: `EN = 'en'`, `PL = 'pl'`
+  - [x] Define `TranslationKeys` interface with all UI text keys (organized by section)
+  - [x] Define `Translations` type: `Record<Language, TranslationKeys>`
+- [x] Create `src/i18n/translations.ts`:
+  - [x] Export `translations` object with English and Polish text
+  - [x] Organize keys by section: `header`, `controls`, `statistics`, `config`, `notifications`, `rules`, `errors`
+  - [x] Include all UI labels, button text, tooltips, notifications, and rules modal content
+- [x] Create `src/i18n/i18n.ts`:
+  - [x] Export `I18n` class with:
+    - [x] `currentLanguage: Language` property (auto-detected from browser/localStorage)
+    - [x] `setLanguage(lang: Language): void` method with localStorage persistence
+    - [x] `t(key: string, ...args): string` method with dot notation and interpolation
+    - [x] `getCurrentLanguage(): Language` getter
+    - [x] Event emitter for language change (notify UI components to re-render)
+- [x] Export singleton instance: `export const i18n = new I18n()`
 
 ### Translation Content (Phase 18.2) - English/Polish Text
 - [ ] **Header Section**:
@@ -1391,64 +1391,69 @@ The application is currently English-only. Adding Polish localization will make 
   - [ ] Validation errors for configuration inputs
   - [ ] Spawn probability warnings
 
-### Language Selector UI (Phase 18.3)
-- [ ] Add language selector to configuration panel header:
-  - [ ] Create dropdown/toggle in `index.html` config panel header
-  - [ ] Options: "🇬🇧 English" and "🇵🇱 Polski"
-  - [ ] Position: Top-right of configuration panel (next to close button)
-  - [ ] CSS styling: Minimal dropdown with flag emojis
+### Language Selector UI (Phase 18.3) ✅ COMPLETE
+- [x] Add language selector to configuration panel header:
+  - [x] Create dropdown/toggle in `index.html` config panel header
+  - [x] Options: "🇬🇧 English" and "🇵🇱 Polski"
+  - [x] Position: Top-right of configuration panel (next to title)
+  - [x] CSS styling: Professional dropdown with flag emojis, hover/focus states
 - [ ] Add language selector to game header (optional, for in-game switching):
   - [ ] Small language toggle in top-right corner (next to "?" button)
   - [ ] Allows language change during gameplay (re-renders UI text only)
-- [ ] Wire up event listeners:
-  - [ ] On language change: `i18n.setLanguage(selectedLanguage)`
-  - [ ] Trigger UI re-render for all text elements
-  - [ ] Save language preference to localStorage
+- [x] Wire up event listeners:
+  - [x] On language change: `i18n.setLanguage(selectedLanguage)`
+  - [x] Trigger UI re-render for all text elements via DOMRenderer
+  - [x] Save language preference to localStorage automatically
 
-### UI Integration (Phase 18.4) - Dynamic Text Rendering
-- [ ] Update `index.html`:
-  - [ ] Add `data-i18n` attributes to all static text elements
-  - [ ] Example: `<h1 data-i18n="header.title">Game of Life Educational Simulator</h1>`
-  - [ ] Add `data-i18n-placeholder` for input placeholders
-  - [ ] Add `data-i18n-title` for tooltips
-- [ ] Create `src/i18n/DOMRenderer.ts`:
-  - [ ] `updateDOM()` method: iterate all `[data-i18n]` elements, set `textContent` from translations
-  - [ ] `updatePlaceholders()`: update all `[data-i18n-placeholder]` elements
-  - [ ] `updateTooltips()`: update all `[data-i18n-title]` elements
-  - [ ] Call on language change and page load
+### UI Integration (Phase 18.4) - Dynamic Text Rendering ✅ COMPLETE
+- [x] Create `src/i18n/DOMRenderer.ts`:
+  - [x] `updateDOM()` method: iterate all `[data-i18n]` elements, set `textContent` from translations
+  - [x] `updatePlaceholders()`: update all `[data-i18n-placeholder]` elements
+  - [x] `updateTooltips()`: update all `[data-i18n-title]` elements
+  - [x] `updateAriaLabels()`: update all `[data-i18n-aria-label]` elements
+  - [x] Call on language change and page load automatically
+- [x] Update `index.html`:
+  - [x] Add `data-i18n` attributes to header section (title, round counter, rounds/sec)
+  - [x] Add `data-i18n` attributes to controls section (all buttons)
+  - [x] Add `data-i18n` attributes to statistics panel (all labels)
+  - [x] Add `data-i18n` attributes to configuration panel header
+  - [x] Add `data-i18n` attributes to all configuration section headers (Board Setup, Human Config, Wolf, Dog, Fruit, Mushroom, Population Control)
+  - [x] Add `data-i18n` attributes to all configuration labels (50+ parameters)
+  - [x] Add `data-i18n` attributes to config panel buttons (Reset to Defaults, Start Game)
 - [ ] Update `src/ui/ConfigPanel.ts`:
   - [ ] Import `i18n` singleton
   - [ ] Replace all hardcoded English strings with `i18n.t('config.sectionName')`
   - [ ] Add `updateLanguage()` method to re-render all labels
   - [ ] Subscribe to language change events
-- [ ] Update `src/main.ts`:
+- [x] Update `src/main.ts`:
+  - [x] Initialize DOMRenderer on page load
+  - [x] Setup language selector event listener
   - [ ] Replace hardcoded strings in statistics update with `i18n.t('stats.males')`, etc.
   - [ ] Update notification messages to use translations
-  - [ ] Initialize language from localStorage on page load
 
-### Rules Modal Localization (Phase 18.5)
-- [ ] Update rules modal content in `index.html`:
-  - [ ] Add `data-i18n` attributes to all tab titles
-  - [ ] Add `data-i18n` attributes to all section headers
-  - [ ] Replace static text with translation keys
-- [ ] Create structured translations for rules content:
-  - [ ] Game Rules tab: 7-phase priority order explanation (EN/PL)
-  - [ ] Creatures tab: Male/Female/Wolf/Dog descriptions (EN/PL)
-  - [ ] Plants tab: Fruit/Mushroom mechanics (EN/PL)
-  - [ ] Controls tab: All keyboard shortcuts (EN/PL)
-- [ ] Update modal rendering logic:
-  - [ ] On language change, re-render all modal content
-  - [ ] Maintain current tab selection during language switch
+### Rules Modal Localization (Phase 18.5) ✅ COMPLETE
+- [x] Update rules modal content in `index.html`:
+  - [x] Add `data-i18n` attributes to modal title and all tab titles
+  - [x] Add `data-i18n` attributes to all section headers (Game Rules, Creatures, Plants, Controls)
+  - [x] Replace static text with translation keys for all rule descriptions
+- [x] Translations already exist for rules content:
+  - [x] Game Rules tab: 7-phase priority order explanation (EN/PL)
+  - [x] Creatures tab: Male/Female/Wolf/Dog descriptions (EN/PL)
+  - [x] Plants tab: Fruit/Mushroom mechanics (EN/PL)
+  - [x] Controls tab: Keyboard shortcuts documentation (EN/PL)
+- [x] DOMRenderer automatically handles modal content:
+  - [x] On language change, DOMRenderer re-renders all modal content
+  - [x] Current tab selection maintained during language switch (no special handling needed)
 
-### Persistence & Defaults (Phase 18.6)
-- [ ] Implement localStorage persistence:
-  - [ ] Save selected language to `localStorage.setItem('language', lang)`
-  - [ ] Load on page load: `localStorage.getItem('language') || 'en'`
-  - [ ] Clear on browser storage clear (no cross-session persistence required)
-- [ ] Set default language based on browser locale (optional enhancement):
-  - [ ] Check `navigator.language` or `navigator.languages[0]`
-  - [ ] If starts with 'pl', default to Polish, else English
-  - [ ] Allow user override via language selector
+### Persistence & Defaults (Phase 18.6) ✅ COMPLETE
+- [x] Implement localStorage persistence:
+  - [x] Save selected language to `localStorage.setItem('language', lang)` automatically on change
+  - [x] Load on page load: `localStorage.getItem('language')` with browser detection fallback
+  - [x] Clear on browser storage clear (graceful degradation to defaults)
+- [x] Set default language based on browser locale:
+  - [x] Check `navigator.language` or `navigator.userLanguage`
+  - [x] If starts with 'pl', default to Polish, else English
+  - [x] Allow user override via language selector (persists to localStorage)
 
 ### Testing (Phase 18.7)
 - [ ] Test language switching:

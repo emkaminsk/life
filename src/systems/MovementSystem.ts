@@ -22,8 +22,8 @@ export class MovementSystem {
     const movedEntities = new Set<Entity>();
     const movements: MovementRecord[] = [];
 
-    // Process all creatures (not fruits)
-    const creatures = entities.filter(e => e.type !== EntityType.FRUIT);
+    // Process all creatures (not plants)
+    const creatures = entities.filter(e => e.type !== EntityType.FRUIT && e.type !== EntityType.MUSHROOM);
 
     for (const creature of creatures) {
       if (movedEntities.has(creature)) continue;

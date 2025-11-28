@@ -4,6 +4,27 @@ import { Game } from './core/Game';
 import { Human } from './entities/Human';
 import { EntityType } from './types';
 import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
+import { i18n } from './i18n/i18n';
+import { Language } from './i18n/types';
+import { initializeDOMRenderer } from './i18n/DOMRenderer';
+
+// Initialize i18n DOM renderer (must be called before any UI rendering)
+initializeDOMRenderer();
+
+// Initialize language selector
+const languageSelector = document.getElementById('languageSelector') as HTMLSelectElement;
+if (languageSelector) {
+  // Set initial value from i18n
+  languageSelector.value = i18n.getCurrentLanguage();
+
+  // Handle language change
+  languageSelector.addEventListener('change', (event) => {
+    const target = event.target as HTMLSelectElement;
+    const newLanguage = target.value as Language;
+    i18n.setLanguage(newLanguage);
+    console.log('[i18n] Language changed to:', newLanguage);
+  });
+}
 
 // Initialize
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -242,7 +263,7 @@ function renderPopulationGraph(): void {
     ctx.fillStyle = '#999';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Waiting for data...', width / 2, height / 2);
+    ctx.fillText(i18n.t('stats.waitingForData'), width / 2, height / 2);
     return;
   }
 
