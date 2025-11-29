@@ -1886,3 +1886,436 @@ This suggests wolves may need different damage values for males vs females to ba
 **PRD Alignment**: Improves alignment with PRD 3.3.10-3.3.11, US-010, US-019
 
 ---
+## 🚀 Phase 22: VPS Deployment & CI/CD Pipeline ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Required for public access and testing
+**Estimated Time**: 4-6 hours
+**Dependencies**: Phase 20 (Configuration Save/Load) complete
+**Reference**: `.ai/tech-stack.md` for deployment architecture
+
+### Background
+
+The Game of Life simulator is currently a local development application. To make it accessible to students and educators, we need to deploy it to a production VPS (Virtual Private Server) environment with automated deployment via GitHub Actions.
+
+**Target Infrastructure:**
+- Linux VPS with nginx web server
+- Static file hosting (no backend required)
+- HTTPS support for secure access
+- Automated deployment on push to `main` branch
+
+**Deployment Strategy:**
+- Build static assets with `npm run build` → `dist/` directory
+- Transfer built files to VPS via SSH/SCP
+- Serve via nginx with appropriate caching headers
+- GitHub Actions for CI/CD automation
+
+### Phase 22.1: Nginx Configuration ✅ READY
+
+**Objective**: Create nginx configuration template for serving the static application
+
+Tasks:
+- [ ] Create `deploy/nginx.conf` template with:
+  - [ ] Server block listening on port 80 (and 443 for HTTPS)
+  - [ ] Root directory pointing to deployment path (e.g., `/var/www/gameoflife`)
+  - [ ] Gzip compression enabled for JS/CSS/HTML
+  - [ ] Long cache times for hashed assets (`assets/*.js`, `assets/*.css`)
+  - [ ] Short cache time for `index.html` (no-cache for latest version)
+  - [ ] Fallback to `index.html` for SPA routing (if needed)
+  - [ ] Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+- [ ] Create `deploy/README.md` with manual deployment instructions:
+  - [ ] VPS setup requirements (nginx installation, directory creation)
+  - [ ] How to copy nginx config to `/etc/nginx/sites-available/`
+  - [ ] How to create symlink to `/etc/nginx/sites-enabled/`
+  - [ ] How to test config: `sudo nginx -t`
+  - [ ] How to reload nginx: `sudo systemctl reload nginx`
+- [ ] Document SSL/TLS setup with Let's Encrypt (optional but recommended)
+
+**Nginx Configuration Template** (`deploy/nginx.conf`):
+```nginx
+server {
+    listen 80;
+    server_name gameoflife.example.com;  # Replace with actual domain/IP
+    
+    root /var/www/gameoflife;
+    index index.html;
+    
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json;
+    gzip_min_length 1000;
+    
+    # Cache static assets with hash (immutable)
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # No cache for index.html (always fetch latest)
+    location = /index.html {
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    
+    # Fallback to index.html for SPA routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+**Success Criteria**:
+- [ ] `deploy/nginx.conf` exists with production-ready configuration
+- [ ] `deploy/README.md` provides clear manual deployment instructions
+- [ ] Configuration includes caching, compression, and security headers
+- [ ] Template is generic (can be adapted to any VPS/domain)
+
+### Phase 22.2: GitHub Actions CI/CD Workflow ✅ READY
+
+**Objective**: Automate deployment to VPS on every push to `main` branch
+
+Tasks:
+- [ ] Create `.github/workflows/deploy.yml` with:
+  - [ ] Trigger: `push` to `main` branch
+  - [ ] Job: `build-and-deploy`
+  - [ ] Steps:
+    1. [ ] Checkout code (`actions/checkout@v4`)
+    2. [ ] Setup Node.js 18 (`actions/setup-node@v4`)
+    3. [ ] Install dependencies (`npm ci`)
+    4. [ ] Run linter (`npm run lint`)
+    5. [ ] Build production assets (`npm run build`)
+    6. [ ] Deploy to VPS via SSH/SCP
+  - [ ] Secrets required (stored in GitHub repository settings):
+    - [ ] `VPS_HOST` - VPS IP address or domain
+    - [ ] `VPS_USER` - SSH username (e.g., `deploy`)
+    - [ ] `VPS_SSH_KEY` - Private SSH key for authentication
+    - [ ] `VPS_DEPLOY_PATH` - Target directory (e.g., `/var/www/gameoflife`)
+- [ ] Add SSH deployment step using `appleboy/scp-action@v0.1.7`:
+  - [ ] Transfer `dist/*` to VPS deployment path
+  - [ ] Preserve file permissions and timestamps
+  - [ ] Overwrite existing files
+- [ ] Optional: Add post-deployment health check:
+  - [ ] Curl the deployed site to verify it's accessible
+  - [ ] Check HTTP status code is 200
+- [ ] Optional: Add Slack/Discord notification on deployment success/failure
+
+**GitHub Actions Workflow** (`.github/workflows/deploy.yml`):
+```yaml
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Build production assets
+        run: npm run build
+      
+      - name: Deploy to VPS via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "dist/*"
+          target: ${{ secrets.VPS_DEPLOY_PATH }}
+          strip_components: 1
+          overwrite: true
+      
+      - name: Health check
+        run: |
+          sleep 5
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" http://${{ secrets.VPS_HOST }})
+          if [ $HTTP_CODE -ne 200 ]; then
+            echo "Deployment health check failed: HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Deployment successful: HTTP $HTTP_CODE"
+```
+
+**Success Criteria**:
+- [ ] `.github/workflows/deploy.yml` exists and is valid YAML
+- [ ] Workflow triggers on push to `main` branch
+- [ ] Build step runs successfully with linting
+- [ ] SCP action transfers `dist/` contents to VPS
+- [ ] Health check verifies deployment (optional)
+- [ ] Workflow completes in <5 minutes for typical build
+
+### Phase 22.3: VPS Setup Documentation ✅ READY
+
+**Objective**: Document VPS prerequisites and initial setup steps
+
+Tasks:
+- [ ] Create `deploy/VPS_SETUP.md` with:
+  - [ ] VPS requirements:
+    - [ ] Ubuntu 20.04+ or Debian 11+ (recommended)
+    - [ ] Minimum 512 MB RAM, 10 GB disk (modest requirements)
+    - [ ] Public IP address or domain name
+    - [ ] SSH access with sudo privileges
+  - [ ] Initial server setup:
+    - [ ] Update system: `sudo apt update && sudo apt upgrade -y`
+    - [ ] Install nginx: `sudo apt install nginx -y`
+    - [ ] Start and enable nginx: `sudo systemctl start nginx && sudo systemctl enable nginx`
+    - [ ] Open firewall ports: `sudo ufw allow 'Nginx Full'` (if UFW enabled)
+  - [ ] Deployment user creation:
+    - [ ] Create dedicated deploy user: `sudo adduser deploy`
+    - [ ] Add to www-data group: `sudo usermod -aG www-data deploy`
+    - [ ] Setup SSH key authentication for deploy user
+    - [ ] Add deploy user's public key to `~/.ssh/authorized_keys`
+  - [ ] Directory setup:
+    - [ ] Create deployment directory: `sudo mkdir -p /var/www/gameoflife`
+    - [ ] Set ownership: `sudo chown -R deploy:www-data /var/www/gameoflife`
+    - [ ] Set permissions: `sudo chmod -R 755 /var/www/gameoflife`
+  - [ ] Nginx configuration:
+    - [ ] Copy `deploy/nginx.conf` to `/etc/nginx/sites-available/gameoflife`
+    - [ ] Create symlink: `sudo ln -s /etc/nginx/sites-available/gameoflife /etc/nginx/sites-enabled/`
+    - [ ] Remove default site: `sudo rm /etc/nginx/sites-enabled/default` (optional)
+    - [ ] Test config: `sudo nginx -t`
+    - [ ] Reload nginx: `sudo systemctl reload nginx`
+  - [ ] Optional: SSL/TLS with Let's Encrypt:
+    - [ ] Install certbot: `sudo apt install certbot python3-certbot-nginx -y`
+    - [ ] Obtain certificate: `sudo certbot --nginx -d gameoflife.example.com`
+    - [ ] Auto-renewal is enabled by default
+- [ ] Create `deploy/SSH_KEY_SETUP.md` with:
+  - [ ] How to generate SSH key pair locally: `ssh-keygen -t ed25519 -C "github-actions-deploy"`
+  - [ ] How to add public key to VPS: `ssh-copy-id deploy@vps-ip`
+  - [ ] How to add private key to GitHub Secrets:
+    - [ ] Navigate to repository Settings → Secrets and variables → Actions
+    - [ ] Add new secret: `VPS_SSH_KEY` with private key contents
+    - [ ] Add `VPS_HOST`, `VPS_USER`, `VPS_DEPLOY_PATH` secrets
+  - [ ] How to test SSH connection: `ssh -i ~/.ssh/id_ed25519 deploy@vps-ip`
+
+**Success Criteria**:
+- [ ] `deploy/VPS_SETUP.md` provides complete VPS setup instructions
+- [ ] `deploy/SSH_KEY_SETUP.md` provides SSH key configuration guide
+- [ ] Documentation is clear enough for non-DevOps users to follow
+- [ ] All commands are copy-pasteable and tested
+
+### Phase 22.4: Deployment Testing ✅ READY
+
+**Objective**: Validate deployment workflow end-to-end
+
+Tasks:
+- [ ] Manual deployment test:
+  - [ ] Build locally: `npm run build`
+  - [ ] Verify `dist/` directory contains expected files
+  - [ ] Manually SCP to VPS: `scp -r dist/* deploy@vps:/var/www/gameoflife/`
+  - [ ] Verify files on VPS: `ssh deploy@vps "ls -la /var/www/gameoflife"`
+  - [ ] Access site via browser: `http://vps-ip`
+  - [ ] Test full functionality (start simulation, change config, etc.)
+- [ ] GitHub Actions deployment test:
+  - [ ] Configure GitHub Secrets (VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_DEPLOY_PATH)
+  - [ ] Push trivial change to `main` branch (e.g., update comment)
+  - [ ] Monitor GitHub Actions workflow execution
+  - [ ] Verify build step completes successfully
+  - [ ] Verify deployment step transfers files
+  - [ ] Verify health check passes (if implemented)
+  - [ ] Access deployed site and verify change is live
+- [ ] Rollback test:
+  - [ ] Keep previous `dist/` backup on VPS
+  - [ ] If deployment fails, manually restore backup
+  - [ ] Document rollback procedure in `deploy/README.md`
+- [ ] Performance validation:
+  - [ ] Test site load time (should be <2s on broadband)
+  - [ ] Verify gzip compression is active (check response headers)
+  - [ ] Verify asset caching headers are correct (check browser DevTools)
+  - [ ] Run Lighthouse audit (aim for 90+ performance score)
+
+**Success Criteria**:
+- [ ] Manual deployment works and site is accessible
+- [ ] GitHub Actions deployment works on push to `main`
+- [ ] Deployed site is fully functional (all features work)
+- [ ] Gzip compression reduces bundle size by 60-70%
+- [ ] Asset caching headers are set correctly
+- [ ] Page load time is <2s on typical connection
+
+### Phase 22.5: Documentation & Maintenance ✅ READY
+
+**Objective**: Document deployment process and ongoing maintenance
+
+Tasks:
+- [ ] Update `README.md` in project root:
+  - [ ] Add "Deployment" section with:
+    - [ ] Link to `deploy/VPS_SETUP.md` for initial setup
+    - [ ] Link to `deploy/README.md` for manual deployment
+    - [ ] Note that deployment is automated via GitHub Actions
+    - [ ] Link to live demo (if publicly accessible)
+- [ ] Create `deploy/TROUBLESHOOTING.md`:
+  - [ ] Common issues and solutions:
+    - [ ] "Permission denied" during SCP → Check SSH key and file permissions
+    - [ ] "404 Not Found" after deployment → Check nginx config and root path
+    - [ ] "502 Bad Gateway" → Not applicable (static site, no backend)
+    - [ ] Assets not loading → Check nginx gzip and cache headers
+    - [ ] GitHub Actions failing → Check secrets configuration and SSH access
+  - [ ] Debugging commands:
+    - [ ] Check nginx error logs: `sudo tail -f /var/nginx/error.log`
+    - [ ] Test nginx config: `sudo nginx -t`
+    - [ ] Check file permissions: `ls -la /var/www/gameoflife`
+    - [ ] Test SSH connection: `ssh -v deploy@vps-ip`
+- [ ] Add deployment badge to `README.md`:
+  - [ ] GitHub Actions workflow status badge
+  - [ ] Example: `![Deploy Status](https://github.com/username/repo/workflows/Deploy%20to%20VPS/badge.svg)`
+- [ ] Document maintenance procedures:
+  - [ ] How to update nginx config (edit, test, reload)
+  - [ ] How to renew SSL certificate (certbot handles automatically)
+  - [ ] How to monitor disk space: `df -h /var/www/gameoflife`
+  - [ ] How to rotate nginx logs (logrotate handles automatically)
+
+**Success Criteria**:
+- [ ] `README.md` includes deployment information
+- [ ] `deploy/TROUBLESHOOTING.md` covers common issues
+- [ ] GitHub Actions badge shows deployment status
+- [ ] All deployment documentation is up-to-date and accurate
+
+### Phase 22.6: Security Hardening (Optional) ✅ READY
+
+**Objective**: Implement security best practices for production deployment
+
+Tasks:
+- [ ] Nginx security headers (already in Phase 22.1):
+  - [ ] X-Frame-Options: SAMEORIGIN (prevent clickjacking)
+  - [ ] X-Content-Type-Options: nosniff (prevent MIME sniffing)
+  - [ ] X-XSS-Protection: 1; mode=block (enable XSS filter)
+  - [ ] Referrer-Policy: no-referrer-when-downgrade (control referrer info)
+- [ ] Optional: Content Security Policy (CSP):
+  - [ ] Add CSP header to nginx config
+  - [ ] Allow only same-origin scripts and styles
+  - [ ] Block inline scripts (requires refactoring if any exist)
+  - [ ] Example: `add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"`
+- [ ] Optional: Fail2ban for SSH brute-force protection:
+  - [ ] Install fail2ban: `sudo apt install fail2ban -y`
+  - [ ] Configure SSH jail to ban IPs after 5 failed attempts
+  - [ ] Monitor logs: `sudo fail2ban-client status sshd`
+- [ ] Optional: Automated security updates:
+  - [ ] Enable unattended-upgrades: `sudo apt install unattended-upgrades -y`
+  - [ ] Configure for security updates only
+- [ ] Optional: Rate limiting in nginx:
+  - [ ] Limit requests per IP to prevent DoS
+  - [ ] Example: `limit_req_zone $binary_remote_addr zone=one:10m rate=10r/s;`
+
+**Success Criteria**:
+- [ ] Security headers are present in HTTP responses
+- [ ] CSP is configured (optional, may break inline scripts)
+- [ ] SSH brute-force protection is active (optional)
+- [ ] System receives automatic security updates (optional)
+
+### Integration & Testing
+
+**Pre-Deployment Checklist**:
+- [ ] All Phase 20 (Config Save/Load) features are complete and tested
+- [ ] Production build works: `npm run build` completes without errors
+- [ ] Linter passes: `npm run lint` shows no errors
+- [ ] `dist/` directory contains expected files (index.html, assets/)
+- [ ] VPS is configured per `deploy/VPS_SETUP.md`
+- [ ] GitHub Secrets are configured correctly
+- [ ] Nginx config is tested and valid: `sudo nginx -t`
+
+**Post-Deployment Validation**:
+- [ ] Site is accessible at VPS IP/domain
+- [ ] All game features work (start, pause, step, configuration)
+- [ ] Visual rendering is correct (emojis, colors, animations)
+- [ ] Performance is acceptable (30 FPS with 200-300 entities)
+- [ ] Browser console shows no errors
+- [ ] Assets are cached correctly (verify with DevTools)
+- [ ] Gzip compression is active (verify response headers)
+
+**Rollback Procedure**:
+1. [ ] Keep backup of previous `dist/` on VPS: `cp -r /var/www/gameoflife /var/www/gameoflife.backup`
+2. [ ] If deployment fails, restore backup: `rm -rf /var/www/gameoflife && mv /var/www/gameoflife.backup /var/www/gameoflife`
+3. [ ] Test restored version in browser
+4. [ ] Investigate GitHub Actions logs to diagnose failure
+5. [ ] Fix issue and re-deploy
+
+### Success Criteria
+
+**Phase 22 Complete When**:
+- [ ] `deploy/nginx.conf` exists with production-ready configuration
+- [ ] `deploy/README.md` provides manual deployment instructions
+- [ ] `deploy/VPS_SETUP.md` provides VPS setup guide
+- [ ] `deploy/SSH_KEY_SETUP.md` provides SSH configuration guide
+- [ ] `deploy/TROUBLESHOOTING.md` provides debugging help
+- [ ] `.github/workflows/deploy.yml` exists and is functional
+- [ ] GitHub Secrets are configured (VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_DEPLOY_PATH)
+- [ ] Nginx is installed and configured on VPS
+- [ ] Manual deployment works: `dist/` files transfer to VPS and site loads
+- [ ] Automated deployment works: push to `main` triggers deployment
+- [ ] Site is publicly accessible at VPS IP/domain
+- [ ] All game features work on deployed site
+- [ ] Performance is acceptable (30 FPS with 200-300 entities)
+- [ ] Security headers are present in HTTP responses
+- [ ] Gzip compression and asset caching are active
+- [ ] GitHub Actions badge shows "passing" status
+- [ ] README.md includes deployment information and live demo link
+
+### Estimated Time Breakdown
+
+- **Phase 22.1** (Nginx Config): 1 hour
+- **Phase 22.2** (GitHub Actions): 1.5 hours
+- **Phase 22.3** (VPS Setup Docs): 1 hour
+- **Phase 22.4** (Deployment Testing): 1.5 hours
+- **Phase 22.5** (Documentation): 1 hour
+- **Phase 22.6** (Security Hardening): 1 hour (optional)
+
+**Total**: 6-8 hours (including testing and troubleshooting)
+
+### Dependencies
+
+**Required**:
+- VPS with SSH access (user must provide)
+- Domain name or public IP (user must provide)
+- GitHub repository with Actions enabled
+
+**Blocking**:
+- None - can be implemented independently of other phases
+- However, deploying a stable version requires all critical features complete
+
+### Known Risks
+
+- **VPS access issues**: SSH key or firewall misconfiguration could block deployment
+  - *Mitigation*: Detailed setup documentation, test SSH manually first
+- **GitHub Actions secrets**: Incorrect secret configuration breaks automation
+  - *Mitigation*: Validate secrets with manual SSH test before enabling workflow
+- **Nginx misconfiguration**: Typo in config could prevent site from loading
+  - *Mitigation*: Always test config with `sudo nginx -t` before reload
+- **Deployment downtime**: Replacing files could cause brief unavailability
+  - *Mitigation*: Nginx serves files from disk, brief unavailability is acceptable for educational app
+- **First deployment complexity**: Many moving parts, easy to miss a step
+  - *Mitigation*: Comprehensive checklists, clear documentation, manual test first
+
+### Future Enhancements
+
+**Post-MVP Improvements**:
+- [ ] Blue-green deployment (zero downtime)
+- [ ] Deployment to multiple VPS instances with load balancing
+- [ ] CDN integration (CloudFlare) for global distribution
+- [ ] Automated backup and restore procedures
+- [ ] Monitoring and alerting (UptimeRobot, Prometheus)
+- [ ] Deployment preview environments for PRs
+- [ ] Docker containerization for consistent environments
+
+---
