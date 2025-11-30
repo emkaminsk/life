@@ -7,143 +7,105 @@ import { DEFAULT_CONFIG } from '../../src/config'
 /**
  * Human Entity Unit Tests
  *
- * Tests human-specific configuration parameters:
- * - human.startingHealth
- * - human.pregnancyPeriod
- * - human.cooldownPeriod
+ * Tests human-specific behavioral mechanics:
+ * - Health management (damage, healing, initialization)
+ * - Pregnancy mechanics (pregnancy state, duration)
+ * - Reproduction cooldown (cooldown tracking, decrement)
  *
- * Verifies these config values are correctly applied to human entities
+ * Focuses on behavior verification rather than config storage
  */
 
 describe('Human Entity', () => {
-  describe('Configuration: Starting Health', () => {
-    it('should initialize with config starting health value', () => {
+  describe('Health Management', () => {
+    it('should initialize with health from config', () => {
       const female = createFemale(15, 15)
-      const expected = DEFAULT_CONFIG.human.startingHealth
-
-      expect(female.health).toBe(expected)
+      expect(female.health).toBe(DEFAULT_CONFIG.human.startingHealth)
     })
 
-    it('should apply custom starting health from config', () => {
-      const customHealth = 150
-      const config = createConfig({
-        human: { startingHealth: customHealth }
-      })
+    it('should support health modification', () => {
+      const female = createFemale(15, 15)
+      const initialHealth = female.health
 
-      const female = new Human(15, 15, Sex.FEMALE)
-      female.health = config.human.startingHealth
-
-      expect(female.health).toBe(customHealth)
+      female.health -= 20
+      expect(female.health).toBe(initialHealth - 20)
     })
 
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        human: { startingHealth: 200 }
-      })
-
-      expect(customConfig.human.startingHealth).not.toBe(
-        defaultConfig.human.startingHealth
-      )
+    it('should allow health to reach zero', () => {
+      const female = createFemale(15, 15)
+      female.health = 0
+      expect(female.health).toBe(0)
     })
 
-    it('should support various starting health values', () => {
-      const healthValues = [50, 100, 150, 200, 250]
+    it('should allow health to exceed starting value after healing', () => {
+      const male = createMale(15, 15)
+      male.health = 50
+      male.health += 20
+      expect(male.health).toBe(70)
+    })
 
-      healthValues.forEach(healthValue => {
-        const config = createConfig({
-          human: { startingHealth: healthValue }
-        })
+    it('should maintain independent health across multiple humans', () => {
+      const female1 = createFemale(5, 5)
+      const female2 = createFemale(15, 15)
 
-        const human = new Human(10, 10, Sex.MALE)
-        human.health = config.human.startingHealth
+      const initial1 = female1.health
+      const initial2 = female2.health
 
-        expect(human.health).toBe(healthValue)
-      })
+      female1.health -= 20
+      expect(female1.health).toBe(initial1 - 20)
+      expect(female2.health).toBe(initial2)
     })
   })
 
   describe('Sex Assignment', () => {
-    it('should create female humans', () => {
-      const female = new Human(15, 15, Sex.FEMALE)
-      expect(female.sex).toBe(Sex.FEMALE)
-    })
-
-    it('should create male humans', () => {
-      const male = new Human(15, 15, Sex.MALE)
-      expect(male.sex).toBe(Sex.MALE)
-    })
-
-    it('should preserve sex assignment', () => {
+    it('should create female humans with female sex', () => {
       const female = createFemale(10, 10)
       expect(female.sex).toBe(Sex.FEMALE)
+    })
 
-      const male = createMale(20, 20)
+    it('should create male humans with male sex', () => {
+      const male = createMale(10, 10)
       expect(male.sex).toBe(Sex.MALE)
     })
 
-    it('should support both sexes with same starting health config', () => {
-      const config = createConfig({
-        human: { startingHealth: 100 }
-      })
+    it('should preserve sex assignment across modifications', () => {
+      const female = createFemale(10, 10)
+      const male = createMale(20, 20)
 
-      const male = new Human(10, 10, Sex.MALE)
-      male.health = config.human.startingHealth
+      female.health -= 30
+      male.health -= 30
 
-      const female = new Human(10, 10, Sex.FEMALE)
-      female.health = config.human.startingHealth
-
-      expect(male.health).toBe(female.health)
-      expect(male.sex).not.toBe(female.sex)
+      expect(female.sex).toBe(Sex.FEMALE)
+      expect(male.sex).toBe(Sex.MALE)
     })
   })
 
-  describe('Configuration: Pregnancy Mechanics', () => {
-    it('should initialize female without pregnancy', () => {
+  describe('Pregnancy State Management', () => {
+    it('should initialize without pregnancy', () => {
       const female = createFemale(15, 15)
-      expect(female.isPregnant()).toBe(false)
-    })
-
-    it('should initialize male without pregnancy (not applicable)', () => {
       const male = createMale(15, 15)
+
+      expect(female.isPregnant()).toBe(false)
       expect(male.isPregnant()).toBe(false)
     })
 
-    it('should support pregnancy state change', () => {
+    it('should enter pregnant state when counter is set', () => {
       const female = createFemale(15, 15)
-      const config = DEFAULT_CONFIG
+      female.pregnancyCounter = 5
 
-      female.pregnancyCounter = config.human.pregnancyPeriod
       expect(female.isPregnant()).toBe(true)
     })
 
-    it('should track pregnancy duration from config', () => {
-      const config = DEFAULT_CONFIG
-      const pregnancyPeriod = config.human.pregnancyPeriod
-
+    it('should exit pregnant state when counter reaches zero', () => {
       const female = createFemale(15, 15)
-      female.pregnancyCounter = pregnancyPeriod
+      female.pregnancyCounter = 1
 
-      expect(female.pregnancyCounter).toBe(pregnancyPeriod)
+      female.pregnancyCounter -= 1
+      expect(female.isPregnant()).toBe(false)
     })
 
-    it('should apply custom pregnancy period from config', () => {
-      const customPeriod = 5
-      const config = createConfig({
-        human: { pregnancyPeriod: customPeriod }
-      })
-
+    it('should decrement pregnancy counter correctly', () => {
       const female = createFemale(15, 15)
-      female.pregnancyCounter = config.human.pregnancyPeriod
-
-      expect(female.pregnancyCounter).toBe(customPeriod)
-    })
-
-    it('should decrement pregnancy counter each round', () => {
-      const config = DEFAULT_CONFIG
-      const female = createFemale(15, 15)
-
-      female.pregnancyCounter = config.human.pregnancyPeriod
+      female.pregnancyCounter = 5
 
       const initial = female.pregnancyCounter
       female.pregnancyCounter -= 1
@@ -151,60 +113,36 @@ describe('Human Entity', () => {
       expect(female.pregnancyCounter).toBe(initial - 1)
     })
 
-    it('should birth when pregnancy counter reaches zero', () => {
+    it('should complete full pregnancy cycle', () => {
       const female = createFemale(15, 15)
+      const duration = 3
 
-      female.pregnancyCounter = 1
-      female.pregnancyCounter -= 1
+      female.pregnancyCounter = duration
+
+      for (let i = 0; i < duration; i++) {
+        expect(female.isPregnant()).toBe(true)
+        female.pregnancyCounter -= 1
+      }
 
       expect(female.pregnancyCounter).toBe(0)
-    })
-
-    it('should support different pregnancy durations', () => {
-      const periods = [1, 2, 3, 4, 5, 10]
-
-      periods.forEach(period => {
-        const config = createConfig({
-          human: { pregnancyPeriod: period }
-        })
-
-        const female = createFemale(15, 15)
-        female.pregnancyCounter = config.human.pregnancyPeriod
-
-        expect(female.pregnancyCounter).toBe(period)
-      })
+      expect(female.isPregnant()).toBe(false)
     })
   })
 
-  describe('Configuration: Cooldown Period', () => {
+  describe('Reproduction Cooldown Management', () => {
     it('should initialize without cooldown', () => {
       const female = createFemale(15, 15)
       expect(female.reproductionCooldown).toBe(0)
     })
 
-    it('should apply cooldown period from config', () => {
-      const config = DEFAULT_CONFIG
-      const cooldownPeriod = config.human.cooldownPeriod
-
+    it('should set cooldown when assigned', () => {
       const female = createFemale(15, 15)
-      female.reproductionCooldown = cooldownPeriod
+      female.reproductionCooldown = 5
 
-      expect(female.reproductionCooldown).toBe(cooldownPeriod)
+      expect(female.reproductionCooldown).toBe(5)
     })
 
-    it('should apply custom cooldown period from config', () => {
-      const customCooldown = 5
-      const config = createConfig({
-        human: { cooldownPeriod: customCooldown }
-      })
-
-      const female = createFemale(15, 15)
-      female.reproductionCooldown = config.human.cooldownPeriod
-
-      expect(female.reproductionCooldown).toBe(customCooldown)
-    })
-
-    it('should decrement cooldown each round', () => {
+    it('should decrement cooldown via decrementCooldown method', () => {
       const female = createFemale(15, 15)
       female.reproductionCooldown = 3
 
@@ -218,24 +156,23 @@ describe('Human Entity', () => {
       expect(female.reproductionCooldown).toBe(0)
     })
 
-    it('should reach zero after cooldown period', () => {
-      const config = DEFAULT_CONFIG
+    it('should prevent further decrement below zero', () => {
       const female = createFemale(15, 15)
+      female.reproductionCooldown = 1
 
-      female.reproductionCooldown = config.human.cooldownPeriod
+      female.decrementCooldown()
+      expect(female.reproductionCooldown).toBe(0)
 
-      for (let i = 0; i < config.human.cooldownPeriod; i++) {
-        female.decrementCooldown()
-      }
-
+      female.decrementCooldown() // Should stay at 0
       expect(female.reproductionCooldown).toBe(0)
     })
+  })
 
+  describe('Pregnancy and Cooldown Interaction', () => {
     it('should prevent pregnancy during cooldown', () => {
       const female = createFemale(15, 15)
       female.reproductionCooldown = 2 // In cooldown
 
-      // Cannot get pregnant while reproductionCooldown > 0
       const isInCooldown = female.reproductionCooldown > 0
       expect(isInCooldown).toBe(true)
       expect(female.isPregnant()).toBe(false)
@@ -247,85 +184,23 @@ describe('Human Entity', () => {
 
       const isInCooldown = female.reproductionCooldown > 0
       expect(isInCooldown).toBe(false)
-      // Female can now potentially get pregnant
     })
 
-    it('should support different cooldown durations', () => {
-      const cooldowns = [1, 2, 3, 4, 5, 10]
-
-      cooldowns.forEach(cooldown => {
-        const config = createConfig({
-          human: { cooldownPeriod: cooldown }
-        })
-
-        const female = createFemale(15, 15)
-        female.reproductionCooldown = config.human.cooldownPeriod
-
-        expect(female.reproductionCooldown).toBe(cooldown)
-      })
-    })
-  })
-
-  describe('Pregnancy and Cooldown Interaction', () => {
-    it('should apply cooldown after pregnancy completes', () => {
-      const config = DEFAULT_CONFIG
+    it('should transition from pregnancy to cooldown', () => {
       const female = createFemale(15, 15)
 
       // Start pregnancy
-      female.pregnancyCounter = config.human.pregnancyPeriod
+      female.pregnancyCounter = 2
+      expect(female.isPregnant()).toBe(true)
+      expect(female.reproductionCooldown).toBe(0)
 
       // Complete pregnancy
-      for (let i = 0; i < config.human.pregnancyPeriod; i++) {
-        female.pregnancyCounter -= 1
-      }
-
-      // Apply cooldown after birth
-      female.reproductionCooldown = config.human.cooldownPeriod
-
-      expect(female.pregnancyCounter).toBe(0)
-      expect(female.reproductionCooldown).toBe(config.human.cooldownPeriod)
+      female.pregnancyCounter = 0
       expect(female.isPregnant()).toBe(false)
-    })
 
-    it('should prevent pregnancy during cooldown period', () => {
-      const female = createFemale(15, 15)
-
+      // Apply cooldown
       female.reproductionCooldown = 3
-      const canGetPregnant = female.reproductionCooldown === 0
-
-      expect(canGetPregnant).toBe(false)
-      expect(female.isPregnant()).toBe(false)
-    })
-  })
-
-  describe('Configuration Parameter Consistency', () => {
-    it('should maintain config values across multiple females', () => {
-      const config = DEFAULT_CONFIG
-
-      const female1 = createFemale(5, 5)
-      female1.health = config.human.startingHealth
-
-      const female2 = createFemale(15, 15)
-      female2.health = config.human.startingHealth
-
-      const female3 = createFemale(25, 25)
-      female3.health = config.human.startingHealth
-
-      expect(female1.health).toBe(female2.health)
-      expect(female2.health).toBe(female3.health)
-    })
-
-    it('should support independent health modifications', () => {
-      const config = DEFAULT_CONFIG
-
-      const female1 = createFemale(5, 5)
-      female1.health = config.human.startingHealth
-
-      const female2 = createFemale(15, 15)
-      female2.health = config.human.startingHealth
-
-      female1.health -= 20
-      expect(female1.health).not.toBe(female2.health)
+      expect(female.reproductionCooldown).toBe(3)
     })
   })
 })
