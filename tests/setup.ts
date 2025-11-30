@@ -242,6 +242,7 @@ export function createMockRenderer() {
   return {
     render: vi.fn(),
     addVisualEffect: vi.fn(),
+    markDirty: vi.fn(),
     getEntityEmoji: vi.fn((entity) => '🔲'),
     getEmojiBitmap: vi.fn((emoji) => null),
   }
