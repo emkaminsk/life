@@ -25,7 +25,7 @@ describe('Board', () => {
     it('should start with all cells empty', () => {
       for (let x = 0; x < board.width; x++) {
         for (let y = 0; y < board.height; y++) {
-          expect(board.getCell(x, y)).toBeNull()
+          expect(board.getEntity(x, y)).toBeNull()
         }
       }
     })
@@ -48,14 +48,14 @@ describe('Board', () => {
       const human = createHuman(5, 10)
       placeEntity(board, human, 5, 10)
 
-      expect(board.getCell(5, 10)).toBe(human)
+      expect(board.getEntity(5, 10)).toBe(human)
     })
 
     it('should retrieve entity from board', () => {
       const wolf = createWolf(15, 15)
       placeEntity(board, wolf, 15, 15)
 
-      const retrieved = board.getCell(15, 15)
+      const retrieved = board.getEntity(15, 15)
       expect(retrieved).toBe(wolf)
       expect(retrieved?.type).toBe(wolf.type)
     })
@@ -65,10 +65,10 @@ describe('Board', () => {
       const human2 = createHuman(5, 5)
 
       placeEntity(board, human1, 5, 5)
-      expect(board.getCell(5, 5)).toBe(human1)
+      expect(board.getEntity(5, 5)).toBe(human1)
 
       placeEntity(board, human2, 5, 5)
-      expect(board.getCell(5, 5)).toBe(human2)
+      expect(board.getEntity(5, 5)).toBe(human2)
     })
 
     it('should handle multiple entities at different locations', () => {
@@ -80,9 +80,9 @@ describe('Board', () => {
       placeEntity(board, wolf, 10, 10)
       placeEntity(board, human2, 15, 15)
 
-      expect(board.getCell(5, 5)).toBe(human)
-      expect(board.getCell(10, 10)).toBe(wolf)
-      expect(board.getCell(15, 15)).toBe(human2)
+      expect(board.getEntity(5, 5)).toBe(human)
+      expect(board.getEntity(10, 10)).toBe(wolf)
+      expect(board.getEntity(15, 15)).toBe(human2)
     })
   })
 
@@ -91,9 +91,9 @@ describe('Board', () => {
       const human = createHuman(7, 7)
       placeEntity(board, human, 7, 7)
 
-      expect(board.getCell(7, 7)).not.toBeNull()
-      board.setCell(7, 7, null)
-      expect(board.getCell(7, 7)).toBeNull()
+      expect(board.getEntity(7, 7)).not.toBeNull()
+      board.setEntity(7, 7, null)
+      expect(board.getEntity(7, 7)).toBeNull()
     })
 
     it('should remove specific entity and leave others', () => {
@@ -103,25 +103,25 @@ describe('Board', () => {
       placeEntity(board, human, 5, 5)
       placeEntity(board, wolf, 10, 10)
 
-      board.setCell(5, 5, null)
+      board.setEntity(5, 5, null)
 
-      expect(board.getCell(5, 5)).toBeNull()
-      expect(board.getCell(10, 10)).toBe(wolf)
+      expect(board.getEntity(5, 5)).toBeNull()
+      expect(board.getEntity(10, 10)).toBe(wolf)
     })
   })
 
   describe('Adjacent Cell Detection', () => {
     it('should identify cells within distance 1', () => {
       const center = { x: 15, y: 15 }
-      const adjacent = board.getAdjacentCells(center.x, center.y)
+      const adjacent = board.getAdjacentPositions(center.x, center.y)
 
       // Should have 8 neighbors (for interior cell)
       expect(adjacent.length).toBe(8)
 
       // All should be exactly distance 1 away
-      adjacent.forEach(([x, y]) => {
-        const dx = Math.abs(x - center.x)
-        const dy = Math.abs(y - center.y)
+      adjacent.forEach((pos) => {
+        const dx = Math.abs(pos.x - center.x)
+        const dy = Math.abs(pos.y - center.y)
         expect(dx <= 1 && dy <= 1).toBe(true)
         expect(dx === 0 && dy === 0).toBe(false)
       })
@@ -129,42 +129,42 @@ describe('Board', () => {
 
     it('should handle boundary cells correctly', () => {
       // Corner cell should have 3 neighbors
-      const cornerAdjacent = board.getAdjacentCells(0, 0)
+      const cornerAdjacent = board.getAdjacentPositions(0, 0)
       expect(cornerAdjacent.length).toBe(3)
 
       // Edge cell should have 5 neighbors
-      const edgeAdjacent = board.getAdjacentCells(0, 15)
+      const edgeAdjacent = board.getAdjacentPositions(0, 15)
       expect(edgeAdjacent.length).toBe(5)
     })
 
     it('should not include center cell in adjacent list', () => {
       const center = { x: 15, y: 15 }
-      const adjacent = board.getAdjacentCells(center.x, center.y)
+      const adjacent = board.getAdjacentPositions(center.x, center.y)
 
-      expect(adjacent.every(([x, y]) => !(x === center.x && y === center.y))).toBe(true)
+      expect(adjacent.every((pos) => !(pos.x === center.x && pos.y === center.y))).toBe(true)
     })
   })
 
   describe('Out of Bounds Handling', () => {
     it('should return null for out of bounds coordinates', () => {
-      expect(board.getCell(-1, 15)).toBeNull()
-      expect(board.getCell(30, 15)).toBeNull()
-      expect(board.getCell(15, -1)).toBeNull()
-      expect(board.getCell(15, 30)).toBeNull()
+      expect(board.getEntity(-1, 15)).toBeNull()
+      expect(board.getEntity(30, 15)).toBeNull()
+      expect(board.getEntity(15, -1)).toBeNull()
+      expect(board.getEntity(15, 30)).toBeNull()
     })
 
     it('should handle boundary coordinates', () => {
       const human = createHuman(0, 0)
       placeEntity(board, human, 0, 0)
 
-      expect(board.getCell(0, 0)).toBe(human)
+      expect(board.getEntity(0, 0)).toBe(human)
     })
 
     it('should handle max boundary coordinates', () => {
       const human = createHuman(29, 29)
       placeEntity(board, human, 29, 29)
 
-      expect(board.getCell(29, 29)).toBe(human)
+      expect(board.getEntity(29, 29)).toBe(human)
     })
   })
 
@@ -192,7 +192,7 @@ describe('Board', () => {
       const found: any[] = []
       for (let x = 0; x < board.width; x++) {
         for (let y = 0; y < board.height; y++) {
-          const cell = board.getCell(x, y)
+          const cell = board.getEntity(x, y)
           if (cell) found.push(cell)
         }
       }
@@ -209,7 +209,7 @@ describe('Board', () => {
       let emptyCellCount = 0
       for (let x = 0; x < board.width; x++) {
         for (let y = 0; y < board.height; y++) {
-          if (board.getCell(x, y) === null) {
+          if (board.getEntity(x, y) === null) {
             emptyCellCount++
           }
         }
@@ -223,8 +223,8 @@ describe('Board', () => {
       placeEntity(board, human, 29, 29)
 
       // Direct cell lookup should be instant
-      expect(board.getCell(29, 29)).toBe(human)
-      expect(board.getCell(0, 0)).toBeNull()
+      expect(board.getEntity(29, 29)).toBe(human)
+      expect(board.getEntity(0, 0)).toBeNull()
     })
   })
 
@@ -240,14 +240,14 @@ describe('Board', () => {
       placeEntity(board, wolf, 15, 15)
 
       // Move human
-      board.setCell(5, 5, null)
+      board.setEntity(5, 5, null)
       placeEntity(board, human1, 7, 7)
 
       // Verify final state
-      expect(board.getCell(5, 5)).toBeNull()
-      expect(board.getCell(7, 7)).toBe(human1)
-      expect(board.getCell(10, 10)).toBe(human2)
-      expect(board.getCell(15, 15)).toBe(wolf)
+      expect(board.getEntity(5, 5)).toBeNull()
+      expect(board.getEntity(7, 7)).toBe(human1)
+      expect(board.getEntity(10, 10)).toBe(human2)
+      expect(board.getEntity(15, 15)).toBe(wolf)
     })
 
     it('should handle rapid placement and removal', () => {
@@ -256,9 +256,9 @@ describe('Board', () => {
       // Rapid operations
       for (let i = 0; i < 10; i++) {
         placeEntity(board, human, 10 + i, 10)
-        expect(board.getCell(10 + i, 10)).toBe(human)
-        board.setCell(10 + i, 10, null)
-        expect(board.getCell(10 + i, 10)).toBeNull()
+        expect(board.getEntity(10 + i, 10)).toBe(human)
+        board.setEntity(10 + i, 10, null)
+        expect(board.getEntity(10 + i, 10)).toBeNull()
       }
     })
   })

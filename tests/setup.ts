@@ -133,9 +133,7 @@ export function createMushroom(
  * Place an entity on the board at a specific location
  */
 export function placeEntity(board: Board, entity: any, x: number, y: number): void {
-  entity.x = x
-  entity.y = y
-  board.setCell(x, y, entity)
+  board.setEntity(x, y, entity)
 }
 
 /**
@@ -157,7 +155,7 @@ export function countEntities(board: Board, type: EntityType): number {
   let count = 0
   for (let x = 0; x < board.width; x++) {
     for (let y = 0; y < board.height; y++) {
-      const entity = board.getCell(x, y)
+      const entity = board.getEntity(x, y)
       if (entity && entity.type === type) {
         count++
       }
@@ -173,7 +171,7 @@ export function getEntitiesByType(board: Board, type: EntityType): any[] {
   const entities: any[] = []
   for (let x = 0; x < board.width; x++) {
     for (let y = 0; y < board.height; y++) {
-      const entity = board.getCell(x, y)
+      const entity = board.getEntity(x, y)
       if (entity && entity.type === type) {
         entities.push(entity)
       }
@@ -186,16 +184,7 @@ export function getEntitiesByType(board: Board, type: EntityType): any[] {
  * Get all entities from the board
  */
 export function getAllEntities(board: Board): any[] {
-  const entities: any[] = []
-  for (let x = 0; x < board.width; x++) {
-    for (let y = 0; y < board.height; y++) {
-      const entity = board.getCell(x, y)
-      if (entity) {
-        entities.push(entity)
-      }
-    }
-  }
-  return entities
+  return board.getAllEntities()
 }
 
 /**

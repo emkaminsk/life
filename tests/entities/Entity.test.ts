@@ -30,7 +30,7 @@ describe('Entity Base Class', () => {
 
     it('should set correct entity type', () => {
       const human = createHuman(15, 15)
-      expect(human.type).toBe(EntityType.HUMAN)
+      expect(human.type).toBe(EntityType.MALE) // createHuman defaults to MALE
 
       const wolf = createWolf(10, 10)
       expect(wolf.type).toBe(EntityType.WOLF)
@@ -90,7 +90,7 @@ describe('Entity Base Class', () => {
 
     it('should advance age when advanceAge called', () => {
       const human = createHuman(15, 15)
-      human.advanceAge()
+      human.incrementAge()
 
       expect(human.age).toBe(1)
     })
@@ -99,7 +99,7 @@ describe('Entity Base Class', () => {
       const human = createHuman(15, 15)
 
       for (let i = 0; i < 10; i++) {
-        human.advanceAge()
+        human.incrementAge()
       }
 
       expect(human.age).toBe(10)
@@ -109,9 +109,9 @@ describe('Entity Base Class', () => {
       const human1 = createHuman(5, 5)
       const human2 = createHuman(10, 10)
 
-      human1.advanceAge()
-      human1.advanceAge()
-      human2.advanceAge()
+      human1.incrementAge()
+      human1.incrementAge()
+      human2.incrementAge()
 
       expect(human1.age).toBe(2)
       expect(human2.age).toBe(1)
@@ -153,7 +153,7 @@ describe('Entity Base Class', () => {
       const human = createHuman(15, 15)
       const positions: Array<[number, number]> = [[15, 15]]
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 1; i <= 5; i++) {
         human.x = 15 + i
         human.y = 15 + i
         positions.push([human.x, human.y])
@@ -170,8 +170,8 @@ describe('Entity Base Class', () => {
       const initialHealth = human.health
 
       // Age advancement
-      human.advanceAge()
-      human.advanceAge()
+      human.incrementAge()
+      human.incrementAge()
 
       // Movement
       human.x = 15
@@ -194,7 +194,7 @@ describe('Entity Base Class', () => {
       expect(human.y).toBe(5)
       expect(human.age).toBe(0)
       expect(human.health).toBeGreaterThan(0)
-      expect(human.type).toBe(EntityType.HUMAN)
+      expect(human.type).toBe(EntityType.MALE) // createHuman defaults to MALE
     })
 
     it('should preserve entity reference across operations', () => {
@@ -203,7 +203,7 @@ describe('Entity Base Class', () => {
 
       human.health = 50
       human.x = 20
-      human.advanceAge()
+      human.incrementAge()
 
       expect(reference.health).toBe(50)
       expect(reference.x).toBe(20)
@@ -214,7 +214,7 @@ describe('Entity Base Class', () => {
   describe('Entity Type Assignment', () => {
     it('should correctly identify human type', () => {
       const human = createHuman(15, 15)
-      expect(human.type).toBe(EntityType.HUMAN)
+      expect(human.type).toBe(EntityType.MALE) // createHuman defaults to MALE
     })
 
     it('should correctly identify wolf type', () => {
@@ -233,7 +233,7 @@ describe('Entity Base Class', () => {
 
       // Entity type should not change
       expect(human.type).toBe(originalType)
-      expect(human.type).toBe(EntityType.HUMAN)
+      expect(human.type).toBe(EntityType.MALE) // createHuman defaults to MALE
     })
   })
 })

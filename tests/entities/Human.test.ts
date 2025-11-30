@@ -179,7 +179,7 @@ describe('Human Entity', () => {
   describe('Configuration: Cooldown Period', () => {
     it('should initialize without cooldown', () => {
       const female = createFemale(15, 15)
-      expect(female.cooldownCounter).toBe(0)
+      expect(female.reproductionCooldown).toBe(0)
     })
 
     it('should apply cooldown period from config', () => {
@@ -187,9 +187,9 @@ describe('Human Entity', () => {
       const cooldownPeriod = config.human.cooldownPeriod
 
       const female = createFemale(15, 15)
-      female.cooldownCounter = cooldownPeriod
+      female.reproductionCooldown = cooldownPeriod
 
-      expect(female.cooldownCounter).toBe(cooldownPeriod)
+      expect(female.reproductionCooldown).toBe(cooldownPeriod)
     })
 
     it('should apply custom cooldown period from config', () => {
@@ -199,53 +199,53 @@ describe('Human Entity', () => {
       })
 
       const female = createFemale(15, 15)
-      female.cooldownCounter = config.human.cooldownPeriod
+      female.reproductionCooldown = config.human.cooldownPeriod
 
-      expect(female.cooldownCounter).toBe(customCooldown)
+      expect(female.reproductionCooldown).toBe(customCooldown)
     })
 
     it('should decrement cooldown each round', () => {
       const female = createFemale(15, 15)
-      female.cooldownCounter = 3
+      female.reproductionCooldown = 3
 
-      female.cooldownCounter -= 1
-      expect(female.cooldownCounter).toBe(2)
+      female.decrementCooldown()
+      expect(female.reproductionCooldown).toBe(2)
 
-      female.cooldownCounter -= 1
-      expect(female.cooldownCounter).toBe(1)
+      female.decrementCooldown()
+      expect(female.reproductionCooldown).toBe(1)
 
-      female.cooldownCounter -= 1
-      expect(female.cooldownCounter).toBe(0)
+      female.decrementCooldown()
+      expect(female.reproductionCooldown).toBe(0)
     })
 
     it('should reach zero after cooldown period', () => {
       const config = DEFAULT_CONFIG
       const female = createFemale(15, 15)
 
-      female.cooldownCounter = config.human.cooldownPeriod
+      female.reproductionCooldown = config.human.cooldownPeriod
 
       for (let i = 0; i < config.human.cooldownPeriod; i++) {
-        female.cooldownCounter -= 1
+        female.decrementCooldown()
       }
 
-      expect(female.cooldownCounter).toBe(0)
+      expect(female.reproductionCooldown).toBe(0)
     })
 
     it('should prevent pregnancy during cooldown', () => {
       const female = createFemale(15, 15)
-      female.cooldownCounter = 2 // In cooldown
+      female.reproductionCooldown = 2 // In cooldown
 
-      // Cannot get pregnant while cooldownCounter > 0
-      const isInCooldown = female.cooldownCounter > 0
+      // Cannot get pregnant while reproductionCooldown > 0
+      const isInCooldown = female.reproductionCooldown > 0
       expect(isInCooldown).toBe(true)
       expect(female.isPregnant()).toBe(false)
     })
 
     it('should allow pregnancy after cooldown expires', () => {
       const female = createFemale(15, 15)
-      female.cooldownCounter = 0 // Not in cooldown
+      female.reproductionCooldown = 0 // Not in cooldown
 
-      const isInCooldown = female.cooldownCounter > 0
+      const isInCooldown = female.reproductionCooldown > 0
       expect(isInCooldown).toBe(false)
       // Female can now potentially get pregnant
     })
@@ -259,9 +259,9 @@ describe('Human Entity', () => {
         })
 
         const female = createFemale(15, 15)
-        female.cooldownCounter = config.human.cooldownPeriod
+        female.reproductionCooldown = config.human.cooldownPeriod
 
-        expect(female.cooldownCounter).toBe(cooldown)
+        expect(female.reproductionCooldown).toBe(cooldown)
       })
     })
   })
@@ -280,18 +280,18 @@ describe('Human Entity', () => {
       }
 
       // Apply cooldown after birth
-      female.cooldownCounter = config.human.cooldownPeriod
+      female.reproductionCooldown = config.human.cooldownPeriod
 
       expect(female.pregnancyCounter).toBe(0)
-      expect(female.cooldownCounter).toBe(config.human.cooldownPeriod)
+      expect(female.reproductionCooldown).toBe(config.human.cooldownPeriod)
       expect(female.isPregnant()).toBe(false)
     })
 
     it('should prevent pregnancy during cooldown period', () => {
       const female = createFemale(15, 15)
 
-      female.cooldownCounter = 3
-      const canGetPregnant = female.cooldownCounter === 0
+      female.reproductionCooldown = 3
+      const canGetPregnant = female.reproductionCooldown === 0
 
       expect(canGetPregnant).toBe(false)
       expect(female.isPregnant()).toBe(false)
