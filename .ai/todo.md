@@ -2386,24 +2386,30 @@ Tasks:
 
 **Commit**: 955598f - Plant entity tests with barrel export for entities
 
-### Phase 23.4: MovementSystem Tests (Pending - ~1.5 hours)
+### Phase 23.4: MovementSystem Tests ✅ COMPLETE
 
 **Objective**: Verify perception range and movement probability parameters
 
 **Tasks**:
-- [ ] MovementSystem Tests (`tests/systems/MovementSystem.test.ts`) - 35-40 tests
+- [x] MovementSystem Tests (`tests/systems/MovementSystem.test.ts`) - 42 tests ✅
   - Parameters tested (6 total):
-    - `human.perceptionRange` - Fruit detection distance
-    - `human.moveTowardFruitProbability` - Movement bias toward fruit
-    - `wolf.perceptionRange` - Human detection distance
-    - `wolf.moveTowardHumanProbability` - Movement bias toward humans
-    - `dog.perceptionRange` - Wolf detection distance
-    - `dog.moveTowardWolfProbability` - Movement bias toward wolves
+    - `human.perceptionRange` - Fruit detection distance (5 tests)
+    - `human.moveTowardFruitProbability` - Movement bias toward fruit (5 tests)
+    - `wolf.perceptionRange` - Human detection distance (5 tests)
+    - `wolf.moveTowardHumanProbability` - Movement bias toward humans (5 tests)
+    - `dog.perceptionRange` - Wolf detection distance (5 tests)
+    - `dog.moveTowardWolfProbability` - Movement bias toward wolves (5 tests)
+  - Perception range comparison (2 tests)
+  - Movement probability comparison (2 tests)
+  - MovementSystem integration (6 tests)
+  - Configuration parameter consistency (2 tests)
 
 **Success Criteria**:
-- [ ] All movement tests passing
-- [ ] 6 additional parameters tested (12/51 total)
-- [ ] Perception range behavior verified
+- [x] All movement tests passing (42/42) ✅
+- [x] 6 additional parameters tested (18/51 total = 35.3%) ✅
+- [x] Perception range behavior verified ✅
+
+**Commit**: 3a14282 - MovementSystem tests with perception and probability parameters
 
 ### Phase 23.5: CombatSystem Tests (Pending - ~1.5 hours)
 
