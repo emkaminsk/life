@@ -1,0 +1,1228 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/i18n/translations.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/i18n</a> translations.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/381</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/381</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Language, type Translations } from './types';<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >/**</span>
+<span class="cstat-no" title="statement not covered" > * Complete translations for English and Polish languages</span>
+<span class="cstat-no" title="statement not covered" > * Organized by UI section for maintainability</span>
+<span class="cstat-no" title="statement not covered" > */</span>
+<span class="cstat-no" title="statement not covered" >export const translations: Translations = {</span>
+<span class="cstat-no" title="statement not covered" >  [Language.EN]: {</span>
+<span class="cstat-no" title="statement not covered" >    header: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Game of Life Educational Simulator',</span>
+<span class="cstat-no" title="statement not covered" >      round: 'Round: {0}',</span>
+<span class="cstat-no" title="statement not covered" >      roundsPerSec: 'Rounds/sec: {0}',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    controls: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Controls',</span>
+<span class="cstat-no" title="statement not covered" >      startGame: 'Start Game',</span>
+<span class="cstat-no" title="statement not covered" >      pause: 'Pause',</span>
+<span class="cstat-no" title="statement not covered" >      runOneRound: 'Run One Round',</span>
+<span class="cstat-no" title="statement not covered" >      runFiveRounds: 'Run Five Rounds',</span>
+<span class="cstat-no" title="statement not covered" >      runFree: 'Run Free',</span>
+<span class="cstat-no" title="statement not covered" >      reset: 'Reset',</span>
+<span class="cstat-no" title="statement not covered" >      finishGame: 'Finish Game',</span>
+<span class="cstat-no" title="statement not covered" >      speed: 'Speed:',</span>
+<span class="cstat-no" title="statement not covered" >      slow: 'Slow',</span>
+<span class="cstat-no" title="statement not covered" >      medium: 'Medium',</span>
+<span class="cstat-no" title="statement not covered" >      fast: 'Fast',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    stats: {</span>
+<span class="cstat-no" title="statement not covered" >      statistics: 'Statistics',</span>
+<span class="cstat-no" title="statement not covered" >      males: 'Males',</span>
+<span class="cstat-no" title="statement not covered" >      females: 'Females',</span>
+<span class="cstat-no" title="statement not covered" >      pregnant: 'Pregnant',</span>
+<span class="cstat-no" title="statement not covered" >      wolves: 'Wolves',</span>
+<span class="cstat-no" title="statement not covered" >      dogs: 'Dogs',</span>
+<span class="cstat-no" title="statement not covered" >      fruits: 'Fruits',</span>
+<span class="cstat-no" title="statement not covered" >      ripeUnripe: '{0} ripe / {1} unripe',</span>
+<span class="cstat-no" title="statement not covered" >      mushrooms: 'Mushrooms',</span>
+<span class="cstat-no" title="statement not covered" >      total: 'Total creatures: {0}/{1}',</span>
+<span class="cstat-no" title="statement not covered" >      populationGraph: 'Population Graph',</span>
+<span class="cstat-no" title="statement not covered" >      waitingForData: 'Waiting for data...',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    config: {</span>
+<span class="cstat-no" title="statement not covered" >      configPanel: 'Game Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      configSubtitle: 'Configure parameters before starting the simulation',</span>
+<span class="cstat-no" title="statement not covered" >      collapseAll: 'Collapse All',</span>
+<span class="cstat-no" title="statement not covered" >      collapse: 'Collapse',</span>
+<span class="cstat-no" title="statement not covered" >      expand: 'Expand',</span>
+<span class="cstat-no" title="statement not covered" >      resetDefaults: 'Reset to Defaults',</span>
+<span class="cstat-no" title="statement not covered" >      saveConfig: 'Save Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      loadConfig: 'Load Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      expectedCreatures: 'Expected starting creatures: ~{0}',</span>
+<span class="cstat-no" title="statement not covered" >      expectedCreaturesDetailed: 'Expected creatures: ~{0}♂ {1}♀ {2}🐺 {3}🐕 {4}🍎 {5}🍄',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Validation messages</span>
+<span class="cstat-no" title="statement not covered" >      totalSpawnProbability: 'Total spawn probability',</span>
+<span class="cstat-no" title="statement not covered" >      spawnExceeds100: 'exceeds 100%',</span>
+<span class="cstat-no" title="statement not covered" >      spawnWarning: 'Warning:',</span>
+<span class="cstat-no" title="statement not covered" >      spawnVeryHigh: 'is very high',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      boardSetup: 'Board Setup',</span>
+<span class="cstat-no" title="statement not covered" >      boardWidth: 'Board Width',</span>
+<span class="cstat-no" title="statement not covered" >      boardHeight: 'Board Height',</span>
+<span class="cstat-no" title="statement not covered" >      injuredThreshold: 'Injured Threshold',</span>
+<span class="cstat-no" title="statement not covered" >      maleSpawn: 'Male Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" >      femaleSpawn: 'Female Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" >      wolfSpawn: 'Wolf Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" >      dogSpawn: 'Dog Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" >      fruitSpawn: 'Fruit Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomSpawn: 'Mushroom Spawn Probability',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      humanConfig: 'Human Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      humanHealth: 'Starting Health',</span>
+<span class="cstat-no" title="statement not covered" >      maleVsMaleDamage: 'Male vs Male Damage',</span>
+<span class="cstat-no" title="statement not covered" >      maleVsWolfDamage: 'Male vs Wolf Damage',</span>
+<span class="cstat-no" title="statement not covered" >      reproductionProb: 'Reproduction Probability',</span>
+<span class="cstat-no" title="statement not covered" >      pregnancyPeriod: 'Pregnancy Period (rounds)',</span>
+<span class="cstat-no" title="statement not covered" >      cooldownPeriod: 'Cooldown Period (rounds)',</span>
+<span class="cstat-no" title="statement not covered" >      humanPerception: 'Perception Range',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardFruit: 'Move Toward Fruit Probability',</span>
+<span class="cstat-no" title="statement not covered" >      humanGompertzA: 'Gompertz A (mortality rate)',</span>
+<span class="cstat-no" title="statement not covered" >      humanGompertzB: 'Gompertz B (acceleration)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      wolfConfig: 'Wolf Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      wolfHealth: 'Starting Health',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamage: 'Damage to Human',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToMale: 'Damage to Male Human',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToFemale: 'Damage to Female Human',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToDog: 'Counter-Damage to Dog',</span>
+<span class="cstat-no" title="statement not covered" >      wolfPerception: 'Perception Range',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardHuman: 'Move Toward Human Probability',</span>
+<span class="cstat-no" title="statement not covered" >      wolfGompertzA: 'Gompertz A (mortality rate)',</span>
+<span class="cstat-no" title="statement not covered" >      wolfGompertzB: 'Gompertz B (acceleration)',</span>
+<span class="cstat-no" title="statement not covered" >      wolfSpawnProb: 'Spawn Probability (per round)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      dogConfig: 'Dog Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      dogHealth: 'Starting Health',</span>
+<span class="cstat-no" title="statement not covered" >      dogDamage: 'Damage to Wolf',</span>
+<span class="cstat-no" title="statement not covered" >      dogPerception: 'Perception Range',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardWolf: 'Move Toward Wolf Probability',</span>
+<span class="cstat-no" title="statement not covered" >      dogGompertzA: 'Gompertz A (mortality rate)',</span>
+<span class="cstat-no" title="statement not covered" >      dogGompertzB: 'Gompertz B (acceleration)',</span>
+<span class="cstat-no" title="statement not covered" >      dogSpawnProb: 'Spawn Probability (per round)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      fruitConfig: 'Fruit Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      fruitEnergy: 'Energy Healed',</span>
+<span class="cstat-no" title="statement not covered" >      fruitSpawnProb: 'Spawn Probability per Round',</span>
+<span class="cstat-no" title="statement not covered" >      roundsToRipen: 'Rounds to Ripen',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      mushroomConfig: 'Mushroom Configuration',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomEnergy: 'Energy Removed',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomSpawnProb: 'Spawn Probability per Round',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      populationControl: 'Population Control',</span>
+<span class="cstat-no" title="statement not covered" >      humanThreshold: 'Human Overcrowding Threshold',</span>
+<span class="cstat-no" title="statement not covered" >      humanMultiplier: 'Human Overcrowding Multiplier',</span>
+<span class="cstat-no" title="statement not covered" >      animalThreshold: 'Animal Overcrowding Threshold',</span>
+<span class="cstat-no" title="statement not covered" >      animalMultiplier: 'Animal Overcrowding Multiplier',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    notifications: {</span>
+<span class="cstat-no" title="statement not covered" >      maleExtinctionTitle: '⚠️ Male Extinction',</span>
+<span class="cstat-no" title="statement not covered" >      allMalesDied: 'All males have died - reproduction is no longer possible',</span>
+<span class="cstat-no" title="statement not covered" >      femaleExtinctionTitle: '⚠️ Female Extinction',</span>
+<span class="cstat-no" title="statement not covered" >      allFemalesDied: 'All females have died - reproduction is no longer possible',</span>
+<span class="cstat-no" title="statement not covered" >      boardNearlyFullTitle: '⚠️ Board Nearly Full',</span>
+<span class="cstat-no" title="statement not covered" >      boardNearlyFull: 'Board is at 90% capacity - ecosystem may become unstable',</span>
+<span class="cstat-no" title="statement not covered" >      configSavedTitle: '✅ Configuration Saved',</span>
+<span class="cstat-no" title="statement not covered" >      configSaved: 'Configuration exported to {0}',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadedTitle: '✅ Configuration Loaded',</span>
+<span class="cstat-no" title="statement not covered" >      configLoaded: 'Configuration loaded from {0}',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadErrorTitle: '❌ Load Error',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadError: 'Failed to load configuration: {0}',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    rules: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Game Rules',</span>
+<span class="cstat-no" title="statement not covered" >      tabGameRules: 'Game Rules',</span>
+<span class="cstat-no" title="statement not covered" >      tabCreatures: 'Creatures',</span>
+<span class="cstat-no" title="statement not covered" >      tabPlants: 'Plants',</span>
+<span class="cstat-no" title="statement not covered" >      tabControls: 'Controls',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      gameRulesTitle: 'How the Game Works',</span>
+<span class="cstat-no" title="statement not covered" >      roundPriorityTitle: 'Round Priority Order',</span>
+<span class="cstat-no" title="statement not covered" >      roundPriorityDesc: 'Each round executes in this exact order:',</span>
+<span class="cstat-no" title="statement not covered" >      phase1Movement: '1. Movement - Creatures move toward targets',</span>
+<span class="cstat-no" title="statement not covered" >      phase2Combat: '2. Combat - Damage dealt between adjacent creatures',</span>
+<span class="cstat-no" title="statement not covered" >      phase3Eating: '3. Eating - Humans consume adjacent plants',</span>
+<span class="cstat-no" title="statement not covered" >      phase4Reproduction: '4. Reproduction - Pregnancy initiated',</span>
+<span class="cstat-no" title="statement not covered" >      phase5Death: '5. Death - Creatures with health ≤ 0 removed',</span>
+<span class="cstat-no" title="statement not covered" >      phase6Birth: '6. Birth - New humans born from pregnancy',</span>
+<span class="cstat-no" title="statement not covered" >      phase7Spawn: '7. Spawn - New plants and animals spawn on empty cells',</span>
+<span class="cstat-no" title="statement not covered" >      importantRulesTitle: 'Important Rules',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule1: 'All creatures complete each phase before the next begins',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule2: 'Creatures age each round and may die from old age',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule3: 'Only one entity can occupy a cell at any time',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      creaturesTitle: 'Creature Types',</span>
+<span class="cstat-no" title="statement not covered" >      malesTitle: '🧑‍🦰 Male Humans',</span>
+<span class="cstat-no" title="statement not covered" >      malesDesc: 'Males move toward fruits and fight wolves. They compete with other males for territory. Males can reproduce with adjacent females.',</span>
+<span class="cstat-no" title="statement not covered" >      femalesTitle: '👩 Female Humans',</span>
+<span class="cstat-no" title="statement not covered" >      femalesDesc: 'Females move toward fruits and can become pregnant. Pregnancy lasts several rounds before giving birth. Pregnant females show 🤰.',</span>
+<span class="cstat-no" title="statement not covered" >      wolvesTitle: '🐺 Wolves',</span>
+<span class="cstat-no" title="statement not covered" >      wolvesDesc: 'Wolves hunt humans and deal damage when adjacent. Males fight back against wolves, but females do not.',</span>
+<span class="cstat-no" title="statement not covered" >      dogsTitle: '🐕 Dogs',</span>
+<span class="cstat-no" title="statement not covered" >      dogsDesc: 'Dogs protect humans by attacking wolves. When adjacent to a wolf, dogs deal damage to protect the ecosystem.',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      plantsTitle: 'Plant Types',</span>
+<span class="cstat-no" title="statement not covered" >      fruitsTitle: '🍎 Fruits',</span>
+<span class="cstat-no" title="statement not covered" >      fruitsDesc: 'Fruits heal humans when eaten. New fruits are unripe (🍏) and become ripe (🍎) after several rounds. Only ripe fruits can be eaten.',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsTitle: '🍄 Mushrooms',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsDesc: 'Mushrooms are poisonous plants that damage humans when eaten. They spawn randomly and are immediately dangerous.',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsWarning: '⚠️ Warning: Mushrooms reduce health!',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      controlsTitle: 'Controls',</span>
+<span class="cstat-no" title="statement not covered" >      keyboardShortcutsTitle: 'Keyboard Shortcuts',</span>
+<span class="cstat-no" title="statement not covered" >      keySpace: 'Space - Pause/Play toggle',</span>
+<span class="cstat-no" title="statement not covered" >      keyRight: 'Right Arrow - Advance 1 round (when paused)',</span>
+<span class="cstat-no" title="statement not covered" >      keyUp: 'Up Arrow - Advance 5 rounds (when paused)',</span>
+<span class="cstat-no" title="statement not covered" >      keyDown: 'Down Arrow - Pause simulation',</span>
+<span class="cstat-no" title="statement not covered" >      keyLeft: 'Left Arrow - Pause simulation',</span>
+<span class="cstat-no" title="statement not covered" >      mouseControlsTitle: 'Mouse Controls',</span>
+<span class="cstat-no" title="statement not covered" >      mouseDesc: 'Use buttons in the control panel to manage the simulation. Click "?" to view these rules anytime.',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    errors: {</span>
+<span class="cstat-no" title="statement not covered" >      invalidRange: 'Value must be between {0} and {1}',</span>
+<span class="cstat-no" title="statement not covered" >      spawnTooHigh: 'Total spawn probabilities exceed 100%',</span>
+<span class="cstat-no" title="statement not covered" >      spawnWarning: 'High spawn probability may cause overcrowding',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" >  },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  [Language.PL]: {</span>
+<span class="cstat-no" title="statement not covered" >    header: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Symulator Edukacyjny Gra w Życie',</span>
+<span class="cstat-no" title="statement not covered" >      round: 'Runda: {0}',</span>
+<span class="cstat-no" title="statement not covered" >      roundsPerSec: 'Rundy/sek: {0}',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    controls: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Sterowanie',</span>
+<span class="cstat-no" title="statement not covered" >      startGame: 'Rozpocznij Grę',</span>
+<span class="cstat-no" title="statement not covered" >      pause: 'Pauza',</span>
+<span class="cstat-no" title="statement not covered" >      runOneRound: 'Jedna Runda',</span>
+<span class="cstat-no" title="statement not covered" >      runFiveRounds: 'Pięć Rund',</span>
+<span class="cstat-no" title="statement not covered" >      runFree: 'Uruchom Swobodnie',</span>
+<span class="cstat-no" title="statement not covered" >      reset: 'Resetuj',</span>
+<span class="cstat-no" title="statement not covered" >      finishGame: 'Zakończ Grę',</span>
+<span class="cstat-no" title="statement not covered" >      speed: 'Prędkość:',</span>
+<span class="cstat-no" title="statement not covered" >      slow: 'Wolno',</span>
+<span class="cstat-no" title="statement not covered" >      medium: 'Średnio',</span>
+<span class="cstat-no" title="statement not covered" >      fast: 'Szybko',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    stats: {</span>
+<span class="cstat-no" title="statement not covered" >      statistics: 'Statystyki',</span>
+<span class="cstat-no" title="statement not covered" >      males: 'Mężczyźni',</span>
+<span class="cstat-no" title="statement not covered" >      females: 'Kobiety',</span>
+<span class="cstat-no" title="statement not covered" >      pregnant: 'W ciąży',</span>
+<span class="cstat-no" title="statement not covered" >      wolves: 'Wilki',</span>
+<span class="cstat-no" title="statement not covered" >      dogs: 'Psy',</span>
+<span class="cstat-no" title="statement not covered" >      fruits: 'Owoce',</span>
+<span class="cstat-no" title="statement not covered" >      ripeUnripe: '{0} dojrzałe / {1} niedojrzałe',</span>
+<span class="cstat-no" title="statement not covered" >      mushrooms: 'Muchomory',</span>
+<span class="cstat-no" title="statement not covered" >      total: 'Łącznie stworzeń: {0}/{1}',</span>
+<span class="cstat-no" title="statement not covered" >      populationGraph: 'Wykres Populacji',</span>
+<span class="cstat-no" title="statement not covered" >      waitingForData: 'Oczekiwanie na dane...',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    config: {</span>
+<span class="cstat-no" title="statement not covered" >      configPanel: 'Konfiguracja Gry',</span>
+<span class="cstat-no" title="statement not covered" >      configSubtitle: 'Skonfiguruj parametry przed rozpoczęciem symulacji',</span>
+<span class="cstat-no" title="statement not covered" >      collapseAll: 'Zwiń Wszystko',</span>
+<span class="cstat-no" title="statement not covered" >      collapse: 'Zwiń',</span>
+<span class="cstat-no" title="statement not covered" >      expand: 'Rozwiń',</span>
+<span class="cstat-no" title="statement not covered" >      resetDefaults: 'Przywróć Domyślne',</span>
+<span class="cstat-no" title="statement not covered" >      saveConfig: 'Zapisz Konfigurację',</span>
+<span class="cstat-no" title="statement not covered" >      loadConfig: 'Wczytaj Konfigurację',</span>
+<span class="cstat-no" title="statement not covered" >      expectedCreatures: 'Oczekiwane stworzenia na start: ~{0}',</span>
+<span class="cstat-no" title="statement not covered" >      expectedCreaturesDetailed: 'Oczekiwane stworzenia: ~{0}♂ {1}♀ {2}🐺 {3}🐕 {4}🍎 {5}🍄',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Validation messages</span>
+<span class="cstat-no" title="statement not covered" >      totalSpawnProbability: 'Całkowite prawdopodobieństwo pojawienia',</span>
+<span class="cstat-no" title="statement not covered" >      spawnExceeds100: 'przekracza 100%',</span>
+<span class="cstat-no" title="statement not covered" >      spawnWarning: 'Ostrzeżenie:',</span>
+<span class="cstat-no" title="statement not covered" >      spawnVeryHigh: 'jest bardzo wysokie',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      boardSetup: 'Ustawienia Planszy',</span>
+<span class="cstat-no" title="statement not covered" >      boardWidth: 'Szerokość Planszy',</span>
+<span class="cstat-no" title="statement not covered" >      boardHeight: 'Wysokość Planszy',</span>
+<span class="cstat-no" title="statement not covered" >      injuredThreshold: 'Próg Zranienia',</span>
+<span class="cstat-no" title="statement not covered" >      maleSpawn: 'Prawdopodobieństwo Pojawienia Mężczyzn',</span>
+<span class="cstat-no" title="statement not covered" >      femaleSpawn: 'Prawdopodobieństwo Pojawienia Kobiet',</span>
+<span class="cstat-no" title="statement not covered" >      wolfSpawn: 'Prawdopodobieństwo Pojawienia Wilków',</span>
+<span class="cstat-no" title="statement not covered" >      dogSpawn: 'Prawdopodobieństwo Pojawienia Psów',</span>
+<span class="cstat-no" title="statement not covered" >      fruitSpawn: 'Prawdopodobieństwo Pojawienia Owoców',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomSpawn: 'Prawdopodobieństwo Pojawienia Muchomorów',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      humanConfig: 'Konfiguracja Ludzi',</span>
+<span class="cstat-no" title="statement not covered" >      humanHealth: 'Początkowe Zdrowie',</span>
+<span class="cstat-no" title="statement not covered" >      maleVsMaleDamage: 'Obrażenia Mężczyzna vs Mężczyzna',</span>
+<span class="cstat-no" title="statement not covered" >      maleVsWolfDamage: 'Obrażenia Mężczyzna vs Wilk',</span>
+<span class="cstat-no" title="statement not covered" >      reproductionProb: 'Prawdopodobieństwo Rozmnażania',</span>
+<span class="cstat-no" title="statement not covered" >      pregnancyPeriod: 'Okres Ciąży (rundy)',</span>
+<span class="cstat-no" title="statement not covered" >      cooldownPeriod: 'Okres Odnowy (rundy)',</span>
+<span class="cstat-no" title="statement not covered" >      humanPerception: 'Zasięg Percepcji',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardFruit: 'Prawdopodobieństwo Ruchu do Owoców',</span>
+<span class="cstat-no" title="statement not covered" >      humanGompertzA: 'Gompertz A (wskaźnik śmiertelności)',</span>
+<span class="cstat-no" title="statement not covered" >      humanGompertzB: 'Gompertz B (przyspieszenie)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      wolfConfig: 'Konfiguracja Wilków',</span>
+<span class="cstat-no" title="statement not covered" >      wolfHealth: 'Początkowe Zdrowie',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamage: 'Obrażenia dla Ludzi',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToMale: 'Obrażenia dla Mężczyzn',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToFemale: 'Obrażenia dla Kobiet',</span>
+<span class="cstat-no" title="statement not covered" >      wolfDamageToDog: 'Kontratak dla Psa',</span>
+<span class="cstat-no" title="statement not covered" >      wolfPerception: 'Zasięg Percepcji',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardHuman: 'Prawdopodobieństwo Ruchu do Ludzi',</span>
+<span class="cstat-no" title="statement not covered" >      wolfGompertzA: 'Gompertz A (wskaźnik śmiertelności)',</span>
+<span class="cstat-no" title="statement not covered" >      wolfGompertzB: 'Gompertz B (przyspieszenie)',</span>
+<span class="cstat-no" title="statement not covered" >      wolfSpawnProb: 'Prawdopodobieństwo Pojawienia (na rundę)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      dogConfig: 'Konfiguracja Psów',</span>
+<span class="cstat-no" title="statement not covered" >      dogHealth: 'Początkowe Zdrowie',</span>
+<span class="cstat-no" title="statement not covered" >      dogDamage: 'Obrażenia dla Wilków',</span>
+<span class="cstat-no" title="statement not covered" >      dogPerception: 'Zasięg Percepcji',</span>
+<span class="cstat-no" title="statement not covered" >      moveTowardWolf: 'Prawdopodobieństwo Ruchu do Wilków',</span>
+<span class="cstat-no" title="statement not covered" >      dogGompertzA: 'Gompertz A (wskaźnik śmiertelności)',</span>
+<span class="cstat-no" title="statement not covered" >      dogGompertzB: 'Gompertz B (przyspieszenie)',</span>
+<span class="cstat-no" title="statement not covered" >      dogSpawnProb: 'Prawdopodobieństwo Pojawienia (na rundę)',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      fruitConfig: 'Konfiguracja Owoców',</span>
+<span class="cstat-no" title="statement not covered" >      fruitEnergy: 'Uleczona Energia',</span>
+<span class="cstat-no" title="statement not covered" >      fruitSpawnProb: 'Prawdopodobieństwo Pojawienia na Rundę',</span>
+<span class="cstat-no" title="statement not covered" >      roundsToRipen: 'Rundy do Dojrzałości',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      mushroomConfig: 'Konfiguracja Muchomorów',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomEnergy: 'Utracona Energia',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomSpawnProb: 'Prawdopodobieństwo Pojawienia na Rundę',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      populationControl: 'Kontrola Populacji',</span>
+<span class="cstat-no" title="statement not covered" >      humanThreshold: 'Próg Przepełnienia Ludzi',</span>
+<span class="cstat-no" title="statement not covered" >      humanMultiplier: 'Mnożnik Przepełnienia Ludzi',</span>
+<span class="cstat-no" title="statement not covered" >      animalThreshold: 'Próg Przepełnienia Zwierząt',</span>
+<span class="cstat-no" title="statement not covered" >      animalMultiplier: 'Mnożnik Przepełnienia Zwierząt',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    notifications: {</span>
+<span class="cstat-no" title="statement not covered" >      maleExtinctionTitle: '⚠️ Wyginięcie Mężczyzn',</span>
+<span class="cstat-no" title="statement not covered" >      allMalesDied: 'Wszyscy mężczyźni wymarli - rozmnażanie nie jest już możliwe',</span>
+<span class="cstat-no" title="statement not covered" >      femaleExtinctionTitle: '⚠️ Wyginięcie Kobiet',</span>
+<span class="cstat-no" title="statement not covered" >      allFemalesDied: 'Wszystkie kobiety wymarły - rozmnażanie nie jest już możliwe',</span>
+<span class="cstat-no" title="statement not covered" >      boardNearlyFullTitle: '⚠️ Plansza Prawie Pełna',</span>
+<span class="cstat-no" title="statement not covered" >      boardNearlyFull: 'Plansza jest zapełniona w 90% - ekosystem może stać się niestabilny',</span>
+<span class="cstat-no" title="statement not covered" >      configSavedTitle: '✅ Zapisano Konfigurację',</span>
+<span class="cstat-no" title="statement not covered" >      configSaved: 'Konfiguracja wyeksportowana do {0}',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadedTitle: '✅ Wczytano Konfigurację',</span>
+<span class="cstat-no" title="statement not covered" >      configLoaded: 'Konfiguracja wczytana z {0}',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadErrorTitle: '❌ Błąd Wczytywania',</span>
+<span class="cstat-no" title="statement not covered" >      configLoadError: 'Nie udało się wczytać konfiguracji: {0}',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    rules: {</span>
+<span class="cstat-no" title="statement not covered" >      title: 'Zasady Gry',</span>
+<span class="cstat-no" title="statement not covered" >      tabGameRules: 'Zasady Gry',</span>
+<span class="cstat-no" title="statement not covered" >      tabCreatures: 'Stworzenia',</span>
+<span class="cstat-no" title="statement not covered" >      tabPlants: 'Rośliny',</span>
+<span class="cstat-no" title="statement not covered" >      tabControls: 'Sterowanie',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      gameRulesTitle: 'Jak Działa Gra',</span>
+<span class="cstat-no" title="statement not covered" >      roundPriorityTitle: 'Kolejność Priorytetów Rundy',</span>
+<span class="cstat-no" title="statement not covered" >      roundPriorityDesc: 'Każda runda wykonuje się w tej dokładnej kolejności:',</span>
+<span class="cstat-no" title="statement not covered" >      phase1Movement: '1. Ruch - Stworzenia poruszają się w stronę celów',</span>
+<span class="cstat-no" title="statement not covered" >      phase2Combat: '2. Walka - Obrażenia zadawane między sąsiednimi stworzeniami',</span>
+<span class="cstat-no" title="statement not covered" >      phase3Eating: '3. Jedzenie - Ludzie konsumują sąsiednie rośliny',</span>
+<span class="cstat-no" title="statement not covered" >      phase4Reproduction: '4. Rozmnażanie - Rozpoczęcie ciąży',</span>
+<span class="cstat-no" title="statement not covered" >      phase5Death: '5. Śmierć - Usunięcie stworzeń ze zdrowiem ≤ 0',</span>
+<span class="cstat-no" title="statement not covered" >      phase6Birth: '6. Narodziny - Urodzenie nowych ludzi z ciąży',</span>
+<span class="cstat-no" title="statement not covered" >      phase7Spawn: '7. Pojawienie - Nowe rośliny i zwierzęta pojawiają się na pustych polach',</span>
+<span class="cstat-no" title="statement not covered" >      importantRulesTitle: 'Ważne Zasady',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule1: 'Wszystkie stworzenia kończą każdą fazę przed rozpoczęciem następnej',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule2: 'Stworzenia starzeją się co rundę i mogą umrzeć ze starości',</span>
+<span class="cstat-no" title="statement not covered" >      importantRule3: 'Tylko jedno stworzenie może zajmować pole w danym czasie',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      creaturesTitle: 'Typy Stworzeń',</span>
+<span class="cstat-no" title="statement not covered" >      malesTitle: '🧑‍🦰 Mężczyźni',</span>
+<span class="cstat-no" title="statement not covered" >      malesDesc: 'Mężczyźni poruszają się w stronę owoców i walczą z wilkami. Rywalizują z innymi mężczyznami o terytorium. Mogą rozmnażać się z sąsiednimi kobietami.',</span>
+<span class="cstat-no" title="statement not covered" >      femalesTitle: '👩 Kobiety',</span>
+<span class="cstat-no" title="statement not covered" >      femalesDesc: 'Kobiety poruszają się w stronę owoców i mogą zajść w ciążę. Ciąża trwa kilka rund przed porodem. Kobiety w ciąży pokazują 🤰.',</span>
+<span class="cstat-no" title="statement not covered" >      wolvesTitle: '🐺 Wilki',</span>
+<span class="cstat-no" title="statement not covered" >      wolvesDesc: 'Wilki polują na ludzi i zadają obrażenia gdy są obok. Mężczyźni walczą z wilkami, ale kobiety nie.',</span>
+<span class="cstat-no" title="statement not covered" >      dogsTitle: '🐕 Psy',</span>
+<span class="cstat-no" title="statement not covered" >      dogsDesc: 'Psy chronią ludzi atakując wilki. Gdy są obok wilka, psy zadają obrażenia aby chronić ekosystem.',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      plantsTitle: 'Typy Roślin',</span>
+<span class="cstat-no" title="statement not covered" >      fruitsTitle: '🍎 Owoce',</span>
+<span class="cstat-no" title="statement not covered" >      fruitsDesc: 'Owoce leczą ludzi gdy są zjedzone. Nowe owoce są niedojrzałe (🍏) i stają się dojrzałe (🍎) po kilku rundach. Tylko dojrzałe owoce mogą być zjedzone.',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsTitle: '🍄 Muchomory',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsDesc: 'Muchomory są trującymi roślinami które ranią ludzi gdy są zjedzone. Pojawiają się losowo i są natychmiast niebezpieczne.',</span>
+<span class="cstat-no" title="statement not covered" >      mushroomsWarning: '⚠️ Uwaga: Muchomory zmniejszają zdrowie!',</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      controlsTitle: 'Sterowanie',</span>
+<span class="cstat-no" title="statement not covered" >      keyboardShortcutsTitle: 'Skróty Klawiszowe',</span>
+<span class="cstat-no" title="statement not covered" >      keySpace: 'Spacja - Przełącz Pauza/Gra',</span>
+<span class="cstat-no" title="statement not covered" >      keyRight: 'Strzałka w Prawo - 1 runda do przodu (gdy pauza)',</span>
+<span class="cstat-no" title="statement not covered" >      keyUp: 'Strzałka w Górę - 5 rund do przodu (gdy pauza)',</span>
+<span class="cstat-no" title="statement not covered" >      keyDown: 'Strzałka w Dół - Pauza symulacji',</span>
+<span class="cstat-no" title="statement not covered" >      keyLeft: 'Strzałka w Lewo - Pauza symulacji',</span>
+<span class="cstat-no" title="statement not covered" >      mouseControlsTitle: 'Sterowanie Myszą',</span>
+<span class="cstat-no" title="statement not covered" >      mouseDesc: 'Użyj przycisków w panelu sterowania aby zarządzać symulacją. Kliknij "?" aby zobaczyć te zasady w każdej chwili.',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    errors: {</span>
+<span class="cstat-no" title="statement not covered" >      invalidRange: 'Wartość musi być między {0} a {1}',</span>
+<span class="cstat-no" title="statement not covered" >      spawnTooHigh: 'Suma prawdopodobieństw pojawienia przekracza 100%',</span>
+<span class="cstat-no" title="statement not covered" >      spawnWarning: 'Wysokie prawdopodobieństwo pojawienia może spowodować przepełnienie',</span>
+<span class="cstat-no" title="statement not covered" >    },</span>
+<span class="cstat-no" title="statement not covered" >  },</span>
+<span class="cstat-no" title="statement not covered" >};</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-11-30T16:51:04.705Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

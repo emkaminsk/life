@@ -146,6 +146,19 @@ Tests are organized by component:
 
 ### Test Coverage
 
+The test suite includes **250+ unit tests** covering:
+- **All 51 configuration parameters** - Each parameter is tested to verify it affects simulation behavior
+- **Entity classes** - Human, Wolf, Dog, Fruit, Mushroom initialization and state management
+- **Game systems** - Movement, Combat, Eating, Reproduction, Death, Birth, and Spawn systems
+- **Integration tests** - End-to-end game flow and phase execution order
+
+**Coverage Goals:**
+- Statement Coverage: ≥85%
+- Branch Coverage: ≥80%
+- Function Coverage: ≥90%
+
+Run `npm run test:coverage` to generate a detailed coverage report.
+
 The test suite verifies:
 - **Entity behavior**: Health, age, position, type consistency
 - **Configuration parameters**: 51 parameters tested to verify they affect simulation outcomes

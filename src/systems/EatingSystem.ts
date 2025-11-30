@@ -19,7 +19,7 @@ export class EatingSystem {
     let mushroomEatingCount = 0;
 
     // Handle fruit eating - iterate through fruits
-    const fruitsToRemove: { x: number; y: number; human: Human }[] = [];
+    const fruitsToRemove: { x: number; y: number; human: Human; fruit: Fruit }[] = [];
 
     for (const entity of entities) {
       if (entity instanceof Fruit && entity.isRipe()) {
@@ -37,14 +37,14 @@ export class EatingSystem {
         // One random eligible human eats the fruit
         if (eligibleHumans.length > 0) {
           const human = Random.choice(eligibleHumans)!;
-          fruitsToRemove.push({ x: entity.x, y: entity.y, human });
+          fruitsToRemove.push({ x: entity.x, y: entity.y, human, fruit: entity });
         }
       }
     }
 
     // Process fruit eating
-    for (const { x, y, human } of fruitsToRemove) {
-      const healAmount = DEFAULT_CONFIG.fruit.energyHealed;
+    for (const { x, y, human, fruit } of fruitsToRemove) {
+      const healAmount = fruit.energyHealed;
       human.heal(healAmount, DEFAULT_CONFIG.human.startingHealth);
 
       // Remove fruit from board
@@ -67,7 +67,7 @@ export class EatingSystem {
     }
 
     // Handle mushroom poisoning - separate loop to avoid conflicts
-    const mushroomsToRemove: { x: number; y: number; human: Human }[] = [];
+    const mushroomsToRemove: { x: number; y: number; human: Human; mushroom: Mushroom }[] = [];
 
     for (const entity of entities) {
       if (entity instanceof Mushroom) {
@@ -84,14 +84,14 @@ export class EatingSystem {
         // One random adjacent human eats the mushroom
         if (adjacentHumans.length > 0) {
           const human = Random.choice(adjacentHumans)!;
-          mushroomsToRemove.push({ x: entity.x, y: entity.y, human });
+          mushroomsToRemove.push({ x: entity.x, y: entity.y, human, mushroom: entity });
         }
       }
     }
 
     // Process mushroom poisoning
-    for (const { x, y, human } of mushroomsToRemove) {
-      const damage = DEFAULT_CONFIG.mushroom.energyRemoved;
+    for (const { x, y, human, mushroom } of mushroomsToRemove) {
+      const damage = mushroom.energyRemoved;
       human.takeDamage(damage);
 
       // Remove mushroom from board
