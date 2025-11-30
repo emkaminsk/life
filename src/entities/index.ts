@@ -1,0 +1,6 @@
+export { Entity } from './Entity'
+export { Human } from './Human'
+export { Wolf } from './Wolf'
+export { Dog } from './Dog'
+export { Fruit } from './Fruit'
+export { Mushroom } from './Mushroom'
