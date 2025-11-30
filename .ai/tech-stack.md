@@ -26,9 +26,17 @@
   - Replaces ESLint + Prettier
 
 ### Testing
-- **Vitest**
+- **Vitest 1.0.4+**
   - Unit testing framework
   - Vite-native integration
+  - jsdom environment for DOM simulation
+  - Coverage reporting with @vitest/coverage-v8
+- **@vitest/ui 1.0.4+**
+  - Visual test dashboard
+  - Real-time test execution monitoring
+- **@vitest/coverage-v8 1.0.4+**
+  - Code coverage analysis
+  - HTML coverage report generation
 
 ## Performance Optimizations
 

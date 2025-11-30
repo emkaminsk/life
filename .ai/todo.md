@@ -2066,12 +2066,13 @@ jobs:
 - [ ] Health check verifies deployment (optional)
 - [ ] Workflow completes in <5 minutes for typical build
 
-### Phase 22.3: VPS Setup Documentation ✅ READY
+### Phase 22.3: VPS Setup Documentation ✅ COMPLETE
 
+**Status**: ✅ COMPLETE - Game deployed successfully
 **Objective**: Document VPS prerequisites and initial setup steps
 
 Tasks:
-- [ ] Create `deploy/VPS_SETUP.md` with:
+- [x] Create `deploy/VPS_SETUP.md` with:
   - [ ] VPS requirements:
     - [ ] Ubuntu 20.04+ or Debian 11+ (recommended)
     - [ ] Minimum 512 MB RAM, 10 GB disk (modest requirements)
@@ -2306,6 +2307,262 @@ Tasks:
   - *Mitigation*: Nginx serves files from disk, brief unavailability is acceptable for educational app
 - **First deployment complexity**: Many moving parts, easy to miss a step
   - *Mitigation*: Comprehensive checklists, clear documentation, manual test first
+
+## Phase 23: Unit Testing Implementation ✅ IN PROGRESS
+
+**Objective**: Implement comprehensive unit tests for all 51 configuration parameters
+
+**Status**: Phase 23.0 & 23.1 Complete, Phases 23.2-23.11 Ready for Implementation
+
+### Phase 23.0: Testing Infrastructure ✅ COMPLETE
+
+**Status**: Infrastructure complete and tested
+**Completed**:
+- [x] Vitest installed and configured (`vitest.config.ts`)
+- [x] Test utilities created (`tests/setup.ts` - 200+ lines)
+- [x] Factory functions for all entity types
+- [x] Mock renderer for canvas isolation
+- [x] npm scripts added: `test`, `test:ui`, `test:coverage`
+
+### Phase 23.1: Initial Test Suite ✅ COMPLETE
+
+**Status**: 73 tests passing, 3/51 parameters validated
+
+**Completed Tests**:
+- [x] Board class tests (`tests/core/Board.test.ts`) - 18 tests
+  - Grid initialization, entity placement, adjacency detection, boundary handling
+- [x] Entity base class tests (`tests/entities/Entity.test.ts`) - 20 tests
+  - Health, age, position, type consistency
+- [x] Human entity tests (`tests/entities/Human.test.ts`) - 35 tests
+  - Configuration parameters tested:
+    - [x] `human.startingHealth` - Initial health from config
+    - [x] `human.pregnancyPeriod` - Pregnancy duration
+    - [x] `human.cooldownPeriod` - Post-birth cooldown
+
+**Documentation Created**:
+- [x] `TESTING_PLAN.md` - 14-phase comprehensive roadmap
+- [x] `UNIT_TESTING_IMPLEMENTATION.md` - Current status & next steps
+- [x] `TEST_CONTINUATION_GUIDE.md` - Step-by-step implementation guide
+
+### Phase 23.2: Entity Subclass Tests (Pending - ~2 hours)
+
+**Objective**: Test Wolf, Dog, and Plant entity configuration parameters
+
+**Tasks**:
+- [ ] Wolf Entity Tests (`tests/entities/Wolf.test.ts`) - 15-20 tests
+  - Parameters: `wolf.startingHealth`, `wolf.spawnProbability`
+- [ ] Dog Entity Tests (`tests/entities/Dog.test.ts`) - 15-20 tests
+  - Parameters: `dog.startingHealth`, `dog.spawnProbability`
+- [ ] Plant Entity Tests (`tests/entities/Plant.test.ts`) - 20-25 tests
+  - Parameters: `fruit.roundsToRipen`, `fruit.spawnProbability`, `mushroom.spawnProbability`
+
+**Success Criteria**:
+- [ ] All entity subclass tests passing
+- [ ] 9 additional parameters tested (6/51 total)
+- [ ] Factory functions verified working for all entity types
+
+### Phase 23.3: MovementSystem Tests (Pending - ~1.5 hours)
+
+**Objective**: Verify perception range and movement probability parameters
+
+**Tasks**:
+- [ ] MovementSystem Tests (`tests/systems/MovementSystem.test.ts`) - 35-40 tests
+  - Parameters tested (6 total):
+    - `human.perceptionRange` - Fruit detection distance
+    - `human.moveTowardFruitProbability` - Movement bias toward fruit
+    - `wolf.perceptionRange` - Human detection distance
+    - `wolf.moveTowardHumanProbability` - Movement bias toward humans
+    - `dog.perceptionRange` - Wolf detection distance
+    - `dog.moveTowardWolfProbability` - Movement bias toward wolves
+
+**Success Criteria**:
+- [ ] All movement tests passing
+- [ ] 6 additional parameters tested (12/51 total)
+- [ ] Perception range behavior verified
+
+### Phase 23.4: CombatSystem Tests (Pending - ~1.5 hours)
+
+**Objective**: Verify all damage configuration parameters
+
+**Tasks**:
+- [ ] CombatSystem Tests (`tests/systems/CombatSystem.test.ts`) - 30-35 tests
+  - Parameters tested (6 total):
+    - `human.maleVsMaleDamage` - Male-to-male damage
+    - `human.maleVsWolfDamage` - Male counter-attack damage
+    - `wolf.damageToMale` - Wolf damage to males
+    - `wolf.damageToFemale` - Wolf damage to females
+    - `wolf.damageToDog` - Wolf counter-damage to dogs
+    - `dog.damageToWolf` - Dog damage to wolves
+
+**Success Criteria**:
+- [ ] All combat tests passing
+- [ ] 6 additional parameters tested (18/51 total)
+- [ ] Damage values verified in combat outcomes
+
+### Phase 23.5: EatingSystem Tests (Pending - ~1 hour)
+
+**Objective**: Verify plant consumption and ripening parameters
+
+**Tasks**:
+- [ ] EatingSystem Tests (`tests/systems/EatingSystem.test.ts`) - 20-25 tests
+  - Parameters tested (4 total):
+    - `fruit.energyHealed` - HP gained from fruit
+    - `mushroom.energyRemoved` - HP lost from mushroom
+    - `fruit.roundsToRipen` - Ripening duration (integration)
+
+**Success Criteria**:
+- [ ] All eating tests passing
+- [ ] 4 additional parameters tested (22/51 total)
+- [ ] Ripening mechanics verified
+
+### Phase 23.6: ReproductionSystem Tests (Pending - ~1 hour)
+
+**Objective**: Verify reproduction probability and pregnancy mechanics
+
+**Tasks**:
+- [ ] ReproductionSystem Tests (`tests/systems/ReproductionSystem.test.ts`) - 20-25 tests
+  - Parameters tested (3 total):
+    - `human.reproductionProbability` - Conception rate
+    - `human.pregnancyPeriod` - Pregnancy duration (already tested in entity)
+    - `human.cooldownPeriod` - Cooldown duration (already tested in entity)
+
+**Success Criteria**:
+- [ ] All reproduction tests passing
+- [ ] 3 additional parameters tested (25/51 total)
+- [ ] Probability-based mechanics verified
+
+### Phase 23.7: DeathSystem Tests (Pending - ~2 hours)
+
+**Objective**: Verify age-based and overcrowding mortality parameters
+
+**Tasks**:
+- [ ] DeathSystem Tests (`tests/systems/DeathSystem.test.ts`) - 40-45 tests
+  - Parameters tested (10 total):
+    - `human.gompertzA`, `human.gompertzB` - Human mortality curve
+    - `wolf.gompertzA`, `wolf.gompertzB` - Wolf mortality curve
+    - `dog.gompertzA`, `dog.gompertzB` - Dog mortality curve
+    - `overcrowding.humanThreshold` - Human overpopulation threshold
+    - `overcrowding.humanMultiplier` - Mortality multiplier for humans
+    - `overcrowding.animalThreshold` - Animal overpopulation threshold
+    - `overcrowding.animalMultiplier` - Mortality multiplier for animals
+
+**Success Criteria**:
+- [ ] All death system tests passing
+- [ ] 10 additional parameters tested (35/51 total)
+- [ ] Gompertz function verified with various parameters
+- [ ] Overcrowding mechanics verified
+
+### Phase 23.8: BirthSystem Tests (Pending - ~45 minutes)
+
+**Objective**: Verify birth timing and newborn health parameters
+
+**Tasks**:
+- [ ] BirthSystem Tests (`tests/systems/BirthSystem.test.ts`) - 15-20 tests
+  - Parameters tested (2 total):
+    - `human.pregnancyPeriod` - Birth timing (integration with pregnancy)
+    - `human.startingHealth` - Newborn health value
+
+**Success Criteria**:
+- [ ] All birth tests passing
+- [ ] 2 additional parameters tested (37/51 total)
+- [ ] Birth mechanics verified
+
+### Phase 23.9: SpawnSystem Tests (Pending - ~1.5 hours)
+
+**Objective**: Verify initial and mid-game spawn probability parameters
+
+**Tasks**:
+- [ ] SpawnSystem Tests (`tests/systems/SpawnSystem.test.ts`) - 35-40 tests
+  - Parameters tested (10 total):
+    - Initial spawn: `spawn.maleHumanProbability`, `spawn.femaleHumanProbability`, `spawn.wolfProbability`, `spawn.dogProbability`, `spawn.fruitProbability`, `spawn.mushroomProbability` (6 params)
+    - Mid-game spawn: `wolf.spawnProbability`, `dog.spawnProbability`, `fruit.spawnProbability`, `mushroom.spawnProbability` (4 params)
+
+**Success Criteria**:
+- [ ] All spawn tests passing
+- [ ] 10 additional parameters tested (47/51 total)
+- [ ] Probability-based spawning verified
+
+### Phase 23.10: Game Integration Tests (Pending - ~2 hours)
+
+**Objective**: Verify all parameters flow correctly through entire simulation and phase order
+
+**Tasks**:
+- [ ] Game Integration Tests (`tests/core/Game.test.ts`) - 30-40 tests
+  - All 51 parameters verified end-to-end
+  - Phase execution order validation
+  - Configuration locking after game start
+  - Complete round execution verification
+
+**Success Criteria**:
+- [ ] All integration tests passing
+- [ ] All 51/51 parameters tested (100%)
+- [ ] Phase order verified immutable
+- [ ] Full simulation flow validated
+
+### Phase 23.11: Coverage Report & Documentation (Pending - ~1 hour)
+
+**Objective**: Generate coverage report and finalize documentation
+
+**Tasks**:
+- [ ] Run coverage report: `npm run test:coverage`
+- [ ] Verify coverage targets met:
+  - [ ] Statement coverage ≥85%
+  - [ ] Branch coverage ≥80%
+  - [ ] Function coverage ≥90%
+  - [ ] Line coverage ≥85%
+- [ ] Update README.md with testing instructions
+- [ ] Update tech-stack.md with Vitest details
+- [ ] Final integration with CI/CD pipeline
+
+**Success Criteria**:
+- [ ] Coverage report generated in `coverage/` directory
+- [ ] All coverage targets met
+- [ ] Documentation updated
+- [ ] Tests integrated into development workflow
+
+### Success Criteria (Phase 23 Complete)
+
+**When All Phases Done**:
+- [ ] 250+ unit tests implemented and passing
+- [ ] All 51 configuration parameters tested
+- [ ] Each parameter verified to:
+  - [ ] Initialize correctly from config
+  - [ ] Accept custom config values
+  - [ ] Affect simulation behavior
+  - [ ] Work independently and in combination
+- [ ] Code coverage targets met (≥85% statement coverage)
+- [ ] All three documentation guides complete
+- [ ] Tests integrated into `npm test` workflow
+- [ ] Coverage report accessible via `npm run test:coverage`
+
+### Estimated Time Breakdown
+
+- **Phase 23.0** (Infrastructure): ✅ 30 min (Complete)
+- **Phase 23.1** (Initial Tests): ✅ 120 min (Complete)
+- **Phase 23.2** (Entity Tests): 120 min (Pending)
+- **Phase 23.3** (MovementSystem): 90 min (Pending)
+- **Phase 23.4** (CombatSystem): 90 min (Pending)
+- **Phase 23.5** (EatingSystem): 60 min (Pending)
+- **Phase 23.6** (ReproductionSystem): 60 min (Pending)
+- **Phase 23.7** (DeathSystem): 120 min (Pending)
+- **Phase 23.8** (BirthSystem): 45 min (Pending)
+- **Phase 23.9** (SpawnSystem): 90 min (Pending)
+- **Phase 23.10** (Integration): 120 min (Pending)
+- **Phase 23.11** (Coverage): 60 min (Pending)
+
+**Total Remaining**: ~12-14 hours (150+ min per remaining 9 phases)
+
+### Dependencies
+
+**Blocking**:
+- None - can implement tests without changing game code
+
+**Required**:
+- Vitest installed and configured (✅ Complete)
+- Test utilities created (✅ Complete)
+- Game code stable and deployable (✅ Phase 22 Complete)
+
+---
 
 ### Future Enhancements
 

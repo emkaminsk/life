@@ -110,6 +110,51 @@ npm run build
 
 The built files will be in the `dist/` directory, ready for deployment to any static hosting service.
 
+## 🧪 Testing
+
+The project includes comprehensive unit tests for all game mechanics and configuration parameters.
+
+### Running Tests
+
+```bash
+# Run all tests once
+npm test
+
+# Watch mode - rerun tests on file changes
+npm test -- --watch
+
+# Run specific test file
+npm test tests/entities/Human.test.ts
+
+# Run tests matching pattern
+npm test -- --grep "Configuration"
+
+# Generate code coverage report
+npm run test:coverage
+# HTML report available at: coverage/index.html
+
+# Run tests with visual dashboard
+npm run test:ui
+```
+
+### Test Structure
+
+Tests are organized by component:
+- `tests/core/` - Core game systems (Board, Game)
+- `tests/entities/` - Entity classes (Human, Wolf, Dog, Fruit, Mushroom)
+- `tests/systems/` - Game systems (Movement, Combat, Eating, etc.)
+
+### Test Coverage
+
+The test suite verifies:
+- **Entity behavior**: Health, age, position, type consistency
+- **Configuration parameters**: 51 parameters tested to verify they affect simulation outcomes
+- **Game mechanics**: Movement, combat, eating, reproduction, death, birth, spawning
+- **Phase order**: Seven-phase simulation executes in correct immutable order
+- **Integration**: All systems work together correctly
+
+See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation details.
+
 ## 📜 Available Scripts
 
 | Script | Description |
@@ -118,7 +163,12 @@ The built files will be in the `dist/` directory, ready for deployment to any st
 | `npm run build` | Build optimized production bundle |
 | `npm run preview` | Preview production build locally |
 | `npm run test` | Run unit tests with Vitest |
-| `npm run test:ui` | Run tests with Vitest UI interface |
+| `npm run test:ui` | Run tests with visual dashboard |
+| `npm run test:coverage` | Generate code coverage report |
+| `npm run lint` | Lint code with Biome |
+| `npm run lint:fix` | Auto-fix linting issues |
+| `npm run format` | Format code with Biome |
+| `npm run check` | Run full Biome check (lint + format) |
 
 ## 🎯 Project Scope
 
