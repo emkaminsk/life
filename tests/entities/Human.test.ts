@@ -101,20 +101,20 @@ describe('Human Entity', () => {
   describe('Configuration: Pregnancy Mechanics', () => {
     it('should initialize female without pregnancy', () => {
       const female = createFemale(15, 15)
-      expect(female.isPregnant).toBe(false)
+      expect(female.isPregnant()).toBe(false)
     })
 
     it('should initialize male without pregnancy (not applicable)', () => {
       const male = createMale(15, 15)
-      expect(male.isPregnant).toBe(false)
+      expect(male.isPregnant()).toBe(false)
     })
 
     it('should support pregnancy state change', () => {
       const female = createFemale(15, 15)
       const config = DEFAULT_CONFIG
 
-      female.isPregnant = true
-      expect(female.isPregnant).toBe(true)
+      female.pregnancyCounter = config.human.pregnancyPeriod
+      expect(female.isPregnant()).toBe(true)
     })
 
     it('should track pregnancy duration from config', () => {
@@ -122,7 +122,6 @@ describe('Human Entity', () => {
       const pregnancyPeriod = config.human.pregnancyPeriod
 
       const female = createFemale(15, 15)
-      female.isPregnant = true
       female.pregnancyCounter = pregnancyPeriod
 
       expect(female.pregnancyCounter).toBe(pregnancyPeriod)
@@ -135,7 +134,6 @@ describe('Human Entity', () => {
       })
 
       const female = createFemale(15, 15)
-      female.isPregnant = true
       female.pregnancyCounter = config.human.pregnancyPeriod
 
       expect(female.pregnancyCounter).toBe(customPeriod)
@@ -145,7 +143,6 @@ describe('Human Entity', () => {
       const config = DEFAULT_CONFIG
       const female = createFemale(15, 15)
 
-      female.isPregnant = true
       female.pregnancyCounter = config.human.pregnancyPeriod
 
       const initial = female.pregnancyCounter
@@ -157,7 +154,6 @@ describe('Human Entity', () => {
     it('should birth when pregnancy counter reaches zero', () => {
       const female = createFemale(15, 15)
 
-      female.isPregnant = true
       female.pregnancyCounter = 1
       female.pregnancyCounter -= 1
 
@@ -173,7 +169,6 @@ describe('Human Entity', () => {
         })
 
         const female = createFemale(15, 15)
-        female.isPregnant = true
         female.pregnancyCounter = config.human.pregnancyPeriod
 
         expect(female.pregnancyCounter).toBe(period)
@@ -243,7 +238,7 @@ describe('Human Entity', () => {
       // Cannot get pregnant while cooldownCounter > 0
       const isInCooldown = female.cooldownCounter > 0
       expect(isInCooldown).toBe(true)
-      expect(female.isPregnant).toBe(false)
+      expect(female.isPregnant()).toBe(false)
     })
 
     it('should allow pregnancy after cooldown expires', () => {
@@ -277,7 +272,6 @@ describe('Human Entity', () => {
       const female = createFemale(15, 15)
 
       // Start pregnancy
-      female.isPregnant = true
       female.pregnancyCounter = config.human.pregnancyPeriod
 
       // Complete pregnancy
@@ -287,11 +281,10 @@ describe('Human Entity', () => {
 
       // Apply cooldown after birth
       female.cooldownCounter = config.human.cooldownPeriod
-      female.isPregnant = false
 
       expect(female.pregnancyCounter).toBe(0)
       expect(female.cooldownCounter).toBe(config.human.cooldownPeriod)
-      expect(female.isPregnant).toBe(false)
+      expect(female.isPregnant()).toBe(false)
     })
 
     it('should prevent pregnancy during cooldown period', () => {
@@ -301,7 +294,7 @@ describe('Human Entity', () => {
       const canGetPregnant = female.cooldownCounter === 0
 
       expect(canGetPregnant).toBe(false)
-      expect(female.isPregnant).toBe(false)
+      expect(female.isPregnant()).toBe(false)
     })
   })
 
