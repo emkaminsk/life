@@ -2363,18 +2363,28 @@ Tasks:
 - [x] Updated `package.json` with test scripts
 - [x] Cleaned up redundant documentation files
 
-### Phase 23.3: Plant Entity Tests (Pending - ~45 minutes)
+### Phase 23.3: Plant Entity Tests ✅ COMPLETE
 
 **Objective**: Test Fruit and Mushroom configuration parameters
 
 **Tasks**:
-- [ ] Plant Entity Tests (`tests/entities/Plant.test.ts`) - 20-25 tests
-  - Parameters: `fruit.roundsToRipen`, `fruit.spawnProbability`, `mushroom.spawnProbability`
-  - Ripening mechanics, spawn probability tracking
+- [x] Plant Entity Tests (`tests/entities/Plant.test.ts`) - 44 tests ✅
+  - Parameters tested (5 total):
+    - `fruit.energyHealed` - Healing amount on consumption
+    - `fruit.roundsToRipen` - Ripening duration
+    - `fruit.spawnProbability` - Spawn rate
+    - `mushroom.energyRemoved` - Damage on consumption
+    - `mushroom.spawnProbability` - Spawn rate
+  - Ripening mechanics (5 tests)
+  - Plant type identification (4 tests)
+  - Plant immortality (4 tests)
+  - Fruit vs Mushroom comparison (4 tests)
 
 **Success Criteria**:
-- [ ] All plant tests passing
-- [ ] 5 additional parameters tested (12/51 total)
+- [x] All plant tests passing (44/44) ✅
+- [x] 5 additional parameters tested (12/51 total = 23.5%) ✅
+
+**Commit**: 955598f - Plant entity tests with barrel export for entities
 
 ### Phase 23.4: MovementSystem Tests (Pending - ~1.5 hours)
 
