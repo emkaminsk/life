@@ -117,7 +117,7 @@ describe('Dog Entity', () => {
 
       dog.health -= 10
       dog.x = 20
-      dog.advanceAge()
+      dog.incrementAge()
 
       expect(dog.type).toBe(originalType)
     })
@@ -166,10 +166,10 @@ describe('Dog Entity', () => {
       const dog = createDog(15, 15)
       expect(dog.age).toBe(0)
 
-      dog.advanceAge()
+      dog.incrementAge()
       expect(dog.age).toBe(1)
 
-      dog.advanceAge()
+      dog.incrementAge()
       expect(dog.age).toBe(2)
     })
 
@@ -177,7 +177,7 @@ describe('Dog Entity', () => {
       const dog = createDog(15, 15)
 
       for (let i = 0; i < 10; i++) {
-        dog.advanceAge()
+        dog.incrementAge()
       }
 
       expect(dog.age).toBe(10)

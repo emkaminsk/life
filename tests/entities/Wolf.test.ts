@@ -117,7 +117,7 @@ describe('Wolf Entity', () => {
 
       wolf.health -= 10
       wolf.x = 20
-      wolf.advanceAge()
+      wolf.incrementAge()
 
       expect(wolf.type).toBe(originalType)
     })
@@ -166,10 +166,10 @@ describe('Wolf Entity', () => {
       const wolf = createWolf(15, 15)
       expect(wolf.age).toBe(0)
 
-      wolf.advanceAge()
+      wolf.incrementAge()
       expect(wolf.age).toBe(1)
 
-      wolf.advanceAge()
+      wolf.incrementAge()
       expect(wolf.age).toBe(2)
     })
 
@@ -177,7 +177,7 @@ describe('Wolf Entity', () => {
       const wolf = createWolf(15, 15)
 
       for (let i = 0; i < 10; i++) {
-        wolf.advanceAge()
+        wolf.incrementAge()
       }
 
       expect(wolf.age).toBe(10)
