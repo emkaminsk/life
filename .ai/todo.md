@@ -2326,7 +2326,7 @@ Tasks:
 
 ### Phase 23.1: Initial Test Suite ✅ COMPLETE
 
-**Status**: 73 tests passing, 3/51 parameters validated
+**Status**: 90+ tests passing, 7/51 parameters validated (13.7%)
 
 **Completed Tests**:
 - [x] Board class tests (`tests/core/Board.test.ts`) - 18 tests
@@ -2344,24 +2344,39 @@ Tasks:
 - [x] `UNIT_TESTING_IMPLEMENTATION.md` - Current status & next steps
 - [x] `TEST_CONTINUATION_GUIDE.md` - Step-by-step implementation guide
 
-### Phase 23.2: Entity Subclass Tests (Pending - ~2 hours)
+### Phase 23.2: Entity Subclass Tests ✅ COMPLETE
 
-**Objective**: Test Wolf, Dog, and Plant entity configuration parameters
+**Status**: Wolf and Dog tests passing, 4 more parameters tested (7/51 = 13.7%)
+
+**Completed Tests**:
+- [x] Wolf Entity Tests (`tests/entities/Wolf.test.ts`) - 15+ tests
+  - Parameters: `wolf.startingHealth`, `wolf.spawnProbability`
+  - Health management, age, position, predator characteristics
+- [x] Dog Entity Tests (`tests/entities/Dog.test.ts`) - 15+ tests
+  - Parameters: `dog.startingHealth`, `dog.spawnProbability`
+  - Health management, age, position, protector characteristics
+
+**Integration Completed**:
+- [x] Merged testing summary into `.ai/todo.md`
+- [x] Updated `.ai/tech-stack.md` with Vitest details
+- [x] Updated `README.md` with testing section
+- [x] Updated `package.json` with test scripts
+- [x] Cleaned up redundant documentation files
+
+### Phase 23.3: Plant Entity Tests (Pending - ~45 minutes)
+
+**Objective**: Test Fruit and Mushroom configuration parameters
 
 **Tasks**:
-- [ ] Wolf Entity Tests (`tests/entities/Wolf.test.ts`) - 15-20 tests
-  - Parameters: `wolf.startingHealth`, `wolf.spawnProbability`
-- [ ] Dog Entity Tests (`tests/entities/Dog.test.ts`) - 15-20 tests
-  - Parameters: `dog.startingHealth`, `dog.spawnProbability`
 - [ ] Plant Entity Tests (`tests/entities/Plant.test.ts`) - 20-25 tests
   - Parameters: `fruit.roundsToRipen`, `fruit.spawnProbability`, `mushroom.spawnProbability`
+  - Ripening mechanics, spawn probability tracking
 
 **Success Criteria**:
-- [ ] All entity subclass tests passing
-- [ ] 9 additional parameters tested (6/51 total)
-- [ ] Factory functions verified working for all entity types
+- [ ] All plant tests passing
+- [ ] 5 additional parameters tested (12/51 total)
 
-### Phase 23.3: MovementSystem Tests (Pending - ~1.5 hours)
+### Phase 23.4: MovementSystem Tests (Pending - ~1.5 hours)
 
 **Objective**: Verify perception range and movement probability parameters
 
@@ -2380,7 +2395,7 @@ Tasks:
 - [ ] 6 additional parameters tested (12/51 total)
 - [ ] Perception range behavior verified
 
-### Phase 23.4: CombatSystem Tests (Pending - ~1.5 hours)
+### Phase 23.5: CombatSystem Tests (Pending - ~1.5 hours)
 
 **Objective**: Verify all damage configuration parameters
 
@@ -2399,7 +2414,7 @@ Tasks:
 - [ ] 6 additional parameters tested (18/51 total)
 - [ ] Damage values verified in combat outcomes
 
-### Phase 23.5: EatingSystem Tests (Pending - ~1 hour)
+### Phase 23.6: EatingSystem Tests (Pending - ~1 hour)
 
 **Objective**: Verify plant consumption and ripening parameters
 
@@ -2415,7 +2430,7 @@ Tasks:
 - [ ] 4 additional parameters tested (22/51 total)
 - [ ] Ripening mechanics verified
 
-### Phase 23.6: ReproductionSystem Tests (Pending - ~1 hour)
+### Phase 23.7: ReproductionSystem Tests (Pending - ~1 hour)
 
 **Objective**: Verify reproduction probability and pregnancy mechanics
 
@@ -2431,7 +2446,7 @@ Tasks:
 - [ ] 3 additional parameters tested (25/51 total)
 - [ ] Probability-based mechanics verified
 
-### Phase 23.7: DeathSystem Tests (Pending - ~2 hours)
+### Phase 23.8: DeathSystem Tests (Pending - ~2 hours)
 
 **Objective**: Verify age-based and overcrowding mortality parameters
 
@@ -2452,7 +2467,7 @@ Tasks:
 - [ ] Gompertz function verified with various parameters
 - [ ] Overcrowding mechanics verified
 
-### Phase 23.8: BirthSystem Tests (Pending - ~45 minutes)
+### Phase 23.9: BirthSystem Tests (Pending - ~45 minutes)
 
 **Objective**: Verify birth timing and newborn health parameters
 
@@ -2467,7 +2482,7 @@ Tasks:
 - [ ] 2 additional parameters tested (37/51 total)
 - [ ] Birth mechanics verified
 
-### Phase 23.9: SpawnSystem Tests (Pending - ~1.5 hours)
+### Phase 23.10: SpawnSystem Tests (Pending - ~1.5 hours)
 
 **Objective**: Verify initial and mid-game spawn probability parameters
 
@@ -2482,7 +2497,7 @@ Tasks:
 - [ ] 10 additional parameters tested (47/51 total)
 - [ ] Probability-based spawning verified
 
-### Phase 23.10: Game Integration Tests (Pending - ~2 hours)
+### Phase 23.11: Game Integration Tests (Pending - ~2 hours)
 
 **Objective**: Verify all parameters flow correctly through entire simulation and phase order
 
@@ -2499,7 +2514,7 @@ Tasks:
 - [ ] Phase order verified immutable
 - [ ] Full simulation flow validated
 
-### Phase 23.11: Coverage Report & Documentation (Pending - ~1 hour)
+### Phase 23.12: Coverage Report & Documentation (Pending - ~1 hour)
 
 **Objective**: Generate coverage report and finalize documentation
 
