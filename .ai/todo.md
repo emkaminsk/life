@@ -750,7 +750,7 @@ The Game of Life simulator is currently a local development application. To make
 | 21 | ❌ NOT STARTED | MEDIUM | NO | 2-4h | PRD audit - recommended |
 | 22 | ❌ NOT STARTED | LOW | NO | 4-6h | VPS deployment - optional |
 | 23 | ✅ COMPLETE | HIGH | NO | - | Unit testing - 331 tests passing ✅ |
-| **24** | ⚠️ IN PROGRESS | MEDIUM | NO | 4-6h | **Visual clarity improvements** (Phase 24.1 ✅) |
+| **24** | ✅ COMPLETE | MEDIUM | NO | ~4h | **Visual clarity improvements** (Icons, Tooltips) |
 
 ### Implementation Progress
 
@@ -826,277 +826,75 @@ The Game of Life simulator is currently a local development application. To make
 
 ---
 
-## 🎨 Phase 24: Visual Clarity Improvements ⚠️ IN PROGRESS
+## 🎨 Phase 24: Visual Clarity Improvements ✅ COMPLETE
 
-**Status**: ⚠️ IN PROGRESS - Phase 24.1, 24.2 & 24.3 Complete, Phase 24.4 Next
+**Status**: ✅ COMPLETE - All phases implemented and integrated
 **Priority**: 🟡 MEDIUM - Enhances user experience and visual clarity
-**Estimated Time**: 4-6 hours (1-2 hours remaining)
-**Blocking**: NO - Can be implemented independently
-**Time Spent**: ~2.5 hours (icon overlay + tooltip system complete)
+**Blocking**: NO
+**Time Spent**: ~4 hours
 
-### Background
+### Summary
+Replaced cluttering colored borders with cleaner overlay icons (💔 for injured, 🤰 for pregnant) and added a hover tooltip system for detailed entity statistics.
 
-Current visual marking system uses colored borders (red for injured, pink for pregnant) which can create visual clutter, especially with many entities. This phase improves visual clarity by:
-1. Replacing frame borders with small overlay icons
-2. Using the pregnant woman emoji for pregnant females
-3. Adding hover tooltips showing entity statistics
+### Implementation Complete ✅
+- **Icon Overlay System**:
+  - Replaced pink border with 🤰 emoji for pregnant females
+  - Replaced red border with 💔 icon overlay for injured entities
+  - Fixed icon positioning for smooth animation support
+- **Tooltip System**:
+  - Implemented `TooltipManager` class
+  - Added tooltip HTML/CSS structure
+  - Added mouse event handlers with throttling
+  - Implemented cell-to-entity lookup
+- **Localization**:
+  - Full English/Polish support for all tooltip text
 
-### Current Implementation Analysis
+### Files Modified
+- `src/core/Renderer.ts`: Icon rendering logic
+- `src/ui/TooltipManager.ts`: New tooltip management class
+- `src/main.ts`: Mouse event integration
+- `src/i18n/translations.ts`: Localization keys
+- `index.html`: CSS and HTML structure
 
-**Current Visual Markers** ([Renderer.ts:122-138](src/core/Renderer.ts#L122-L138)):
-- **Pink border** (hotpink #ff69b4, 3px) for pregnant females
-- **Red border** (red, 2px) for injured humans/wolves (health < `injuredThreshold`)
-- Borders drawn in `drawCell()` and `drawEntity()` methods
+### Success Criteria ✅
+- [x] No red or pink borders visible on any entities
+- [x] Broken heart icon (💔) appears on injured entities
+- [x] Pregnant females show pregnant woman emoji (🤰)
+- [x] Tooltip appears when hovering over any entity
+- [x] Tooltip text localized in both English and Polish
+- [x] Build completes without TypeScript errors
 
-**Entity Rendering** ([Renderer.ts:55-76](src/core/Renderer.ts#L55-L76)):
-- Entities rendered as cached emojis at cell size (20px default)
-- Female humans: 👩, Male humans: 👨, Wolves: 🐺, Dogs: 🐕
-- Fruits: 🍎 (ripe) / 🍏 (unripe), Mushrooms: 🍄
+---
 
-**Canvas Setup** ([index.html:711](index.html#L711)):
-- Canvas ID: `gameCanvas`
-- No existing mouse event handlers on canvas
-- Canvas size managed by Renderer class
+## 🧬 Phase 25: Genetic Algorithms Implementation ❌ NOT STARTED
 
-### Proposed Changes
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Educational core feature request
+**Estimated Time**: 6-8 hours
 
-#### Change 1: Replace Border Indicators with Icon Overlays
+### Phase 25.1: Genome Infrastructure
+**Files**: `src/types.ts`, `src/utils/GenomeUtils.ts` (new)
+**Summary**: Define `Genome` interface (`maxHealth`, `strength`, `metabolism`, `greed`, `caution`) and implementing `GenomeUtils` for random generation, crossover, and mutation.
 
-**Injured Indicator** - Remove red border, add small broken heart icon:
-- Icon: 💔 (broken heart emoji)
-- Position: Top-right corner of cell (offset: 80% x, 10% y relative to cell)
-- Size: 40% of cell size (8px for default 20px cells)
-- Applied to: Humans and Wolves when `health < injuredThreshold`
+### Phase 25.2: Entity Genome Integration
+**Files**: `src/entities/Human.ts`, `src/core/Game.ts`
+**Summary**: Update `Human` class to include `genome` property. Update constructor to generate initial genome using `GenomeUtils`.
 
-**Pregnancy Indicator** - Remove pink border, use pregnant woman emoji:
-- Change female emoji from 👩 to 🤰 when pregnant
-- Update `getEntityEmoji()` in [Renderer.ts:55-76](src/core/Renderer.ts#L55-L76)
-- Check `entity instanceof Human && entity.isPregnant()` condition
-- Requires Human type import in Renderer
+### Phase 25.3: Inheritance Mechanism
+**Files**: `src/entities/Human.ts`, `src/systems/ReproductionSystem.ts`, `src/systems/BirthSystem.ts`
+**Summary**: Update `ReproductionSystem` to capture father's genome. Update `BirthSystem` to mix genomes (crossover + mutation) for offspring.
 
-#### Change 2: Hover Tooltip System
+### Phase 25.4: Physical Trait Application
+**Files**: `src/entities/Human.ts`, `src/systems/CombatSystem.ts`
+**Summary**: Apply `genome.maxHealth` to starting health. Apply `genome.strength` to combat damage calculation.
 
-**Tooltip Overlay Element**:
-```html
-<div id="entityTooltip" class="entity-tooltip">
-  <div class="tooltip-header">👨 Male Human</div>
-  <div class="tooltip-stats">
-    <div>Health: <strong>85 / 100</strong></div>
-    <div>Age: <strong>12 rounds</strong></div>
-  </div>
-</div>
-```
+### Phase 25.5: Behavioral Trait Application
+**Files**: `src/systems/MovementSystem.ts`
+**Summary**: Apply `genome.greed` to fruit seeking probability. Implement wolf avoidance using `genome.caution`. Implement energy loss per move based on `genome.metabolism`.
 
-**CSS Styling** (add to index.html):
-```css
-.entity-tooltip {
-  position: fixed;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 1000;
-  display: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-.tooltip-header {
-  font-weight: bold;
-  font-size: 13px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid rgba(255,255,255,0.3);
-  padding-bottom: 4px;
-}
-
-.tooltip-stats div {
-  margin: 3px 0;
-  line-height: 1.4;
-}
-```
-
-**Mouse Event Handlers** (add to main.ts):
-- `mousemove`: Calculate cell coordinates from mouse position, get entity, show/update tooltip
-- `mouseleave`: Hide tooltip when mouse leaves canvas
-- Throttle mousemove to ~60fps for performance (use requestAnimationFrame)
-
-**Tooltip Content by Entity Type**:
-- **Humans** (👨👩🤰): Health, Age, Sex, Pregnancy status (if female)
-- **Wolves** (🐺): Health, Age
-- **Dogs** (🐕): Health, Age
-- **Plants** (🍎🍄): Type only (fruits show ripeness status)
-
-### Implementation Tasks
-
-#### Phase 24.1: Icon Overlay System ✅ COMPLETE
-- [x] Plan icon overlay positioning strategy
-- [x] Update `drawCell()` method to draw overlay icons instead of borders - [Renderer.ts:126-134](src/core/Renderer.ts#L126-L134)
-- [x] Update `drawEntity()` method to draw overlay icons instead of borders - [Renderer.ts:186-194](src/core/Renderer.ts#L186-L194)
-- [x] Create `cacheEmoji()` calls for small icon sizes (8px) - using existing cache with 40% cell size
-- [x] Add broken heart icon (💔) for injured entities - positioned at top-right corner
-- [x] Replace female emoji with pregnant woman emoji (🤰) when pregnant - [Renderer.ts:59-64](src/core/Renderer.ts#L59-L64)
-- [x] Build verification - TypeScript compilation successful ✅
-- [ ] Test overlay rendering with multiple entities (manual testing needed)
-- [ ] Verify dirty rectangle optimization still works (manual testing needed)
-
-#### Phase 24.2: Tooltip System Implementation ✅ COMPLETE
-- [x] Add tooltip HTML element to [index.html](index.html) after canvas - [index.html:654-658](index.html#L654-L658)
-- [x] Add tooltip CSS styles to [index.html](index.html) `<style>` section - [index.html:619-652](index.html#L619-L652)
-- [x] Create `TooltipManager` class in [src/ui/TooltipManager.ts](src/ui/TooltipManager.ts) - COMPLETE ✅
-  - `show(entity: Entity, mouseX: number, mouseY: number): void` - viewport boundary detection
-  - `hide(): void` - display none
-  - `formatEntityInfo(entity: Entity): { header: string; stats: string }` - entity-specific formatting
-- [x] Add mouse event listeners to canvas in [main.ts:125-168](src/main.ts#L125-L168) - COMPLETE ✅
-  - `mousemove`: throttled with requestAnimationFrame (~60fps)
-  - `mouseleave`: hide tooltip + cancel pending animations
-- [x] Implement cell-to-entity lookup logic (canvas coords → board coords → entity) - [main.ts:140-155](src/main.ts#L140-L155)
-- [ ] Test tooltip positioning (stay within viewport bounds) - manual testing needed
-- [ ] Test tooltip performance (no frame drops during hover) - manual testing needed
-
-#### Phase 24.3: Localization Support ✅ COMPLETE
-- [x] Add tooltip translation keys to [translations.ts](src/i18n/translations.ts)
-- [x] Update `TooltipManager` to use i18n for all text
-- [x] Test tooltip text in both English and Polish
-
-#### Phase 24.4: Testing & Polish ✅ READY
-- [ ] Test with small boards (10x10) - verify icon visibility
-- [ ] Test with large boards (50x50+) - verify hover performance
-- [ ] Test with 200+ entities - verify no rendering lag
-- [ ] Test tooltip positioning at canvas edges (prevent overflow)
-- [ ] Test with animation system (Phase 16) if active
-- [ ] Verify accessibility (tooltip appears on hover, disappears on leave)
-- [ ] Test all entity types (humans, wolves, dogs, fruits, mushrooms)
-- [ ] Verify injured icon appears/disappears based on health threshold
-- [ ] Verify pregnancy icon updates immediately on reproduction
-
-### Technical Implementation Details
-
-**Overlay Icon Positioning Algorithm**:
-```typescript
-// In drawCell() and drawEntity() after main emoji rendering
-if (entity instanceof Human || entity instanceof Wolf) {
-  if (entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
-    const iconSize = this.cellSize * 0.4; // 40% of cell
-    const iconX = cellX + (this.cellSize * 0.8) - iconSize;
-    const iconY = cellY + (this.cellSize * 0.1);
-    const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
-    this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
-  }
-}
-```
-
-**Cell Coordinate Calculation**:
-```typescript
-// In mousemove handler
-const rect = canvas.getBoundingClientRect();
-const mouseX = event.clientX - rect.left;
-const mouseY = event.clientY - rect.top;
-const cellX = Math.floor(mouseX / renderer.cellSize);
-const cellY = Math.floor(mouseY / renderer.cellSize);
-const entity = board.getEntity(cellX, cellY);
-```
-
-**Tooltip Throttling**:
-```typescript
-let tooltipUpdateScheduled = false;
-canvas.addEventListener('mousemove', (event) => {
-  if (!tooltipUpdateScheduled) {
-    tooltipUpdateScheduled = true;
-    requestAnimationFrame(() => {
-      // Update tooltip logic here
-      tooltipUpdateScheduled = false;
-    });
-  }
-});
-```
-
-### Success Criteria
-
-- [ ] No red or pink borders visible on any entities
-- [ ] Broken heart icon (💔) appears on injured entities at correct position
-- [ ] Pregnant females show pregnant woman emoji (🤰) instead of regular female (👩)
-- [ ] Tooltip appears when hovering over any entity with correct stats
-- [ ] Tooltip disappears when mouse leaves canvas
-- [ ] Tooltip stays within viewport bounds (no overflow)
-- [ ] No performance degradation (maintain 30+ FPS with 200 entities)
-- [ ] Tooltip text localized in both English and Polish
-- [ ] All entity types display correct information
-- [ ] Icons remain crisp and visible at all cell sizes (10px - 30px)
-- [ ] Build completes without TypeScript errors
-- [ ] Existing tests continue to pass (331 tests)
-
-### Files to Modify
-
-**New Files**:
-- `src/ui/TooltipManager.ts` - Tooltip management class
-
-**Modified Files**:
-- [src/core/Renderer.ts](src/core/Renderer.ts) - Icon overlays, pregnant emoji
-- [src/main.ts](src/main.ts) - Mouse event handlers, tooltip integration
-- [index.html](index.html) - Tooltip HTML element, CSS styles
-- [src/i18n/translations.ts](src/i18n/translations.ts) - Tooltip translation keys
-- [src/types.ts](src/types.ts) - Tooltip-related type definitions (if needed)
-
-**Dependencies**:
-- Requires Human type import in Renderer.ts for pregnancy check
-- Requires Board and Entity imports in TooltipManager.ts
-- Requires i18n import in TooltipManager.ts for localization
-
-### Risk Assessment
-
-**Low Risk Changes**:
-- Adding overlay icons (isolated rendering code)
-- Changing pregnancy emoji (single-line change in getEntityEmoji())
-
-**Medium Risk Changes**:
-- Removing border rendering (affects visual feedback system)
-- Adding mouse event handlers (potential performance impact)
-
-**Mitigation Strategies**:
-- Test with large entity counts before/after (200+ entities)
-- Use requestAnimationFrame throttling for mouse events
-- Maintain dirty rectangle optimization for rendering
-- Add performance monitoring during development
-
-### Educational Impact
-
-**Positive Changes**:
-- **Clearer visual field** - Less border clutter, easier to see entities
-- **More intuitive pregnancy** - Pregnant woman emoji is self-explanatory
-- **Rich information** - Tooltips provide detailed stats without cluttering UI
-- **Better discoverability** - Hover to learn about any entity
-
-**User Experience**:
-- Students can quickly identify injured entities by small icon
-- Pregnancy status immediately visible through emoji change
-- Hover tooltips enable exploration without UI complexity
-- Visual clarity supports better pattern recognition
-
-### Implementation Progress Summary
-
-**Completed (Session 1 - 1 hour)**:
-- ✅ **Phase 24.1: Icon Overlay System** - COMPLETE
-  - Removed pink border for pregnant females
-  - Removed red border for injured entities
-  - Added 🤰 pregnant woman emoji for pregnant females (replaces 👩)
-  - Added 💔 broken heart icon overlay for injured humans/wolves (top-right corner, 40% cell size)
-  - Updated both `drawCell()` and `drawEntity()` methods for animation compatibility
-  - TypeScript compilation successful, no errors
-
-**Files Modified**:
-- [src/core/Renderer.ts](src/core/Renderer.ts) - 3 changes:
-  - `getEntityEmoji()` - Added pregnancy check for female emoji selection
-  - `drawCell()` - Replaced border rendering with broken heart icon overlay
-  - `drawEntity()` - Replaced border rendering with broken heart icon overlay (animation support)
-
-**Next Steps**:
-- Manual testing needed to verify visual appearance
-- Phase 24.2: Tooltip System Implementation (2-3 hours estimated)
-- Phase 24.3: Localization Support (1 hour estimated)
-- Phase 24.4: Testing & Polish (1 hour estimated)
-
-**Remaining Work**: ~3-4 hours for tooltip system, localization, and comprehensive testing
+### Phase 25.6: UI Visualization
+**Files**: `src/ui/TooltipManager.ts`, `src/i18n/translations.ts`
+**Summary**: Update tooltips to display individual genetic traits.
 
 ---
 

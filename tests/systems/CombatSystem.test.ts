@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CombatSystem } from '../../src/systems/CombatSystem'
 import { Board } from '../../src/core/Board'
 import { Human, Wolf, Dog } from '../../src/entities'
 import { Sex } from '../../src/types'
 import { createConfig, createMockRenderer } from '../setup'
 import { DEFAULT_CONFIG } from '../../src/config'
+import { GenomeUtils } from '../../src/utils/GenomeUtils'
 
 /**
  * CombatSystem Unit Tests
@@ -269,6 +270,10 @@ describe('CombatSystem', () => {
       const config = DEFAULT_CONFIG
       const male1 = new Human(15, 15, Sex.MALE)
       const male2 = new Human(16, 15, Sex.MALE)
+      
+      // Enforce strength 1.0 for this test to match exact config damage
+      male1.genome.strength = 1.0;
+      male2.genome.strength = 1.0;
 
       const initialHealth = 100
       male1.health = initialHealth
@@ -281,14 +286,18 @@ describe('CombatSystem', () => {
 
       // Each should take the configured damage
       const expectedHealth = initialHealth - config.human.maleVsMaleDamage
-      expect(male1.health).toBe(expectedHealth)
-      expect(male2.health).toBe(expectedHealth)
+      expect(male1.health).toBeCloseTo(expectedHealth)
+      expect(male2.health).toBeCloseTo(expectedHealth)
     })
 
     it('should handle simultaneous damage application', () => {
       const config = DEFAULT_CONFIG
       const male1 = new Human(15, 15, Sex.MALE)
       const male2 = new Human(16, 15, Sex.MALE)
+
+      // Enforce strength 1.0
+      male1.genome.strength = 1.0;
+      male2.genome.strength = 1.0;
 
       const initialHealth = config.human.maleVsMaleDamage + 10
       male1.health = initialHealth
@@ -301,8 +310,8 @@ describe('CombatSystem', () => {
 
       // Both apply damage simultaneously
       const expectedHealth = initialHealth - config.human.maleVsMaleDamage
-      expect(male1.health).toBe(expectedHealth)
-      expect(male2.health).toBe(expectedHealth)
+      expect(male1.health).toBeCloseTo(expectedHealth)
+      expect(male2.health).toBeCloseTo(expectedHealth)
     })
   })
 
@@ -430,6 +439,10 @@ describe('CombatSystem', () => {
 
       const male1 = new Human(15, 15, Sex.MALE)
       const male2 = new Human(16, 15, Sex.MALE)
+      
+      // Enforce strength 1.0 for deterministic test
+      male1.genome.strength = 1.0;
+      male2.genome.strength = 1.0;
 
       const initialHealth = 100
       male1.health = initialHealth
@@ -446,8 +459,8 @@ describe('CombatSystem', () => {
       const male1Damage = male1Before - male1.health
       const male2Damage = male2Before - male2.health
 
-      expect(male1Damage).toBe(customConfig.human.maleVsMaleDamage)
-      expect(male2Damage).toBe(customConfig.human.maleVsMaleDamage)
+      expect(male1Damage).toBeCloseTo(customConfig.human.maleVsMaleDamage)
+      expect(male2Damage).toBeCloseTo(customConfig.human.maleVsMaleDamage)
     })
   })
 
@@ -459,6 +472,12 @@ describe('CombatSystem', () => {
       const male2 = new Human(11, 10, Sex.MALE)
       const male3 = new Human(20, 20, Sex.MALE)
       const male4 = new Human(21, 20, Sex.MALE)
+
+      // Enforce strength 1.0
+      male1.genome.strength = 1.0;
+      male2.genome.strength = 1.0;
+      male3.genome.strength = 1.0;
+      male4.genome.strength = 1.0;
 
       male1.health = config.human.startingHealth
       male2.health = config.human.startingHealth
@@ -477,8 +496,8 @@ describe('CombatSystem', () => {
       const damage3 = config.human.startingHealth - male3.health
 
       // Both should receive the same configured damage
-      expect(damage1).toBe(config.human.maleVsMaleDamage)
-      expect(damage3).toBe(config.human.maleVsMaleDamage)
+      expect(damage1).toBeCloseTo(config.human.maleVsMaleDamage)
+      expect(damage3).toBeCloseTo(config.human.maleVsMaleDamage)
     })
 
     it('should apply custom config consistently across entities', () => {
@@ -491,6 +510,10 @@ describe('CombatSystem', () => {
 
       const male1 = new Human(10, 10, Sex.MALE)
       const male2 = new Human(11, 10, Sex.MALE)
+      
+      // Enforce strength 1.0
+      male1.genome.strength = 1.0;
+      male2.genome.strength = 1.0;
 
       const initialHealth = 100
       male1.health = initialHealth
@@ -507,8 +530,8 @@ describe('CombatSystem', () => {
       const damage1 = male1Before - male1.health
       const damage2 = male2Before - male2.health
 
-      expect(damage1).toBe(customDamage)
-      expect(damage2).toBe(customDamage)
+      expect(damage1).toBeCloseTo(customDamage)
+      expect(damage2).toBeCloseTo(customDamage)
     })
 
     it('should support independent damage modifications per species', () => {

@@ -24,3 +24,11 @@ export interface VisualEffect {
   startTime: number;
   duration: number;
 }
+
+export interface Genome {
+  maxHealth: number;    // Physical: Determines starting and max health
+  strength: number;     // Physical: Damage multiplier in combat
+  metabolism: number;   // Physical: Energy cost per move (0-1)
+  greed: number;        // Behavioral: Probability to move toward food (0-1)
+  caution: number;      // Behavioral: Probability to run from predators (0-1)
+}

@@ -40,6 +40,19 @@ export class MovementSystem {
   }
 
   private moveCreature(creature: Entity, board: Board, allEntities: Entity[]): MovementRecord | null {
+    // Apply metabolism cost before moving (if it's a human with genome)
+    if (creature instanceof Human) {
+      // Base cost could be configurable, multiplied by metabolism gene
+      const energyCost = creature.genome.metabolism; // e.g., 0.1 health per move
+      // Optional: Only apply if configured to do so, or just apply it
+      // For now, let's say metabolism directly reduces health
+      creature.takeDamage(energyCost);
+      if (creature.isDead()) {
+        this.renderer.markDirty(creature.x, creature.y);
+        return null; // Dead creatures don't move
+      }
+    }
+
     const availablePositions = board.getEmptyAdjacentPositions(creature.x, creature.y);
     if (availablePositions.length === 0) return null;
 
@@ -87,7 +100,33 @@ export class MovementSystem {
     allEntities: Entity[],
     availablePositions: { x: number; y: number }[]
   ): { x: number; y: number } | null {
-    // Find fruits within perception range
+    // 1. Check for Wolves (Predators) - Run away based on Caution gene
+    const wolvesInRange = Random.getEntitiesInRange(
+      allEntities.filter(e => e instanceof Wolf),
+      human.x,
+      human.y,
+      DEFAULT_CONFIG.human.perceptionRange
+    );
+
+    if (wolvesInRange.length > 0 && Random.chance(human.genome.caution)) {
+      // Find position furthest from the nearest wolf
+      const nearestWolf = wolvesInRange[0];
+      // Simple flee logic: Pick position that maximizes distance to wolf
+      let bestPos = null;
+      let maxDist = -1;
+
+      for (const pos of availablePositions) {
+        const dist = Math.abs(pos.x - nearestWolf.x) + Math.abs(pos.y - nearestWolf.y); // Manhattan distance
+        if (dist > maxDist) {
+          maxDist = dist;
+          bestPos = pos;
+        }
+      }
+      
+      if (bestPos) return bestPos;
+    }
+
+    // 2. Check for Fruits (Food) - Seek based on Greed gene
     const fruitsInRange = Random.getEntitiesInRange(
       allEntities.filter(e => e instanceof Fruit && (e as Fruit).isRipe()),
       human.x,
@@ -95,8 +134,8 @@ export class MovementSystem {
       DEFAULT_CONFIG.human.perceptionRange
     );
 
-    // If fruits found and probability check passes, move toward nearest
-    if (fruitsInRange.length > 0 && Random.chance(DEFAULT_CONFIG.human.moveTowardFruitProbability)) {
+    // Use genome greed instead of global config
+    if (fruitsInRange.length > 0 && Random.chance(human.genome.greed)) {
       const nearestFruit = fruitsInRange[0];
       const closestPositions = Random.getClosestPositions(
         availablePositions,

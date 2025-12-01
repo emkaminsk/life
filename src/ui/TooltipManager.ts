@@ -117,6 +117,25 @@ export class TooltipManager {
           const pregnantLabel = t('tooltip.pregnant');
           stats += `<div>${pregnantLabel}: <strong>${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}</strong></div>`;
         }
+
+        // Genetic Traits
+        stats += `<div class="tooltip-separator" style="margin: 8px 0; border-top: 1px solid rgba(255,255,255,0.2);"></div>`;
+        stats += `<div><strong>${t('tooltip.genetics')}</strong></div>`;
+        
+        // Max Health Gene
+        stats += `<div>${t('tooltip.geneMaxHealth')}: <strong>${Math.round(entity.genome.maxHealth)}</strong></div>`;
+        
+        // Strength Gene
+        stats += `<div>${t('tooltip.geneStrength')}: <strong>${entity.genome.strength.toFixed(2)}x</strong></div>`;
+        
+        // Metabolism Gene
+        stats += `<div>${t('tooltip.geneMetabolism')}: <strong>${entity.genome.metabolism.toFixed(2)}</strong></div>`;
+        
+        // Greed Gene
+        stats += `<div>${t('tooltip.geneGreed')}: <strong>${(entity.genome.greed * 100).toFixed(0)}%</strong></div>`;
+        
+        // Caution Gene
+        stats += `<div>${t('tooltip.geneCaution')}: <strong>${(entity.genome.caution * 100).toFixed(0)}%</strong></div>`;
       }
     }
 

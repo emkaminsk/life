@@ -75,17 +75,20 @@ export class CombatSystem {
     // Male vs Male combat
     if (entity1 instanceof Human && entity1.isMale() &&
         entity2 instanceof Human && entity2.isMale()) {
-      const damage = this.config.human.maleVsMaleDamage;
+      
+      // Calculate individual damage based on strength gene
+      const damage1 = this.config.human.maleVsMaleDamage * (entity1 as Human).genome.strength;
+      const damage2 = this.config.human.maleVsMaleDamage * (entity2 as Human).genome.strength;
 
       // Store initial health before combat (for energy transfer)
       const male1InitialHealth = entity1.health;
       const male2InitialHealth = entity2.health;
 
       // Both males take damage simultaneously
-      entity1.takeDamage(damage);
-      entity2.takeDamage(damage);
+      entity1.takeDamage(damage2); // Entity 1 takes damage from Entity 2
+      entity2.takeDamage(damage1); // Entity 2 takes damage from Entity 1
 
-      console.log(`[Combat] Male vs Male at (${entity1.x},${entity1.y}) and (${entity2.x},${entity2.y}): both take ${damage} damage`);
+      console.log(`[Combat] Male vs Male at (${entity1.x},${entity1.y}) and (${entity2.x},${entity2.y}): M1 takes ${damage2}, M2 takes ${damage1}`);
 
       // Handle energy transfer if one or both males have health <= 0
       const male1Dying = entity1.health <= 0;
@@ -121,7 +124,7 @@ export class CombatSystem {
         }
 
         // Survivor gains dying male's initial health
-        survivor.heal(dyingInitialHealth, this.config.human.startingHealth);
+        survivor.heal(dyingInitialHealth, survivor.genome.maxHealth);
         console.log(`[Combat] Both males would die: ${dyingMale === entity1 ? 'Male1' : 'Male2'} dies, survivor gains ${dyingInitialHealth} health`);
 
         // Set survivor's health to 1 to ensure they survive
@@ -131,12 +134,12 @@ export class CombatSystem {
 
       } else if (male1Dying) {
         // Only entity1 dies, entity2 gains energy
-        entity2.heal(male1InitialHealth, this.config.human.startingHealth);
+        entity2.heal(male1InitialHealth, (entity2 as Human).genome.maxHealth);
         console.log(`[Combat] Male at (${entity1.x},${entity1.y}) dies, survivor at (${entity2.x},${entity2.y}) gains ${male1InitialHealth} health`);
 
       } else if (male2Dying) {
         // Only entity2 dies, entity1 gains energy
-        entity1.heal(male2InitialHealth, this.config.human.startingHealth);
+        entity1.heal(male2InitialHealth, (entity1 as Human).genome.maxHealth);
         console.log(`[Combat] Male at (${entity2.x},${entity2.y}) dies, survivor at (${entity1.x},${entity1.y}) gains ${male2InitialHealth} health`);
       }
 
@@ -189,9 +192,9 @@ export class CombatSystem {
 
     this.addCombatEffect(human.x, human.y);
 
-    // Male human counter-attacks
+    // Male human counter-attacks using strength gene
     if (human.isMale()) {
-      const counterDamage = this.config.human.maleVsWolfDamage;
+      const counterDamage = this.config.human.maleVsWolfDamage * human.genome.strength;
       wolf.takeDamage(counterDamage);
 
       console.log(`[Combat] Male counter-attacks wolf: ${counterDamage} damage`);

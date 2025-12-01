@@ -26,19 +26,20 @@ export class ReproductionSystem {
 
       // Find adjacent males
       const adjacentPositions = board.getAdjacentPositions(female.x, female.y);
-      let foundMale = false;
+      let foundMale: Human | null = null;
 
       for (const pos of adjacentPositions) {
         const adjacent = board.getEntity(pos.x, pos.y);
         if (adjacent instanceof Human && adjacent.isMale()) {
-          foundMale = true;
+          foundMale = adjacent;
           break;
         }
       }
 
       // If adjacent to male, chance of pregnancy
       if (foundMale && Random.chance(DEFAULT_CONFIG.human.reproductionProbability)) {
-        female.startPregnancy();
+        // Start pregnancy passing father's genome
+        female.startPregnancy(foundMale.genome);
         pregnancyCount++;
 
         // Add reproduction visual effect
