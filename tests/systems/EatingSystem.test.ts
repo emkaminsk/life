@@ -606,14 +606,19 @@ describe('EatingSystem', () => {
   describe('Differential Config Behavior Tests', () => {
     it('should heal different amounts based on fruit config', () => {
       // Test that different fruit.energyHealed values produce different outcomes
-      const lowHealConfig = createConfig({ fruit: { energyHealed: 10 } })
-      const highHealConfig = createConfig({ fruit: { energyHealed: 50 } })
+      const lowHealConfig = createConfig({
+        fruit: { energyHealed: 10 },
+        human: { startingHealth: 80 } // Start higher to avoid max health cap
+      })
+      const highHealConfig = createConfig({
+        fruit: { energyHealed: 50 },
+        human: { startingHealth: 80 } // Start higher to avoid max health cap
+      })
 
       // Low heal test
       let board1 = new Board(30, 30)
       let system1 = new EatingSystem(renderer)
       const human1 = createMale(15, 15, lowHealConfig)
-      human1.health = 80 // Start higher to avoid max health cap
       const fruit1 = new Fruit(16, 15, lowHealConfig.fruit.energyHealed)
       fruit1.ripeningCounter = 0 // Make fruit ripe immediately
       board1.setEntity(15, 15, human1)
@@ -626,7 +631,6 @@ describe('EatingSystem', () => {
       let board2 = new Board(30, 30)
       let system2 = new EatingSystem(renderer)
       const human2 = createMale(15, 15, highHealConfig)
-      human2.health = 80 // Start higher to avoid max health cap
       const fruit2 = new Fruit(16, 15, highHealConfig.fruit.energyHealed)
       fruit2.ripeningCounter = 0 // Make fruit ripe immediately
       board2.setEntity(15, 15, human2)
@@ -642,14 +646,19 @@ describe('EatingSystem', () => {
 
     it('should damage different amounts based on mushroom config', () => {
       // Test that different mushroom.energyRemoved values produce different outcomes
-      const lowDamageConfig = createConfig({ mushroom: { energyRemoved: 10 } })
-      const highDamageConfig = createConfig({ mushroom: { energyRemoved: 60 } })
+      const lowDamageConfig = createConfig({
+        mushroom: { energyRemoved: 10 },
+        human: { startingHealth: 100 }
+      })
+      const highDamageConfig = createConfig({
+        mushroom: { energyRemoved: 60 },
+        human: { startingHealth: 100 }
+      })
 
       // Low damage test
       let board1 = new Board(30, 30)
       let system1 = new EatingSystem(renderer)
       const human1 = createMale(15, 15, lowDamageConfig)
-      human1.health = 100
       const mushroom1 = new Mushroom(16, 15, lowDamageConfig.mushroom.energyRemoved)
       board1.setEntity(15, 15, human1)
       board1.setEntity(16, 15, mushroom1)
@@ -661,7 +670,6 @@ describe('EatingSystem', () => {
       let board2 = new Board(30, 30)
       let system2 = new EatingSystem(renderer)
       const human2 = createMale(15, 15, highDamageConfig)
-      human2.health = 100
       const mushroom2 = new Mushroom(16, 15, highDamageConfig.mushroom.energyRemoved)
       board2.setEntity(15, 15, human2)
       board2.setEntity(16, 15, mushroom2)
