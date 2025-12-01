@@ -88,15 +88,15 @@ This document tracks remaining implementation steps to complete the MVP (Minimum
 1. ✅ Phase 23.13 - Test Quality (COMPLETE)
 2. ✅ Phase 17 - Animal Spawn System (COMPLETE)
 3. ✅ **Phase 12 - Config UI Integration (COMPLETE)**
-4. ⏳ Phase 21 - PRD Compliance Audit (NEXT - 2-4 hours)
-5. ⏳ Phase 22 - VPS Deployment (OPTIONAL - 4-6 hours)
-6. 🔵 Phase 16 - Movement Animation (POST-MVP ENHANCEMENT)
+4. ⏳ Phase 26 - Fluid Animation Fix (NEXT - 2 hours)
+5. ⏳ Phase 21 - PRD Compliance Audit (PENDING)
+6. ⏳ Phase 22 - VPS Deployment (OPTIONAL)
 
 **Path to Working MVP:**
 - ✅ Phase 12 integration complete → Local MVP functional ✓
+- ⏳ Phase 26 animation fix → Polished visual experience
 - ⏳ Phase 21 audit ~2-4 hours → PRD validated (recommended)
 - ⏳ Phase 22 deployment ~4-6 hours → Public MVP ready (optional)
-- **Remaining: 2-4 hours to PRD validation, 6-10 hours to public deployment**
 
 **Local MVP Status: ✅ READY FOR USE**
 - All core features implemented and tested
@@ -104,8 +104,7 @@ This document tracks remaining implementation steps to complete the MVP (Minimum
 - Configuration system fully functional
 - All 7 simulation phases working correctly
 
-**Post-MVP Enhancements:**
-- Phase 16 animations (10-16 hours) - can be added later
+---
 
 ## 🎛️ Phase 12: Configuration UI Implementation ✅ COMPLETE
 
@@ -686,146 +685,6 @@ The Game of Life simulator is currently a local development application. To make
 
 ---
 
-### Success Criteria
-- [x] 250+ unit tests implemented and passing ✅
-- [x] All 51 configuration parameters tested ✅
-- [x] Tests integrated into `npm test` workflow ✅
-- [x] Documentation complete ✅
-
-**Total Completed**: Phases 23.0-23.12 complete, Phase 23.13 needed for quality improvement
-
----
-
-## 📊 Current MVP Status
-
-**✅ COMPLETED (Major Features):**
-1. ✅ All 7 system phases implemented
-2. ✅ Population Graph (Canvas-based real-time graphing)
-3. ✅ Speed Control Slider (3 speeds: slow/medium/fast)
-4. ✅ Finish Game Button (Full reset functionality)
-5. ✅ Complete Keyboard Shortcuts
-6. ✅ Overcrowding System (Death multiplier implementation)
-7. ✅ Notification System (Extinction alerts + capacity warnings)
-8. ✅ Rules Reference Modal (4-tab documentation)
-9. ✅ Large Board Progress (Async initialization)
-10. ✅ Localization System (English/Polish)
-11. ✅ Configuration Save/Load (JSON export/import)
-12. ✅ Animal Spawn System (Wolves & Dogs spawn each round) - Phase 17 ✅
-
-**✅ COMPLETED (All Core MVP Features):**
-1. ✅ **Phase 12: Configuration UI Integration** - COMPLETE (verified with 331 tests)
-   - Full integration with Game.initializeBoard()
-   - Config state management working
-   - All 51+ parameters configurable
-2. ⏳ **Phase 21: PRD Compliance Audit** - Recommended (2-4 hours)
-3. ⏳ **Phase 22: VPS Deployment** - Optional for public access (4-6 hours)
-
-**✅ TESTING COMPLETE:**
-- Phase 23: Unit Testing - 331 tests, all passing ✅
-  - Phase 23.13: Test Quality Improvement & Cleanup - Complete ✅
-    - Removed 35+ superficial tests
-    - Added differential behavior tests
-    - All tests focused on behavioral verification
-- Phase 17: Animal Spawn System - Verified & Complete ✅
-- Phase 12: Config Integration - Verified & Complete ✅
-
-**Local MVP Status**: ✅ READY (all core features working)
-**Public MVP Status**: ⏳ Needs deployment (Phase 22, optional)
-
----
-
-## 📈 FINAL COMPLETION STATUS SUMMARY
-
-### Phase Completion Grid
-
-| Phase | Status | Priority | Blocker | Time | Notes |
-|-------|--------|----------|---------|------|-------|
-| 1-4 | ✅ COMPLETE | - | NO | - | Core systems, 7 phases, basic UI |
-| 5-8 | ✅ COMPLETE | - | NO | - | Plants, Dogs, UI/UX polish |
-| 9-15 | ✅ COMPLETE | - | NO | - | Notifications, graphs, localization |
-| 16 | ⚠️ IN PROGRESS | MEDIUM | NO | 10-16h | Animation system - POST-MVP |
-| 17 | ✅ COMPLETE | HIGH | NO | 1.75h | Animal spawning - VERIFIED ✅ |
-| 18-20 | ✅ COMPLETE | HIGH | NO | - | Localization, save/load |
-| 12 | ✅ COMPLETE | HIGH | NO | 8-10h | **Config UI integration - COMPLETE ✅** |
-| 21 | ❌ NOT STARTED | MEDIUM | NO | 2-4h | PRD audit - recommended |
-| 22 | ❌ NOT STARTED | LOW | NO | 4-6h | VPS deployment - optional |
-| 23 | ✅ COMPLETE | HIGH | NO | - | Unit testing - 331 tests passing ✅ |
-| **24** | ✅ COMPLETE | MEDIUM | NO | ~4h | **Visual clarity improvements** (Icons, Tooltips) |
-
-### Implementation Progress
-
-**Completely Implemented & Tested** ✅:
-- All core game mechanics (7-phase system)
-- All entity types (Human, Wolf, Dog, Fruit, Mushroom)
-- Ecosystem dynamics (predation, reproduction, death)
-- Configuration system (51 parameters)
-- UI/UX features (controls, stats, graph, rules, notifications)
-- Internationalization (English/Polish)
-- Configuration persistence (save/load)
-- Animal spawning system
-- Comprehensive test suite (331 tests, 100% behavioral focus)
-
-**Partially Implemented** ⚠️:
-- Movement animations (foundation complete, testing & polish pending - POST-MVP)
-
-**Not Started** ❌:
-- PRD compliance verification (recommended)
-- VPS deployment (optional for public access)
-
-### Quality Metrics
-
-- **Tests**: 331 tests passing (14 test files) ✅
-- **Test Quality**: 100% behavioral focus (removed 35+ superficial tests) ✅
-- **Code Coverage**: All 51 parameters tested ✅
-- **Game Features**: 12/12 major features complete ✅
-- **Performance**: No degradation from optimization ✅
-- **Browser**: Ready for Chrome/Firefox testing ✅
-
-### MVP Readiness Assessment
-
-**Local MVP Ready?** ✅ YES - READY FOR USE
-- Phase 12 complete (config UI integration working)
-- All game mechanics working correctly
-- Test suite comprehensive and passing (331 tests)
-- All 51+ parameters configurable via UI
-- All 7 simulation phases functional
-- Configuration persists between games
-
-**Public MVP Ready?** ⏳ ALMOST
-- Requires Phase 22 (VPS deployment) for public access
-- Phase 21 (PRD audit) recommended for validation
-- Local MVP fully functional and ready for use
-
-### Recommended Next Steps
-
-1. ✅ **COMPLETE**: Phase 12 (Config UI Integration)
-   - Config state management integrated into Game class
-   - Game.initializeBoard() uses custom config
-   - Config persistence between games working
-   - Time spent: 8-10 hours
-
-2. **NEXT (RECOMMENDED)**: Complete Phase 21 (PRD Audit)
-   - Verify all requirements met
-   - Validate performance (30 FPS target)
-   - Test browser compatibility
-   - Review user stories compliance
-   - Time: 2-4 hours
-
-3. **OPTIONAL**: Complete Phase 22 (VPS Deployment)
-   - Configure nginx
-   - Set up GitHub Actions
-   - Deploy to production
-   - Only needed for public access
-   - Time: 4-6 hours
-
-4. **POST-MVP**: Phase 16 (Movement Animation)
-   - Can be added after MVP launch
-   - Visual enhancement, not required for functionality
-   - Foundation complete, needs testing & polish
-   - Time: 10-16 hours
-
----
-
 ## 🎨 Phase 24: Visual Clarity Improvements ✅ COMPLETE
 
 **Status**: ✅ COMPLETE - All phases implemented and integrated
@@ -863,6 +722,50 @@ Replaced cluttering colored borders with cleaner overlay icons (💔 for injured
 - [x] Tooltip appears when hovering over any entity
 - [x] Tooltip text localized in both English and Polish
 - [x] Build completes without TypeScript errors
+
+---
+
+## 🌊 Phase 26: Fluid Animation & Loop Refactoring ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Fixes critical visual "pulsating" and fluency issues
+**Estimated Time**: 2 hours
+**Blocking**: NO - Improves UX significantly
+
+### Findings
+1. **Fixed Animation Duration**: `animationDuration` is hardcoded to 300ms. When `currentSpeed` (round time) > 300ms, entities move fast and then stop, creating a "pulsating" effect.
+2. **Interval Mismatch**: The game loop uses `setInterval`, which is decoupled from the animation loop. This creates "dead time" between animation completion and the next round trigger, causing noticeable stops between rounds.
+
+### Plan
+To achieve fluid movement (entities moving continuously without stops), we need to:
+1. **Dynamic Animation Speed**: Bind `animationDuration` to `currentSpeed` so movement fills the entire round time.
+2. **Chained Execution Loop**: Replace `setInterval` with a recursive execution pattern where the next round is triggered immediately after the previous one completes (logic + animation).
+
+### Phase 26.1: Dynamic Animation Configuration
+**Files**: `src/core/Game.ts`
+**Tasks**:
+- [ ] Modify `setSpeed` to update `animationDuration` (e.g., `animationDuration = currentSpeed`).
+- [ ] Ensure `animationDuration` is updated when speed changes via UI.
+
+### Phase 26.2: Game Loop Refactoring
+**Files**: `src/core/Game.ts`
+**Tasks**:
+- [ ] Remove `setInterval` based loop.
+- [ ] Implement `scheduleNextRound()` method using `setTimeout` or `requestAnimationFrame`.
+- [ ] Update `executeRound` to call `scheduleNextRound` upon completion.
+- [ ] Ensure `pause` and `stop` correctly cancel pending scheduled rounds.
+
+### Phase 26.3: Animation System Tuning
+**Files**: `src/core/AnimationSystem.ts`
+**Tasks**:
+- [ ] Verify `linear` easing is used for continuous movement.
+- [ ] Ensure no frame gaps during transition between rounds.
+
+### Success Criteria
+- [ ] Entities move continuously without stopping between rounds when speed allows.
+- [ ] No "pulsating" effect (move-stop-move-stop).
+- [ ] Simulation speed controls still work accurately.
+- [ ] Pause/Resume works instantly without waiting for pending timeouts.
 
 ---
 

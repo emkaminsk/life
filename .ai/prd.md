@@ -252,6 +252,23 @@ The solution must enable exploration-based learning where students discover prin
 
 3.14.4 FPS counter available in debug mode (hidden in production)
 
+### 3.15 Genetic Algorithms & Evolution
+
+3.15.1 **Individual Genomes**: Each human possesses a unique set of genetic traits (Genome) influencing their physical and behavioral characteristics. The genes are: Max Health, Strength, Metabolism, Greed, and Caution.
+
+3.15.2 **Inheritance**: Offspring inherit genes from both parents. Genes are combined (crossover) and subject to random mutation (variance).
+
+3.15.3 **Physical Traits**:
+  - **Max Health**: Determines the starting health of the creature.
+  - **Strength**: Multiplier for damage dealt in combat (Male vs Male, Male vs Wolf).
+
+3.15.4 **Behavioral Traits**:
+  - **Metabolism**: Determines energy cost per move.
+  - **Greed**: Probability to actively seek fruit when perceived.
+  - **Caution**: Probability to flee from wolves when perceived.
+
+3.15.5 **Visibility**: Genetic traits are visible to the user via tooltips when hovering over a creature.
+
 ## 4. Product Boundaries
 
 ### 4.1 In Scope for MVP
@@ -761,6 +778,23 @@ Acceptance Criteria:
 - Minimum 30 FPS maintained during rendering
 - No browser freezing or unresponsiveness
 - Memory usage stable over extended sessions (no memory leaks)
+
+### US-041: Observe Heritable Traits
+Title: Observe inheritance of physical and behavioral traits
+Description: As a student, I want to see that offspring inherit traits from their parents so that I can understand natural selection.
+Acceptance Criteria:
+- Offspring genome is a mix of mother and father genomes
+- Small random mutation applied to inherited values
+- Tooltips display individual genetic values (Strength, Greed, Caution, etc.)
+- Values persist throughout the creature's life
+
+### US-042: Behavioral Evolution
+Title: Observe behavioral adaptation
+Description: As a student, I want to observe how behaviors like "Greed" and "Caution" affect survival rates.
+Acceptance Criteria:
+- Creatures with high "Caution" flee from wolves
+- Creatures with high "Greed" aggressively seek fruit
+- Over time, successful traits become more common in the population (emergent behavior)
 
 ## 6. Success Metrics
 
