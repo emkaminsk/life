@@ -80,14 +80,56 @@ This document tracks remaining implementation steps to complete the MVP (Minimum
 
 ## ⚠️ In Progress / Not Started Phases
 
+### CRITICAL PATH TO MVP COMPLETION
+
+**🔴 BLOCKING PHASE (Must Complete):**
+- **Phase 12** - Configuration UI Integration (8-12 hours)
+  - Current: Foundation complete, integration pending
+  - Blocker: YES - Everything else depends on this
+  - Action: Integrate Game class with config system
+
+**Priority Execution Order:**
+1. ✅ Phase 23.13 - Test Quality (COMPLETE)
+2. ✅ Phase 17 - Animal Spawn System (COMPLETE)
+3. ⏳ **Phase 12 - Config UI Integration (NEXT - HIGH PRIORITY)**
+4. ⏳ Phase 21 - PRD Compliance Audit (AFTER Phase 12)
+5. ⏳ Phase 22 - VPS Deployment (AFTER Phase 12)
+6. 🔵 Phase 16 - Movement Animation (POST-MVP ENHANCEMENT)
+
+**Path to Working MVP:**
+- Phase 12 integration ~8-12 hours → Local MVP functional ✓
+- Phase 21 audit ~2-4 hours → PRD validated ✓
+- Phase 22 deployment ~4-6 hours → Public MVP ready ✓
+- **Total: 14-22 hours to complete MVP**
+
+**Post-MVP Enhancements:**
+- Phase 16 animations (10-16 hours) - can be added later
+
 ## 🎛️ Phase 12: Configuration UI Implementation (CRITICAL - MISSING MVP FEATURE)
 
 **Status**: ⚠️ IN PROGRESS - Foundation Complete, Integration Pending
-**Priority**: CRITICAL - **BLOCKING MVP COMPLETION**
+**Priority**: 🔴 CRITICAL - **BLOCKING MVP COMPLETION**
 **Reference**: PRD Sections 3.7.1-3.7.17, User Stories US-007, US-008, US-024, US-030, US-033, US-038
+**Estimated Time**: 8-12 hours
+**Blocking**: YES - This is the #1 priority to unblock MVP
 
 ### Background
 The configuration UI is **partially implemented**. The UI structure and validation logic are complete, but integration with Game.initializeBoard() to apply custom parameters is still needed.
+
+**What's Complete** ✅:
+- ConfigPanel.ts fully implemented with all UI components
+- Validation system working (spawn probability checks, numeric ranges)
+- Reset to Defaults button functional
+- All configuration sections created and styled
+- Real-time validation and error messages
+
+**What's Missing** ❌:
+- Config state management in Game class (currentConfig variable)
+- Integration of Game constructor to accept config parameter
+- initializeBoard() needs to use custom config instead of DEFAULT_CONFIG
+- Entity spawning during initialization needs to use current config
+- Config persistence between games
+- Config immutability during gameplay
 
 ### Configuration Panel Structure ✅ COMPLETE
 - [x] Modal overlay design (displays before game starts or after game finishes)
@@ -187,10 +229,15 @@ The configuration UI is **partially implemented**. The UI structure and validati
 
 ---
 
-## 🎬 Phase 16: Movement Animation System IN PROGRESS
+## 🎬 Phase 16: Movement Animation System ⚠️ IN PROGRESS
 
-**Priority**: MEDIUM - Visual enhancement for better user experience
+**Status**: ⚠️ IN PROGRESS - Foundation Complete, Testing & Polish Pending
+**Priority**: 🟡 MEDIUM - Visual enhancement for better user experience (NOT blocking MVP)
 **Estimated Time**: 10-16 hours
+**Blocking**: NO - Can be deferred post-MVP
+
+### Summary
+Foundation implementation is complete (AnimationSystem, Renderer updates, Game loop integration). Remaining work is testing, edge cases, configuration options, and performance optimization. This is a nice-to-have feature that enhances user experience but is not required for MVP completion.
 
 ### Background
 Currently, entities move instantaneously between cells each round. This feature will add smooth animations showing entities transitioning between positions with 3 intermediate frames (4 total frames including start/end), making movements more visually clear and engaging for students.
@@ -309,8 +356,26 @@ PRD 3.4.5 specifies that animals (wolves and dogs) should spawn randomly on empt
 ## 🔍 Phase 21: PRD Compliance Audit ❌ NOT STARTED
 
 **Status**: ❌ NOT STARTED
-**Priority**: HIGH - Ensure full PRD compliance before MVP completion
+**Priority**: 🟡 HIGH - Ensure full PRD compliance before MVP completion
 **Estimated Time**: 2-4 hours
+**Blocking**: CONDITIONAL - Only blocks MVP if critical gaps are found
+**Depends On**: Phase 12 completion (need working config system for full testing)
+
+### Quick Assessment
+Most core PRD requirements are already implemented:
+- ✅ All 7 simulation phases (Movement, Combat, Eating, Reproduction, Death, Birth, Spawn)
+- ✅ All entity types (Human, Wolf, Dog, Fruit, Mushroom)
+- ✅ Ecosystem mechanics (predator/prey relationships, reproduction, death)
+- ✅ Configuration system (all 51 parameters exposed)
+- ✅ UI/UX (controls, stats, graph, notifications, rules)
+- ✅ Localization (English/Polish)
+- ❓ Configuration UI integration (Phase 12 - needed for full audit)
+
+### Known Items to Verify
+1. Male vs Male combat energy transfer (appears implemented in CombatSystem)
+2. Dog vs Wolf mechanics (appears correctly implemented)
+3. Performance requirements (30 FPS with 200-300 creatures)
+4. Browser compatibility (Chrome, Firefox)
 
 ### Identified PRD Gaps
 
@@ -348,10 +413,18 @@ PRD 3.4.5 specifies that animals (wolves and dogs) should spawn randomly on empt
 ## 🚀 Phase 22: VPS Deployment & CI/CD Pipeline ❌ NOT STARTED
 
 **Status**: ❌ NOT STARTED
-**Priority**: HIGH - Required for public access and testing
+**Priority**: 🟡 HIGH - Required for public access and testing
 **Estimated Time**: 4-6 hours
-**Dependencies**: Phase 20 (Configuration Save/Load) complete
+**Blocking**: CONDITIONAL - Required for public MVP launch, but not for local MVP validation
+**Dependencies**: Phase 12 completion (config UI must be working for deployment)
 **Reference**: `.ai/tech-stack.md` for deployment architecture
+
+### Overview
+Phase 22.3 documentation is already complete (VPS setup instructions exist). Main work is:
+1. Create nginx configuration
+2. Set up GitHub Actions CI/CD workflow
+3. Test deployment process
+4. Add security hardening (optional)
 
 ### Background
 The Game of Life simulator is currently a local development application. To make it accessible to students and educators, we need to deploy it to a production VPS (Virtual Private Server) environment with automated deployment via GitHub Actions.
