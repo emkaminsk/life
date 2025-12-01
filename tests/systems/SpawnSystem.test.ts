@@ -35,35 +35,7 @@ describe('SpawnSystem', () => {
     randomSpy.mockRestore()
   })
 
-  describe('Configuration: Fruit Spawn Probability', () => {
-    it('should initialize with config fruit spawn probability', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.fruit.spawnProbability).toBeGreaterThan(0)
-      expect(config.fruit.spawnProbability).toBeLessThanOrEqual(1)
-      expect(config.fruit.spawnProbability).toBe(0.01)
-    })
-
-    it('should apply custom fruit spawn probability from config', () => {
-      const customProbability = 0.05
-      const config = createConfig({
-        fruit: { spawnProbability: customProbability }
-      })
-
-      expect(config.fruit.spawnProbability).toBe(customProbability)
-    })
-
-    it('should support various fruit spawn probability values', () => {
-      const probabilities = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1]
-
-      probabilities.forEach(prob => {
-        const config = createConfig({
-          fruit: { spawnProbability: prob }
-        })
-
-        expect(config.fruit.spawnProbability).toBe(prob)
-      })
-    })
-
+  describe('Fruit Spawning', () => {
     it('should spawn fruit when probability check succeeds', () => {
       const config = DEFAULT_CONFIG
       // Empty board
@@ -90,23 +62,7 @@ describe('SpawnSystem', () => {
     })
   })
 
-  describe('Configuration: Mushroom Spawn Probability', () => {
-    it('should initialize with config mushroom spawn probability', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.mushroom.spawnProbability).toBeGreaterThan(0)
-      expect(config.mushroom.spawnProbability).toBeLessThanOrEqual(1)
-      expect(config.mushroom.spawnProbability).toBe(0.005)
-    })
-
-    it('should apply custom mushroom spawn probability from config', () => {
-      const customProbability = 0.02
-      const config = createConfig({
-        mushroom: { spawnProbability: customProbability }
-      })
-
-      expect(config.mushroom.spawnProbability).toBe(customProbability)
-    })
-
+  describe('Mushroom Spawning', () => {
     it('should spawn mushroom when fruit fails and mushroom succeeds', () => {
       const config = DEFAULT_CONFIG
       

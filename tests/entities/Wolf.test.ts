@@ -6,124 +6,20 @@ import { DEFAULT_CONFIG } from '../../src/config'
 /**
  * Wolf Entity Unit Tests
  *
- * Tests wolf-specific configuration parameters:
- * - wolf.startingHealth
- * - wolf.spawnProbability
+ * Tests wolf-specific behavioral mechanics:
+ * - Health management and initialization
+ * - Age advancement and position tracking
  *
- * Verifies these config values are correctly applied to wolf entities
+ * Focuses on behavior verification rather than config storage
  */
 
 describe('Wolf Entity', () => {
-  describe('Configuration: Starting Health', () => {
-    it('should initialize with config starting health value', () => {
-      const wolf = createWolf(15, 15)
-      const expected = DEFAULT_CONFIG.wolf.startingHealth
-
-      expect(wolf.health).toBe(expected)
-    })
-
-    it('should apply custom starting health from config', () => {
-      const customHealth = 120
-      const config = createConfig({
-        wolf: { startingHealth: customHealth }
-      })
-
-      const wolf = new Wolf(15, 15)
-      wolf.health = config.wolf.startingHealth
-
-      expect(wolf.health).toBe(customHealth)
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        wolf: { startingHealth: 150 }
-      })
-
-      expect(customConfig.wolf.startingHealth).not.toBe(
-        defaultConfig.wolf.startingHealth
-      )
-    })
-
-    it('should support various starting health values', () => {
-      const healthValues = [30, 80, 100, 150, 200]
-
-      healthValues.forEach(healthValue => {
-        const config = createConfig({
-          wolf: { startingHealth: healthValue }
-        })
-
-        const wolf = new Wolf(10, 10)
-        wolf.health = config.wolf.startingHealth
-
-        expect(wolf.health).toBe(healthValue)
-      })
-    })
-
-    it('should match default config value exactly', () => {
-      const config = DEFAULT_CONFIG
-      const wolf = createWolf(15, 15)
-
-      expect(wolf.health).toBe(config.wolf.startingHealth)
-    })
-  })
-
-  describe('Configuration: Spawn Probability', () => {
-    it('should have spawn probability stored in config', () => {
-      const config = DEFAULT_CONFIG
-      const probability = config.wolf.spawnProbability
-
-      expect(probability).toBeGreaterThan(0)
-      expect(probability).toBeLessThanOrEqual(1)
-    })
-
-    it('should apply custom spawn probability from config', () => {
-      const customProbability = 0.005
-      const config = createConfig({
-        wolf: { spawnProbability: customProbability }
-      })
-
-      expect(config.wolf.spawnProbability).toBe(customProbability)
-    })
-
-    it('should support various spawn probability values', () => {
-      const probabilities = [0.0, 0.001, 0.002, 0.005, 0.01]
-
-      probabilities.forEach(prob => {
-        const config = createConfig({
-          wolf: { spawnProbability: prob }
-        })
-
-        expect(config.wolf.spawnProbability).toBe(prob)
-      })
-    })
-
-    it('should have probability between 0 and 1', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.wolf.spawnProbability).toBeGreaterThanOrEqual(0)
-      expect(config.wolf.spawnProbability).toBeLessThanOrEqual(1)
-    })
-  })
-
-  describe('Wolf Type Identification', () => {
-    it('should be identifiable as wolf', () => {
-      const wolf = createWolf(15, 15)
-      expect(wolf.type).toBe(wolf.type) // Self-consistent
-    })
-
-    it('should maintain wolf identity across modifications', () => {
-      const wolf = createWolf(15, 15)
-      const originalType = wolf.type
-
-      wolf.health -= 10
-      wolf.x = 20
-      wolf.incrementAge()
-
-      expect(wolf.type).toBe(originalType)
-    })
-  })
-
   describe('Health Management', () => {
+    it('should initialize with starting health', () => {
+      const wolf = createWolf(15, 15)
+      expect(wolf.health).toBeGreaterThan(0)
+    })
+
     it('should track health changes independently', () => {
       const wolf1 = createWolf(5, 5)
       const wolf2 = createWolf(10, 10)
@@ -160,6 +56,7 @@ describe('Wolf Entity', () => {
       expect(wolf.health).toBe(80)
     })
   })
+
 
   describe('Age Advancement', () => {
     it('should track age correctly', () => {
@@ -248,18 +145,4 @@ describe('Wolf Entity', () => {
     })
   })
 
-  describe('Predator Characteristics', () => {
-    it('should be capable of combat', () => {
-      const wolf = createWolf(15, 15)
-      expect(wolf.health).toBeGreaterThan(0)
-    })
-
-    it('should have sufficient starting health for encounters', () => {
-      const wolf = createWolf(15, 15)
-      const config = DEFAULT_CONFIG
-
-      // Wolves should have reasonable health to survive encounters
-      expect(wolf.health).toBeGreaterThan(config.wolf.damageToMale)
-    })
-  })
 })

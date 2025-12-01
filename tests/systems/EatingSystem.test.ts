@@ -602,5 +602,77 @@ describe('EatingSystem', () => {
       expect(renderer.markDirty).toHaveBeenCalledWith(15, 15) // Human location
     })
   })
+
+  describe('Differential Config Behavior Tests', () => {
+    it('should heal different amounts based on fruit config', () => {
+      // Test that different fruit.energyHealed values produce different outcomes
+      const lowHealConfig = createConfig({ fruit: { energyHealed: 10 } })
+      const highHealConfig = createConfig({ fruit: { energyHealed: 50 } })
+
+      // Low heal test
+      let board1 = new Board(30, 30)
+      let system1 = new EatingSystem(renderer)
+      const human1 = createMale(15, 15, lowHealConfig)
+      human1.health = 50
+      const fruit1 = new Fruit(16, 15, lowHealConfig.fruit.energyHealed)
+      board1.setEntity(15, 15, human1)
+      board1.setEntity(16, 15, fruit1)
+      system1.execute(board1)
+
+      const healthAfterLowHeal = human1.health
+
+      // High heal test
+      let board2 = new Board(30, 30)
+      let system2 = new EatingSystem(renderer)
+      const human2 = createMale(15, 15, highHealConfig)
+      human2.health = 50
+      const fruit2 = new Fruit(16, 15, highHealConfig.fruit.energyHealed)
+      board2.setEntity(15, 15, human2)
+      board2.setEntity(16, 15, fruit2)
+      system2.execute(board2)
+
+      const healthAfterHighHeal = human2.health
+
+      // Verify that config change produces measurable behavioral difference
+      expect(healthAfterHighHeal).toBeGreaterThan(healthAfterLowHeal)
+      expect(healthAfterHighHeal - 50).toBe(50) // High config: +50 healing
+      expect(healthAfterLowHeal - 50).toBe(10) // Low config: +10 healing
+    })
+
+    it('should damage different amounts based on mushroom config', () => {
+      // Test that different mushroom.energyRemoved values produce different outcomes
+      const lowDamageConfig = createConfig({ mushroom: { energyRemoved: 10 } })
+      const highDamageConfig = createConfig({ mushroom: { energyRemoved: 60 } })
+
+      // Low damage test
+      let board1 = new Board(30, 30)
+      let system1 = new EatingSystem(renderer)
+      const human1 = createMale(15, 15, lowDamageConfig)
+      human1.health = 100
+      const mushroom1 = new Mushroom(16, 15, lowDamageConfig.mushroom.energyRemoved)
+      board1.setEntity(15, 15, human1)
+      board1.setEntity(16, 15, mushroom1)
+      system1.execute(board1)
+
+      const healthAfterLowDamage = human1.health
+
+      // High damage test
+      let board2 = new Board(30, 30)
+      let system2 = new EatingSystem(renderer)
+      const human2 = createMale(15, 15, highDamageConfig)
+      human2.health = 100
+      const mushroom2 = new Mushroom(16, 15, highDamageConfig.mushroom.energyRemoved)
+      board2.setEntity(15, 15, human2)
+      board2.setEntity(16, 15, mushroom2)
+      system2.execute(board2)
+
+      const healthAfterHighDamage = human2.health
+
+      // Verify that config change produces measurable behavioral difference
+      expect(healthAfterLowDamage).toBeGreaterThan(healthAfterHighDamage)
+      expect(100 - healthAfterLowDamage).toBe(10) // Low config: -10 damage
+      expect(100 - healthAfterHighDamage).toBe(60) // High config: -60 damage
+    })
+  })
 })
 

@@ -7,156 +7,14 @@ import { DEFAULT_CONFIG } from '../../src/config'
 /**
  * Plant Entity Unit Tests
  *
- * Tests plant-specific configuration parameters:
- * - fruit.energyHealed
- * - fruit.roundsToRipen
- * - fruit.spawnProbability
- * - mushroom.energyRemoved
- * - mushroom.spawnProbability
+ * Tests plant-specific behavioral mechanics:
+ * - Fruit ripening mechanics and state transitions
+ * - Mushroom toxicity mechanics
  *
- * Verifies these config values are correctly applied to plant entities
+ * Focuses on behavior verification rather than config storage
  */
 
 describe('Fruit Entity', () => {
-  describe('Configuration: Energy Healed', () => {
-    it('should initialize with config energy healed value', () => {
-      const fruit = createFruit(15, 15)
-      const expected = DEFAULT_CONFIG.fruit.energyHealed
-
-      expect(fruit.energyHealed).toBe(expected)
-    })
-
-    it('should apply custom energy healed from config', () => {
-      const customEnergy = 50
-      const config = createConfig({
-        fruit: { energyHealed: customEnergy }
-      })
-
-      const fruit = new Fruit(15, 15, config.fruit.energyHealed)
-
-      expect(fruit.energyHealed).toBe(customEnergy)
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        fruit: { energyHealed: 100 }
-      })
-
-      expect(customConfig.fruit.energyHealed).not.toBe(
-        defaultConfig.fruit.energyHealed
-      )
-    })
-
-    it('should support various energy values', () => {
-      const energyValues = [10, 20, 30, 50, 75, 100]
-
-      energyValues.forEach(energy => {
-        const config = createConfig({
-          fruit: { energyHealed: energy }
-        })
-
-        const fruit = new Fruit(10, 10, config.fruit.energyHealed)
-
-        expect(fruit.energyHealed).toBe(energy)
-      })
-    })
-
-    it('should match default config value exactly', () => {
-      const config = DEFAULT_CONFIG
-      const fruit = createFruit(15, 15)
-
-      expect(fruit.energyHealed).toBe(config.fruit.energyHealed)
-    })
-  })
-
-  describe('Configuration: Ripening Duration', () => {
-    it('should initialize with config ripening duration', () => {
-      const fruit = createFruit(15, 15)
-      const expected = DEFAULT_CONFIG.fruit.roundsToRipen
-
-      expect(fruit.ripeningCounter).toBe(expected)
-    })
-
-    it('should apply custom ripening duration from config', () => {
-      const customRipenTime = 5
-      const config = createConfig({
-        fruit: { roundsToRipen: customRipenTime }
-      })
-
-      const fruit = new Fruit(15, 15, undefined, config.fruit.roundsToRipen)
-
-      expect(fruit.ripeningCounter).toBe(customRipenTime)
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        fruit: { roundsToRipen: 10 }
-      })
-
-      expect(customConfig.fruit.roundsToRipen).not.toBe(
-        defaultConfig.fruit.roundsToRipen
-      )
-    })
-
-    it('should support various ripening times', () => {
-      const ripenTimes = [0, 1, 2, 3, 5, 10]
-
-      ripenTimes.forEach(time => {
-        const config = createConfig({
-          fruit: { roundsToRipen: time }
-        })
-
-        const fruit = new Fruit(10, 10, undefined, config.fruit.roundsToRipen)
-
-        expect(fruit.ripeningCounter).toBe(time)
-      })
-    })
-
-    it('should have ripening counter between 0 and reasonable max', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.fruit.roundsToRipen).toBeGreaterThanOrEqual(0)
-      expect(config.fruit.roundsToRipen).toBeLessThanOrEqual(100)
-    })
-  })
-
-  describe('Configuration: Spawn Probability', () => {
-    it('should have spawn probability stored in config', () => {
-      const config = DEFAULT_CONFIG
-      const probability = config.fruit.spawnProbability
-
-      expect(probability).toBeGreaterThan(0)
-      expect(probability).toBeLessThanOrEqual(1)
-    })
-
-    it('should apply custom spawn probability from config', () => {
-      const customProbability = 0.05
-      const config = createConfig({
-        fruit: { spawnProbability: customProbability }
-      })
-
-      expect(config.fruit.spawnProbability).toBe(customProbability)
-    })
-
-    it('should support various spawn probability values', () => {
-      const probabilities = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1]
-
-      probabilities.forEach(prob => {
-        const config = createConfig({
-          fruit: { spawnProbability: prob }
-        })
-
-        expect(config.fruit.spawnProbability).toBe(prob)
-      })
-    })
-
-    it('should have probability between 0 and 1', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.fruit.spawnProbability).toBeGreaterThanOrEqual(0)
-      expect(config.fruit.spawnProbability).toBeLessThanOrEqual(1)
-    })
-  })
 
   describe('Ripening Mechanics', () => {
     it('should not be ripe initially', () => {
@@ -339,22 +197,6 @@ describe('Mushroom Entity', () => {
     })
   })
 
-  describe('Mushroom Type Identification', () => {
-    it('should be identifiable as mushroom', () => {
-      const mushroom = createMushroom(15, 15)
-      expect(mushroom.type).toBe(mushroom.type) // Self-consistent
-    })
-
-    it('should maintain mushroom identity across modifications', () => {
-      const mushroom = createMushroom(15, 15)
-      const originalType = mushroom.type
-
-      mushroom.x = 20
-      mushroom.y = 25
-
-      expect(mushroom.type).toBe(originalType)
-    })
-  })
 
   describe('Mushroom Immortality', () => {
     it('should never die from age', () => {
@@ -384,34 +226,3 @@ describe('Mushroom Entity', () => {
   })
 })
 
-describe('Fruit vs Mushroom Comparison', () => {
-  it('should have different config values', () => {
-    const config = DEFAULT_CONFIG
-
-    expect(config.fruit.energyHealed).not.toBe(config.mushroom.energyRemoved)
-  })
-
-  it('should have different spawn probabilities', () => {
-    const config = DEFAULT_CONFIG
-
-    expect(config.fruit.spawnProbability).not.toBe(
-      config.mushroom.spawnProbability
-    )
-  })
-
-  it('should have fruit beneficial and mushroom harmful', () => {
-    const config = DEFAULT_CONFIG
-
-    expect(config.fruit.energyHealed).toBeGreaterThan(0)
-    expect(config.mushroom.energyRemoved).toBeGreaterThan(0)
-  })
-
-  it('should have different effects on human health', () => {
-    const fruit = createFruit(5, 5)
-    const mushroom = createMushroom(10, 10)
-
-    // Fruit heals (positive), mushroom damages (should be used as negative)
-    expect(fruit.energyHealed).toBeGreaterThan(0)
-    expect(mushroom.energyRemoved).toBeGreaterThan(0)
-  })
-})

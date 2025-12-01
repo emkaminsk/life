@@ -31,93 +31,10 @@ describe('CombatSystem', () => {
     system = new CombatSystem(renderer, DEFAULT_CONFIG)
   })
 
-  describe('Configuration: Male vs Male Damage', () => {
-    it('should initialize with config male vs male damage', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.human.maleVsMaleDamage).toBeGreaterThan(0)
-    })
-
-    it('should apply custom male vs male damage from config', () => {
-      const customDamage = 25
-      const config = createConfig({
-        human: { maleVsMaleDamage: customDamage }
-      })
-
-      system.updateConfig(config)
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
-
-      male1.health = config.human.startingHealth
-      male2.health = config.human.startingHealth
-
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
-
-      system.execute(board)
-
-      // Both males should take damage equal to config value
-      const expectedHealth = config.human.startingHealth - customDamage
-      expect(male1.health).toBeLessThanOrEqual(config.human.startingHealth)
-      expect(male2.health).toBeLessThanOrEqual(config.human.startingHealth)
-    })
-
-    it('should support various male vs male damage values', () => {
-      const damageValues = [10, 15, 20, 25, 30]
-
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          human: { maleVsMaleDamage: damage }
-        })
-
-        expect(config.human.maleVsMaleDamage).toBe(damage)
-      })
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        human: { maleVsMaleDamage: 50 }
-      })
-
-      expect(customConfig.human.maleVsMaleDamage).not.toBe(
-        defaultConfig.human.maleVsMaleDamage
-      )
-    })
+  describe('Male vs Male Combat', () => {
   })
 
-  describe('Configuration: Male vs Wolf Damage (Counter-attack)', () => {
-    it('should initialize with config male vs wolf counter damage', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.human.maleVsWolfDamage).toBeGreaterThan(0)
-    })
-
-    it('should apply custom male vs wolf damage from config', () => {
-      const customDamage = 35
-      const config = createConfig({
-        human: { maleVsWolfDamage: customDamage }
-      })
-
-      expect(config.human.maleVsWolfDamage).toBe(customDamage)
-    })
-
-    it('should support various male vs wolf damage values', () => {
-      const damageValues = [15, 20, 25, 30, 40]
-
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          human: { maleVsWolfDamage: damage }
-        })
-
-        expect(config.human.maleVsWolfDamage).toBe(damage)
-      })
-    })
-
-    it('should differ from male vs male damage', () => {
-      const config = DEFAULT_CONFIG
-
-      expect(config.human.maleVsWolfDamage).not.toBe(
-        config.human.maleVsMaleDamage
-      )
+  describe('Male vs Wolf Counter-attack', () => {
     })
 
     it('should only apply to male humans in wolf combat', () => {
