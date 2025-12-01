@@ -190,6 +190,22 @@ export const translations: Translations = {
       spawnTooHigh: 'Total spawn probabilities exceed 100%',
       spawnWarning: 'High spawn probability may cause overcrowding',
     },
+
+    tooltip: {
+      maleHuman: 'Male Human',
+      femaleHuman: 'Female Human',
+      pregnantFemale: 'Pregnant Female',
+      wolf: 'Wolf',
+      dog: 'Dog',
+      ripeFruit: 'Ripe Fruit',
+      unripeFruit: 'Unripe Fruit',
+      mushroom: 'Mushroom',
+      health: 'Health',
+      age: 'Age',
+      pregnant: 'Pregnant',
+      roundsRemaining: 'rounds remaining',
+      ripening: 'Ripening in',
+    },
   },
 
   [Language.PL]: {
@@ -376,6 +392,22 @@ export const translations: Translations = {
       invalidRange: 'Wartość musi być między {0} a {1}',
       spawnTooHigh: 'Suma prawdopodobieństw pojawienia przekracza 100%',
       spawnWarning: 'Wysokie prawdopodobieństwo pojawienia może spowodować przepełnienie',
+    },
+
+    tooltip: {
+      maleHuman: 'Mężczyzna',
+      femaleHuman: 'Kobieta',
+      pregnantFemale: 'Kobieta w ciąży',
+      wolf: 'Wilk',
+      dog: 'Pies',
+      ripeFruit: 'Dojrzały Owoc',
+      unripeFruit: 'Niedojrzały Owoc',
+      mushroom: 'Muchomor',
+      health: 'Zdrowie',
+      age: 'Wiek',
+      pregnant: 'Ciąża',
+      roundsRemaining: 'rund pozostało',
+      ripening: 'Dojrzeje za',
     },
   },
 };

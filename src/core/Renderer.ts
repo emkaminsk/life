@@ -127,8 +127,9 @@ export class Renderer {
       if ((entity instanceof Human || entity instanceof Wolf) &&
           entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
         const iconSize = this.cellSize * 0.4; // 40% of cell size
-        const iconX = cellX + (this.cellSize * 0.8) - iconSize;
-        const iconY = cellY + (this.cellSize * 0.1);
+        // Use drawX/drawY to ensure icon moves with entity if visualPosition is used
+        const iconX = drawX + (this.cellSize * 0.8) - iconSize;
+        const iconY = drawY + (this.cellSize * 0.1);
         const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
         this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
       }
