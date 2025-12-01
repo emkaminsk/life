@@ -57,6 +57,10 @@ export class Renderer {
       case EntityType.MALE:
         return '👨';
       case EntityType.FEMALE:
+        // Show pregnant woman emoji for pregnant females
+        if (entity instanceof Human && entity.isPregnant()) {
+          return '🤰';
+        }
         return '👩';
       case EntityType.WOLF:
         return '🐺';
@@ -119,22 +123,14 @@ export class Renderer {
       const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
       this.ctx.drawImage(cachedEmoji, drawX, drawY);
 
-      // Draw pregnancy indicator for pregnant females
-      if (entity instanceof Human && entity.isPregnant()) {
-        this.ctx.strokeStyle = '#ff69b4'; // Hot pink
-        this.ctx.lineWidth = 3;
-        // Use cell position for border (always aligned to grid)
-        this.ctx.strokeRect(cellX + 2, cellY + 2, this.cellSize - 4, this.cellSize - 4);
-        this.ctx.lineWidth = 1;
-      }
-      // Draw red border for injured creatures only (not fruits)
-      else if ((entity instanceof Human || entity instanceof Wolf) &&
-               entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
-        this.ctx.strokeStyle = 'red';
-        this.ctx.lineWidth = 2;
-        // Use cell position for border (always aligned to grid)
-        this.ctx.strokeRect(cellX + 1, cellY + 1, this.cellSize - 2, this.cellSize - 2);
-        this.ctx.lineWidth = 1;
+      // Draw broken heart icon for injured creatures (not fruits)
+      if ((entity instanceof Human || entity instanceof Wolf) &&
+          entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
+        const iconSize = this.cellSize * 0.4; // 40% of cell size
+        const iconX = cellX + (this.cellSize * 0.8) - iconSize;
+        const iconY = cellY + (this.cellSize * 0.1);
+        const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
+        this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
       }
     }
   }
@@ -180,27 +176,15 @@ export class Renderer {
     const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
     this.ctx.drawImage(cachedEmoji, pixelX, pixelY);
 
-    // Draw entity-specific indicators at the cell containing the visual position
-    // (aligned to grid for visual clarity)
-    const visualCellX = Math.floor(visualX);
-    const visualCellY = Math.floor(visualY);
-    const cellX = visualCellX * this.cellSize;
-    const cellY = visualCellY * this.cellSize;
-
-    // Draw pregnancy indicator for pregnant females
-    if (entity instanceof Human && entity.isPregnant()) {
-      this.ctx.strokeStyle = '#ff69b4'; // Hot pink
-      this.ctx.lineWidth = 3;
-      this.ctx.strokeRect(cellX + 2, cellY + 2, this.cellSize - 4, this.cellSize - 4);
-      this.ctx.lineWidth = 1;
-    }
-    // Draw red border for injured creatures only (not fruits)
-    else if ((entity instanceof Human || entity instanceof Wolf) &&
-             entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
-      this.ctx.strokeStyle = 'red';
-      this.ctx.lineWidth = 2;
-      this.ctx.strokeRect(cellX + 1, cellY + 1, this.cellSize - 2, this.cellSize - 2);
-      this.ctx.lineWidth = 1;
+    // Draw broken heart icon for injured creatures (not fruits)
+    // Icon follows visual position during animations
+    if ((entity instanceof Human || entity instanceof Wolf) &&
+        entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
+      const iconSize = this.cellSize * 0.4; // 40% of cell size
+      const iconX = pixelX + (this.cellSize * 0.8) - iconSize;
+      const iconY = pixelY + (this.cellSize * 0.1);
+      const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
+      this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
     }
   }
 

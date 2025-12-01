@@ -129,14 +129,11 @@ export class Game {
 
   updateConfig(config: GameConfig): void {
     this.currentConfig = config;
-    // TODO: Update systems with new config
-    // this.movementSystem.updateConfig(config);
+    // Update CombatSystem which stores config internally
     this.combatSystem.updateConfig(config);
-    // this.eatingSystem.updateConfig(config);
-    // this.reproductionSystem.updateConfig(config);
-    // this.deathSystem.updateConfig(config);
-    // this.birthSystem.updateConfig(config);
-    // this.spawnSystem.updateConfig(config);
+    // Other systems receive config as parameter to their execute methods
+    // (DeathSystem, SpawnSystem, etc.), so no need to update them here
+    console.log('[Game] Configuration updated:', config);
   }
 
   /**

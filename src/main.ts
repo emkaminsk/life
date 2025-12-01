@@ -4,6 +4,7 @@ import { Game } from './core/Game';
 import { Human } from './entities/Human';
 import { EntityType } from './types';
 import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
+import { TooltipManager } from './ui/TooltipManager';
 import { i18n } from './i18n/i18n';
 import { Language } from './i18n/types';
 import { initializeDOMRenderer } from './i18n/DOMRenderer';
@@ -120,6 +121,51 @@ configPanel.show();
 
 // Initial render
 renderer.renderFull(board);
+
+// Initialize Tooltip Manager
+const tooltipManager = new TooltipManager();
+
+// Mouse event handlers for tooltip
+let tooltipThrottleId: number | null = null;
+
+canvas.addEventListener('mousemove', (event) => {
+  // Throttle tooltip updates using requestAnimationFrame for ~60fps
+  if (tooltipThrottleId === null) {
+    tooltipThrottleId = requestAnimationFrame(() => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      // Calculate cell coordinates
+      const cellSize = canvas.width / board.width;
+      const cellX = Math.floor(mouseX / cellSize);
+      const cellY = Math.floor(mouseY / cellSize);
+
+      // Check if cell is within board bounds
+      if (cellX >= 0 && cellX < board.width && cellY >= 0 && cellY < board.height) {
+        const entity = board.getEntity(cellX, cellY);
+        if (entity) {
+          // Show tooltip at mouse position
+          tooltipManager.show(entity, event.clientX, event.clientY);
+        } else {
+          tooltipManager.hide();
+        }
+      } else {
+        tooltipManager.hide();
+      }
+
+      tooltipThrottleId = null;
+    });
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  tooltipManager.hide();
+  if (tooltipThrottleId !== null) {
+    cancelAnimationFrame(tooltipThrottleId);
+    tooltipThrottleId = null;
+  }
+});
 
 // Notification system
 let previousMaleCount = 0;

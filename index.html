@@ -615,11 +615,44 @@
     .btn-secondary:hover {
       background: #e0e0e0;
     }
+
+    /* Entity Tooltip */
+    .entity-tooltip {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .tooltip-header {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: 4px;
+    }
+
+    .tooltip-stats div {
+      margin: 3px 0;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
   <button id="helpBtn" class="help-btn" title="View Rules">?</button>
   <div id="notificationContainer"></div>
+
+  <!-- Entity Tooltip -->
+  <div id="entityTooltip" class="entity-tooltip">
+    <div class="tooltip-header"></div>
+    <div class="tooltip-stats"></div>
+  </div>
 
   <!-- Initialization Progress -->
   <div id="initProgress">
