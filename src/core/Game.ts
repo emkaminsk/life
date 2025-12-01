@@ -30,7 +30,7 @@ export class Game {
   private spawnSystem: SpawnSystem;
   private animationSystem: AnimationSystem;
   private isRunning: boolean;
-  private roundInterval: number | null;
+  private nextRoundTimeoutId: number | null; // Track next round timeout
   private populationHistory: number[]; // Track human population over time
   private currentSpeed: number; // Current simulation speed in ms
   private animationDuration: number; // Animation duration in ms
@@ -53,10 +53,10 @@ export class Game {
     this.spawnSystem = new SpawnSystem(renderer);
     this.animationSystem = new AnimationSystem();
     this.isRunning = false;
-    this.roundInterval = null;
+    this.nextRoundTimeoutId = null;
     this.populationHistory = [];
     this.currentSpeed = DEFAULT_CONFIG.simulation.defaultSpeed;
-    this.animationDuration = 300; // Default 300ms animation duration
+    this.animationDuration = this.currentSpeed; // Sync initial duration with speed for fluidity
     this.isAnimating = false;
     this.isStepping = false;
     this.animationFrameId = null;
@@ -198,11 +198,9 @@ export class Game {
    * Execute one complete round
    */
   executeRound(): void {
-    // Prevent overlapping rounds if animations are still running
-    if (this.isAnimating) {
-      console.log('[Game] Skipping round - animations still in progress');
-      return;
-    }
+    // Prevent execution if not running or stepping
+    // Guard against re-entry if animations are running (should not happen with new loop, but safety check)
+    if (this.isAnimating) return;
 
     console.log(`\n=== Round ${this.board.round + 1} ===`);
 
@@ -213,10 +211,11 @@ export class Game {
     if (movements.length > 0) {
       this.isAnimating = true;
       this.animateMovements(movements, () => {
-        // Animation complete callback - continue with remaining phases
+        // Animation complete callback
         this.isAnimating = false;
         this.isStepping = false; // Clear step flag when animations complete
-        this.continueRoundAfterAnimation();
+        this.continueRoundAfterAnimation(true); // true = was animated
+        
         // Notify UI that step is complete (for re-enabling step button)
         this.onStepComplete?.();
       });
@@ -225,7 +224,8 @@ export class Game {
 
     // No movements, proceed directly to remaining phases
     this.isStepping = false; // Clear step flag
-    this.continueRoundAfterAnimation();
+    this.continueRoundAfterAnimation(false); // false = not animated
+    
     // Notify UI that step is complete
     this.onStepComplete?.();
   }
@@ -316,8 +316,9 @@ export class Game {
 
   /**
    * Continue round execution after movement animations complete
+   * @param wasAnimated Whether animations occurred (affects next round timing)
    */
-  private continueRoundAfterAnimation(): void {
+  private continueRoundAfterAnimation(wasAnimated: boolean): void {
     // Phase 2: Combat
     this.combatSystem.execute(this.board);
 
@@ -346,6 +347,31 @@ export class Game {
     if (!this.animationSystem.isAnimating()) {
       this.renderer.render(this.board);
     }
+
+    // Schedule next round if running
+    if (this.isRunning) {
+      this.scheduleNextRound(wasAnimated);
+    }
+  }
+
+  /**
+   * Schedule the next round execution
+   */
+  private scheduleNextRound(wasAnimated: boolean): void {
+    if (!this.isRunning) return;
+
+    // If we animated, we used up the time allocated for this round in the animation,
+    // so we can start the next round immediately.
+    // If we didn't animate (no movement), we need to wait the full speed duration.
+    const delay = wasAnimated ? 0 : this.currentSpeed;
+
+    if (this.nextRoundTimeoutId !== null) {
+      clearTimeout(this.nextRoundTimeoutId);
+    }
+
+    this.nextRoundTimeoutId = window.setTimeout(() => {
+      this.executeRound();
+    }, delay);
   }
 
   /**
@@ -356,9 +382,15 @@ export class Game {
 
     console.log('[Game] Starting continuous execution...');
     this.isRunning = true;
-    this.roundInterval = window.setInterval(() => {
-      this.executeRound();
-    }, this.currentSpeed);
+    
+    // Clear any pending timeout
+    if (this.nextRoundTimeoutId !== null) {
+      clearTimeout(this.nextRoundTimeoutId);
+      this.nextRoundTimeoutId = null;
+    }
+
+    // Execute immediately
+    this.executeRound();
   }
 
   /**
@@ -369,9 +401,10 @@ export class Game {
 
     console.log('[Game] Pausing execution...');
     this.isRunning = false;
-    if (this.roundInterval !== null) {
-      clearInterval(this.roundInterval);
-      this.roundInterval = null;
+    
+    if (this.nextRoundTimeoutId !== null) {
+      clearTimeout(this.nextRoundTimeoutId);
+      this.nextRoundTimeoutId = null;
     }
     // If animations are running, they will be stopped in the animation loop
     // The stopAnimations() method will be called automatically
@@ -424,6 +457,12 @@ export class Game {
       this.pause();
     }
 
+    // Clear timeout just in case
+    if (this.nextRoundTimeoutId !== null) {
+      clearTimeout(this.nextRoundTimeoutId);
+      this.nextRoundTimeoutId = null;
+    }
+
     // Stop any running animations
     if (this.isAnimating) {
       this.stopAnimations();
@@ -465,9 +504,11 @@ export class Game {
    */
   setSpeed(speedMs: number): void {
     this.currentSpeed = speedMs;
+    // Update animation duration to match speed for fluid movement
+    this.animationDuration = speedMs;
 
-    // If currently running, restart with new speed
-    if (this.isRunning) {
+    // If currently running and NOT animating (waiting for timeout), restart with new speed
+    if (this.isRunning && !this.isAnimating) {
       this.pause();
       this.start();
     }
