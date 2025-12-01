@@ -35,7 +35,6 @@ describe('CombatSystem', () => {
   })
 
   describe('Male vs Wolf Counter-attack', () => {
-    })
 
     it('should only apply to male humans in wolf combat', () => {
       const config = DEFAULT_CONFIG
