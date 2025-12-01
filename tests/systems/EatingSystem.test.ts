@@ -613,8 +613,9 @@ describe('EatingSystem', () => {
       let board1 = new Board(30, 30)
       let system1 = new EatingSystem(renderer)
       const human1 = createMale(15, 15, lowHealConfig)
-      human1.health = 50
+      human1.health = 80 // Start higher to avoid max health cap
       const fruit1 = new Fruit(16, 15, lowHealConfig.fruit.energyHealed)
+      fruit1.ripeningCounter = 0 // Make fruit ripe immediately
       board1.setEntity(15, 15, human1)
       board1.setEntity(16, 15, fruit1)
       system1.execute(board1)
@@ -625,8 +626,9 @@ describe('EatingSystem', () => {
       let board2 = new Board(30, 30)
       let system2 = new EatingSystem(renderer)
       const human2 = createMale(15, 15, highHealConfig)
-      human2.health = 50
+      human2.health = 80 // Start higher to avoid max health cap
       const fruit2 = new Fruit(16, 15, highHealConfig.fruit.energyHealed)
+      fruit2.ripeningCounter = 0 // Make fruit ripe immediately
       board2.setEntity(15, 15, human2)
       board2.setEntity(16, 15, fruit2)
       system2.execute(board2)

@@ -31,8 +31,6 @@ describe('CombatSystem', () => {
     system = new CombatSystem(renderer, DEFAULT_CONFIG)
   })
 
-  describe('Male vs Male Combat', () => {
-  })
 
   describe('Male vs Wolf Counter-attack', () => {
 
