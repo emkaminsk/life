@@ -52,8 +52,9 @@ describe('EatingSystem', () => {
       const initialHealth = human.health
       system.execute(board)
 
-      // Human should be healed by custom amount
-      expect(human.health).toBe(initialHealth + customHealing)
+      // Human should be healed by custom amount, capped at genome maxHealth
+      const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + customHealing)
+      expect(human.health).toBe(expectedHealth)
       // Fruit should be removed
       expect(board.getEntity(16, 15)).toBeNull()
     })
@@ -77,8 +78,8 @@ describe('EatingSystem', () => {
         const initialHealth = human.health
         system.execute(board)
 
-        // Account for health cap at max health
-        const expectedHealth = Math.min(config.human.startingHealth, initialHealth + healing)
+        // Account for health cap at genome maxHealth
+        const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + healing)
         expect(human.health).toBe(expectedHealth)
         expect(board.getEntity(16, 15)).toBeNull()
 
@@ -113,8 +114,8 @@ describe('EatingSystem', () => {
 
       system.execute(board)
 
-      // Health should be capped at starting health (max)
-      expect(human.health).toBe(config.human.startingHealth)
+      // Health should be capped at genome maxHealth
+      expect(human.health).toBe(human.genome.maxHealth)
       expect(board.getEntity(16, 15)).toBeNull()
     })
   })
@@ -221,13 +222,14 @@ describe('EatingSystem', () => {
       const initialHealth = human.health
       system.execute(board)
 
-      expect(human.health).toBe(initialHealth + DEFAULT_CONFIG.fruit.energyHealed)
+      const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + DEFAULT_CONFIG.fruit.energyHealed)
+      expect(human.health).toBe(expectedHealth)
       expect(board.getEntity(16, 16)).toBeNull()
     })
 
     it('should not eat fruit when no eligible humans adjacent', () => {
       const human = createMale(15, 15)
-      human.health = DEFAULT_CONFIG.human.startingHealth // Max health
+      human.health = human.genome.maxHealth // Set to actual max health for this genome
       const fruit = new Fruit(16, 15)
       fruit.ripeningCounter = 0
 
@@ -238,7 +240,7 @@ describe('EatingSystem', () => {
 
       // Fruit should remain (no eligible humans)
       expect(board.getEntity(16, 15)).toBe(fruit)
-      expect(human.health).toBe(DEFAULT_CONFIG.human.startingHealth)
+      expect(human.health).toBe(human.genome.maxHealth)
     })
 
     it('should process multiple fruits independently', () => {
