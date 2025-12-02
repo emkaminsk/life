@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "timestamp": "2024-01-15T10:00:00.000Z",
+  "config": {
+    "board": {
+      "width": 25,
+      "height": 25
+    },
+    "spawn": {
+      "maleHumanProbability": 0.05
+    },
+    "human": {
+      "startingHealth": 120
+    }
+  }
+}

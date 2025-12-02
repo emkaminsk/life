@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "config": {
+    "board": {
+      "width": 5,
+      "height": 200,
+      "injuredThreshold": -10
+    },
+    "spawn": {
+      "maleHumanProbability": 5.0,
+      "wolfProbability": -0.5
+    },
+    "human": {
+      "startingHealth": 999
+    }
+  }
+}
