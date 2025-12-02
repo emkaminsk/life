@@ -105,7 +105,8 @@ describe('EatingSystem', () => {
       })
 
       const human = createMale(15, 15, config)
-      human.health = 90 // Close to max
+      // Set health to a value below maxHealth to ensure healing can occur
+      human.health = Math.max(1, human.genome.maxHealth - 10)
       const fruit = new Fruit(16, 15, config.fruit.energyHealed)
       fruit.ripeningCounter = 0
 
@@ -157,7 +158,7 @@ describe('EatingSystem', () => {
 
     it('should only allow humans with health below max to eat fruit', () => {
       const healthyHuman = createMale(15, 15)
-      healthyHuman.health = DEFAULT_CONFIG.human.startingHealth // Max health
+      healthyHuman.health = healthyHuman.genome.maxHealth // Set to actual max for this genome
       const injuredHuman = createMale(17, 15)
       injuredHuman.health = 50 // Below max
       const fruit = new Fruit(16, 15)
@@ -174,8 +175,9 @@ describe('EatingSystem', () => {
 
       // Healthy human should not eat (health unchanged)
       expect(healthyHuman.health).toBe(healthyInitialHealth)
-      // Injured human should eat and heal
-      expect(injuredHuman.health).toBe(injuredInitialHealth + DEFAULT_CONFIG.fruit.energyHealed)
+      // Injured human should eat and heal, capped at their maxHealth
+      const expectedInjuredHealth = Math.min(injuredHuman.genome.maxHealth, injuredInitialHealth + DEFAULT_CONFIG.fruit.energyHealed)
+      expect(injuredHuman.health).toBe(expectedInjuredHealth)
       // Fruit should be removed
       expect(board.getEntity(16, 15)).toBeNull()
     })
@@ -610,17 +612,20 @@ describe('EatingSystem', () => {
       // Test that different fruit.energyHealed values produce different outcomes
       const lowHealConfig = createConfig({
         fruit: { energyHealed: 10 },
-        human: { startingHealth: 80 } // Start higher to avoid max health cap
+        human: { startingHealth: 100 }
       })
       const highHealConfig = createConfig({
         fruit: { energyHealed: 50 },
-        human: { startingHealth: 80 } // Start higher to avoid max health cap
+        human: { startingHealth: 100 }
       })
 
       // Low heal test
       let board1 = new Board(30, 30)
       let system1 = new EatingSystem(renderer)
       const human1 = createMale(15, 15, lowHealConfig)
+      // Set to low health to avoid hitting maxHealth cap for both tests
+      human1.health = 20
+      const initialHealth1 = human1.health
       const fruit1 = new Fruit(16, 15, lowHealConfig.fruit.energyHealed)
       fruit1.ripeningCounter = 0 // Make fruit ripe immediately
       board1.setEntity(15, 15, human1)
@@ -633,6 +638,9 @@ describe('EatingSystem', () => {
       let board2 = new Board(30, 30)
       let system2 = new EatingSystem(renderer)
       const human2 = createMale(15, 15, highHealConfig)
+      // Set to same low health to avoid hitting maxHealth cap for both tests
+      human2.health = 20
+      const initialHealth2 = human2.health
       const fruit2 = new Fruit(16, 15, highHealConfig.fruit.energyHealed)
       fruit2.ripeningCounter = 0 // Make fruit ripe immediately
       board2.setEntity(15, 15, human2)
@@ -642,8 +650,15 @@ describe('EatingSystem', () => {
       const healthAfterHighHeal = human2.health
 
       // Verify that config change produces measurable behavioral difference
-      // Higher config should result in more healing
-      expect(healthAfterHighHeal).toBeGreaterThan(healthAfterLowHeal)
+      // Higher config should result in more healing (unless capped by maxHealth)
+      // Since we start at 20 and heal by 10 vs 50, and genomes have ~80-120 maxHealth,
+      // both should reach their intended values: 30 vs 70
+      expect(healthAfterLowHeal).toBe(Math.min(human1.genome.maxHealth, initialHealth1 + 10))
+      expect(healthAfterHighHeal).toBe(Math.min(human2.genome.maxHealth, initialHealth2 + 50))
+      // The high heal should result in more health (unless both capped, which is unlikely at low starting health)
+      if (human2.genome.maxHealth >= 70 && human1.genome.maxHealth >= 30) {
+        expect(healthAfterHighHeal).toBeGreaterThan(healthAfterLowHeal)
+      }
     })
 
     it('should damage different amounts based on mushroom config', () => {
