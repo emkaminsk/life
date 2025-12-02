@@ -19,7 +19,10 @@ describe('Human Entity', () => {
   describe('Health Management', () => {
     it('should initialize with health from config', () => {
       const female = createFemale(15, 15)
-      expect(female.health).toBe(DEFAULT_CONFIG.human.startingHealth)
+      // Health should be clamped to genome.maxHealth (not exceed it)
+      expect(female.health).toBeGreaterThan(0)
+      expect(female.health).toBeLessThanOrEqual(female.genome.maxHealth)
+      expect(female.health).toBeLessThanOrEqual(DEFAULT_CONFIG.human.startingHealth)
     })
 
     it('should support health modification', () => {

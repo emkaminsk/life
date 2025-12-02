@@ -265,9 +265,9 @@ describe('EatingSystem', () => {
       // Both fruits should be eaten
       expect(board.getEntity(16, 15)).toBeNull()
       expect(board.getEntity(21, 20)).toBeNull()
-      // Both humans should be healed
-      expect(human1.health).toBe(50 + DEFAULT_CONFIG.fruit.energyHealed)
-      expect(human2.health).toBe(60 + DEFAULT_CONFIG.fruit.energyHealed)
+      // Both humans should be healed, capped at their genome.maxHealth
+      expect(human1.health).toBe(Math.min(human1.genome.maxHealth, 50 + DEFAULT_CONFIG.fruit.energyHealed))
+      expect(human2.health).toBe(Math.min(human2.genome.maxHealth, 60 + DEFAULT_CONFIG.fruit.energyHealed))
     })
   })
 
@@ -498,7 +498,7 @@ describe('EatingSystem', () => {
 
       // Fruit should be eaten
       expect(board.getEntity(16, 15)).toBeNull()
-      expect(human.health).toBe(50 + config.fruit.energyHealed)
+      expect(human.health).toBe(Math.min(human.genome.maxHealth, 50 + config.fruit.energyHealed))
     })
 
     it('should support various ripening periods', () => {
