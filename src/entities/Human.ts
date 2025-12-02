@@ -42,6 +42,9 @@ export class Human extends Entity {
     this.reproductionCooldown = 0;
     this.readyToGiveBirth = false;
     this.genome = activeGenome;
+
+    // Ensure health never exceeds genome's max health
+    this.health = Math.min(this.health, activeGenome.maxHealth);
   }
 
   isPregnant(): boolean {
