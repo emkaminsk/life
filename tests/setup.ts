@@ -52,7 +52,8 @@ export function createHuman(
   config: GameConfig = DEFAULT_CONFIG
 ): Human {
   const human = new Human(x, y, sex)
-  human.health = config.human.startingHealth
+  // Respect genome.maxHealth - health should never exceed it
+  human.health = Math.min(config.human.startingHealth, human.genome.maxHealth)
   return human
 }
 
