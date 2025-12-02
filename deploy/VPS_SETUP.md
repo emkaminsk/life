@@ -245,15 +245,12 @@ scp -i ~/.ssh/gameoflife_deploy \
 # Move config to nginx sites-available
 sudo mv /tmp/gameoflife.conf /etc/nginx/sites-available/gameoflife
 
-# Edit config to replace example.com with your domain/IP
-sudo nano /etc/nginx/sites-available/gameoflife
-
-# Replace:
-# server_name gameoflife.example.com;
-# With your domain or IP:
-# server_name YOUR_DOMAIN_OR_IP;
-
-# Save and exit (Ctrl+X, Y, Enter)
+# Note: The configuration uses 'server_name _;' which is a catch-all
+# that accepts requests to any domain or IP address.
+# This means the site will work immediately with your VPS IP address.
+# If you want to restrict access to a specific domain, edit the config:
+# sudo nano /etc/nginx/sites-available/gameoflife
+# And replace 'server_name _;' with 'server_name yourdomain.com;'
 ```
 
 ### 5.2 Enable Site Configuration
