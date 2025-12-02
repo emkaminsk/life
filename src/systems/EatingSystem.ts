@@ -3,7 +3,6 @@ import { Human } from '../entities/Human';
 import { Fruit } from '../entities/Fruit';
 import { Mushroom } from '../entities/Mushroom';
 import type { Renderer } from '../core/Renderer';
-import { DEFAULT_CONFIG } from '../config';
 import { Random } from '../utils/Random';
 
 export class EatingSystem {
@@ -29,7 +28,7 @@ export class EatingSystem {
         // Find adjacent humans with health below maximum
         for (const pos of adjacentPositions) {
           const adjacent = board.getEntity(pos.x, pos.y);
-          if (adjacent instanceof Human && adjacent.health < DEFAULT_CONFIG.human.startingHealth) {
+          if (adjacent instanceof Human && adjacent.health < adjacent.genome.maxHealth) {
             eligibleHumans.push(adjacent);
           }
         }
@@ -45,7 +44,7 @@ export class EatingSystem {
     // Process fruit eating
     for (const { x, y, human, fruit } of fruitsToRemove) {
       const healAmount = fruit.energyHealed;
-      human.heal(healAmount, DEFAULT_CONFIG.human.startingHealth);
+      human.heal(healAmount, human.genome.maxHealth);
 
       // Remove fruit from board
       board.removeEntity(x, y);
