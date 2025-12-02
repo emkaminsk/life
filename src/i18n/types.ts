@@ -213,6 +213,29 @@ export interface TranslationKeys {
     spawnTooHigh: string;
     spawnWarning: string;
   };
+
+  // Tooltip messages
+  tooltip: {
+    maleHuman: string;
+    femaleHuman: string;
+    pregnantFemale: string;
+    wolf: string;
+    dog: string;
+    ripeFruit: string;
+    unripeFruit: string;
+    mushroom: string;
+    health: string;
+    age: string;
+    pregnant: string;
+    roundsRemaining: string;
+    ripening: string;
+    genetics: string;
+    geneMaxHealth: string;
+    geneStrength: string;
+    geneMetabolism: string;
+    geneGreed: string;
+    geneCaution: string;
+  };
 }
 
 /**

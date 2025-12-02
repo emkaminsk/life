@@ -2,7 +2,6 @@ import { Genome } from '../types';
 import { Random } from './Random';
 
 export class GenomeUtils {
-  private static readonly MUTATION_RATE = 0.1; // 10% change max
   private static readonly MUTATION_CHANCE = 0.2; // 20% chance per gene
 
   /**
