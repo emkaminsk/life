@@ -57,61 +57,43 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      - name: Health check
-        run: |
-          echo "Waiting for deployment to be ready..."
-          sleep 10
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: 10114
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Verifying deployment files..."
 
-          # Retry health check up to 5 times with exponential backoff
-          MAX_RETRIES=5
-          RETRY_COUNT=0
-          SUCCESS=false
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            echo "Health check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
-
-            # Try with browser-like headers to avoid bot protection
-            HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" \
-              --connect-timeout 10 \
-              --max-time 30 \
-              -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-              -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
-              http://${{ secrets.VPS_HOST }} || echo "000")
-
-            # Accept 200 (OK) or 403 (Forbidden - server is up but blocking access)
-            # 403 can occur with Cloudflare bot protection or security rules
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "403" ]; then
-              echo "✓ Deployment health check passed: HTTP $HTTP_CODE"
-              if [ "$HTTP_CODE" = "403" ]; then
-                echo "  Note: Server returned 403. This may be due to security rules (e.g., Cloudflare)."
-                echo "  The server is responding correctly, but blocking automated requests."
-              fi
-              SUCCESS=true
-              break
-            else
-              echo "✗ Health check failed: HTTP $HTTP_CODE"
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                WAIT_TIME=$((2 ** RETRY_COUNT))
-                echo "Retrying in ${WAIT_TIME} seconds..."
-                sleep $WAIT_TIME
-              fi
+            # Check if deployment directory exists
+            if [ ! -d "${{ secrets.VPS_DEPLOY_PATH }}" ]; then
+              echo "❌ Deployment directory not found: ${{ secrets.VPS_DEPLOY_PATH }}"
+              exit 1
             fi
-          done
 
-          if [ "$SUCCESS" = false ]; then
-            echo "❌ Deployment health check failed after $MAX_RETRIES attempts"
-            echo "Debugging information:"
-            echo "- VPS Host: ${{ secrets.VPS_HOST }}"
-            echo "- Last HTTP code: $HTTP_CODE"
+            # Check if index.html exists (main entry point)
+            if [ ! -f "${{ secrets.VPS_DEPLOY_PATH }}/index.html" ]; then
+              echo "❌ index.html not found in deployment directory"
+              exit 1
+            fi
+
+            # List deployed files for verification
+            echo "✓ Deployment directory exists: ${{ secrets.VPS_DEPLOY_PATH }}"
+            echo "✓ index.html found"
             echo ""
-            echo "Troubleshooting tips:"
-            echo "- Check if nginx is running: sudo systemctl status nginx"
-            echo "- Check nginx error logs: sudo tail /var/log/nginx/error.log"
-            echo "- Verify DNS resolution: nslookup ${{ secrets.VPS_HOST }}"
-            echo "- Test manually: curl -I http://${{ secrets.VPS_HOST }}"
-            exit 1
-          fi
+            echo "Deployed files:"
+            ls -lh "${{ secrets.VPS_DEPLOY_PATH }}" | head -10
 
-          echo "✓ Deployment successful!"
+            # Check file count
+            FILE_COUNT=$(find "${{ secrets.VPS_DEPLOY_PATH }}" -type f | wc -l)
+            echo ""
+            echo "Total files deployed: $FILE_COUNT"
+
+            if [ "$FILE_COUNT" -lt 1 ]; then
+              echo "❌ Deployment appears to be empty"
+              exit 1
+            fi
+
+            echo "✓ Deployment verification successful!"
