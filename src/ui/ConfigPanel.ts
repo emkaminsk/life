@@ -586,184 +586,109 @@ export class ConfigPanel {
   }
 
   /**
-   * Validate configuration object structure and ranges
+   * Deep merge configuration with defaults, filling in missing values
    */
-  private validateConfiguration(config: any): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
+  private mergeWithDefaults(loaded: any): GameConfig {
+    const defaults = this.getDefaultConfig();
+    const warnings: string[] = [];
 
-    // Check top-level structure
-    if (!config.board) errors.push('Missing board configuration');
-    if (!config.spawn) errors.push('Missing spawn configuration');
-    if (!config.human) errors.push('Missing human configuration');
-    if (!config.wolf) errors.push('Missing wolf configuration');
-    if (!config.dog) errors.push('Missing dog configuration');
-    if (!config.fruit) errors.push('Missing fruit configuration');
-    if (!config.mushroom) errors.push('Missing mushroom configuration');
-    if (!config.simulation) errors.push('Missing simulation configuration');
-    if (!config.overcrowding) errors.push('Missing overcrowding configuration');
+    // Helper to safely get a number value with validation
+    const getNumber = (obj: any, path: string, defaultValue: number, min?: number, max?: number): number => {
+      const value = obj;
+      if (typeof value === 'number' && !isNaN(value)) {
+        if (min !== undefined && value < min) {
+          warnings.push(`${path} (${value}) below minimum (${min}), using ${min}`);
+          return min;
+        }
+        if (max !== undefined && value > max) {
+          warnings.push(`${path} (${value}) above maximum (${max}), using ${max}`);
+          return max;
+        }
+        return value;
+      }
+      if (value !== undefined) {
+        warnings.push(`${path} has invalid value, using default (${defaultValue})`);
+      }
+      return defaultValue;
+    };
 
-    if (errors.length > 0) {
-      return { valid: false, errors };
-    }
+    // Merge board configuration
+    const board = loaded.board || {};
+    const mergedConfig: GameConfig = {
+      board: {
+        width: getNumber(board.width, 'board.width', defaults.board.width, 10, 100),
+        height: getNumber(board.height, 'board.height', defaults.board.height, 10, 100),
+        injuredThreshold: getNumber(board.injuredThreshold, 'board.injuredThreshold', defaults.board.injuredThreshold, 0, 100),
+      },
+      spawn: {
+        maleHumanProbability: getNumber(loaded.spawn?.maleHumanProbability, 'spawn.maleHumanProbability', defaults.spawn.maleHumanProbability, 0, 1),
+        femaleHumanProbability: getNumber(loaded.spawn?.femaleHumanProbability, 'spawn.femaleHumanProbability', defaults.spawn.femaleHumanProbability, 0, 1),
+        wolfProbability: getNumber(loaded.spawn?.wolfProbability, 'spawn.wolfProbability', defaults.spawn.wolfProbability, 0, 1),
+        dogProbability: getNumber(loaded.spawn?.dogProbability, 'spawn.dogProbability', defaults.spawn.dogProbability, 0, 1),
+        fruitProbability: getNumber(loaded.spawn?.fruitProbability, 'spawn.fruitProbability', defaults.spawn.fruitProbability, 0, 1),
+        mushroomProbability: getNumber(loaded.spawn?.mushroomProbability, 'spawn.mushroomProbability', defaults.spawn.mushroomProbability, 0, 1),
+      },
+      human: {
+        startingHealth: getNumber(loaded.human?.startingHealth, 'human.startingHealth', defaults.human.startingHealth, 1, 200),
+        maleVsMaleDamage: getNumber(loaded.human?.maleVsMaleDamage, 'human.maleVsMaleDamage', defaults.human.maleVsMaleDamage, 0, 100),
+        maleVsWolfDamage: getNumber(loaded.human?.maleVsWolfDamage, 'human.maleVsWolfDamage', defaults.human.maleVsWolfDamage, 0, 100),
+        reproductionProbability: getNumber(loaded.human?.reproductionProbability, 'human.reproductionProbability', defaults.human.reproductionProbability, 0, 1),
+        pregnancyPeriod: getNumber(loaded.human?.pregnancyPeriod, 'human.pregnancyPeriod', defaults.human.pregnancyPeriod, 1, 100),
+        cooldownPeriod: getNumber(loaded.human?.cooldownPeriod, 'human.cooldownPeriod', defaults.human.cooldownPeriod, 0, 100),
+        perceptionRange: getNumber(loaded.human?.perceptionRange, 'human.perceptionRange', defaults.human.perceptionRange, 0, 20),
+        moveTowardFruitProbability: getNumber(loaded.human?.moveTowardFruitProbability, 'human.moveTowardFruitProbability', defaults.human.moveTowardFruitProbability, 0, 1),
+        gompertzA: getNumber(loaded.human?.gompertzA, 'human.gompertzA', defaults.human.gompertzA, 0),
+        gompertzB: getNumber(loaded.human?.gompertzB, 'human.gompertzB', defaults.human.gompertzB, 0),
+      },
+      wolf: {
+        startingHealth: getNumber(loaded.wolf?.startingHealth, 'wolf.startingHealth', defaults.wolf.startingHealth, 1, 200),
+        damageToMale: getNumber(loaded.wolf?.damageToMale, 'wolf.damageToMale', defaults.wolf.damageToMale, 0, 100),
+        damageToFemale: getNumber(loaded.wolf?.damageToFemale, 'wolf.damageToFemale', defaults.wolf.damageToFemale, 0, 100),
+        damageToDog: getNumber(loaded.wolf?.damageToDog, 'wolf.damageToDog', defaults.wolf.damageToDog, 0, 100),
+        perceptionRange: getNumber(loaded.wolf?.perceptionRange, 'wolf.perceptionRange', defaults.wolf.perceptionRange, 0, 20),
+        moveTowardHumanProbability: getNumber(loaded.wolf?.moveTowardHumanProbability, 'wolf.moveTowardHumanProbability', defaults.wolf.moveTowardHumanProbability, 0, 1),
+        spawnProbability: getNumber(loaded.wolf?.spawnProbability, 'wolf.spawnProbability', defaults.wolf.spawnProbability, 0, 1),
+        gompertzA: getNumber(loaded.wolf?.gompertzA, 'wolf.gompertzA', defaults.wolf.gompertzA, 0),
+        gompertzB: getNumber(loaded.wolf?.gompertzB, 'wolf.gompertzB', defaults.wolf.gompertzB, 0),
+      },
+      dog: {
+        startingHealth: getNumber(loaded.dog?.startingHealth, 'dog.startingHealth', defaults.dog.startingHealth, 1, 200),
+        damageToWolf: getNumber(loaded.dog?.damageToWolf, 'dog.damageToWolf', defaults.dog.damageToWolf, 0, 100),
+        perceptionRange: getNumber(loaded.dog?.perceptionRange, 'dog.perceptionRange', defaults.dog.perceptionRange, 0, 20),
+        moveTowardWolfProbability: getNumber(loaded.dog?.moveTowardWolfProbability, 'dog.moveTowardWolfProbability', defaults.dog.moveTowardWolfProbability, 0, 1),
+        spawnProbability: getNumber(loaded.dog?.spawnProbability, 'dog.spawnProbability', defaults.dog.spawnProbability, 0, 1),
+        gompertzA: getNumber(loaded.dog?.gompertzA, 'dog.gompertzA', defaults.dog.gompertzA, 0),
+        gompertzB: getNumber(loaded.dog?.gompertzB, 'dog.gompertzB', defaults.dog.gompertzB, 0),
+      },
+      fruit: {
+        // Support both old (energyValue) and new (energyHealed) property names
+        energyHealed: getNumber(loaded.fruit?.energyHealed ?? loaded.fruit?.energyValue, 'fruit.energyHealed', defaults.fruit.energyHealed, 0, 200),
+        spawnProbability: getNumber(loaded.fruit?.spawnProbability, 'fruit.spawnProbability', defaults.fruit.spawnProbability, 0, 1),
+        roundsToRipen: getNumber(loaded.fruit?.roundsToRipen, 'fruit.roundsToRipen', defaults.fruit.roundsToRipen, 0, 100),
+      },
+      mushroom: {
+        // Support both old (damageValue) and new (energyRemoved) property names
+        energyRemoved: getNumber(loaded.mushroom?.energyRemoved ?? loaded.mushroom?.damageValue, 'mushroom.energyRemoved', defaults.mushroom.energyRemoved, 0, 200),
+        spawnProbability: getNumber(loaded.mushroom?.spawnProbability, 'mushroom.spawnProbability', defaults.mushroom.spawnProbability, 0, 1),
+      },
+      overcrowding: {
+        humanThreshold: getNumber(loaded.overcrowding?.humanThreshold, 'overcrowding.humanThreshold', defaults.overcrowding.humanThreshold, 10, 1000),
+        humanMultiplier: getNumber(loaded.overcrowding?.humanMultiplier, 'overcrowding.humanMultiplier', defaults.overcrowding.humanMultiplier, 1, 10),
+        animalThreshold: getNumber(loaded.overcrowding?.animalThreshold, 'overcrowding.animalThreshold', defaults.overcrowding.animalThreshold, 10, 1000),
+        animalMultiplier: getNumber(loaded.overcrowding?.animalMultiplier, 'overcrowding.animalMultiplier', defaults.overcrowding.animalMultiplier, 1, 10),
+      },
+    };
 
-    // Validate board parameters
-    if (typeof config.board.width !== 'number' || config.board.width < 10 || config.board.width > 100) {
-      errors.push('Board width must be between 10 and 100');
-    }
-    if (typeof config.board.height !== 'number' || config.board.height < 10 || config.board.height > 100) {
-      errors.push('Board height must be between 10 and 100');
-    }
-    if (typeof config.board.injuredThreshold !== 'number' || config.board.injuredThreshold < 0 || config.board.injuredThreshold > 100) {
-      errors.push('Injured threshold must be between 0 and 100');
-    }
-
-    // Validate spawn probabilities
-    if (typeof config.spawn.maleHumanProbability !== 'number' || config.spawn.maleHumanProbability < 0 || config.spawn.maleHumanProbability > 1) {
-      errors.push('Male human spawn probability must be between 0 and 1');
-    }
-    if (typeof config.spawn.femaleHumanProbability !== 'number' || config.spawn.femaleHumanProbability < 0 || config.spawn.femaleHumanProbability > 1) {
-      errors.push('Female human spawn probability must be between 0 and 1');
-    }
-    if (typeof config.spawn.wolfProbability !== 'number' || config.spawn.wolfProbability < 0 || config.spawn.wolfProbability > 1) {
-      errors.push('Wolf spawn probability must be between 0 and 1');
-    }
-    if (typeof config.spawn.dogProbability !== 'number' || config.spawn.dogProbability < 0 || config.spawn.dogProbability > 1) {
-      errors.push('Dog spawn probability must be between 0 and 1');
-    }
-    if (typeof config.spawn.fruitProbability !== 'number' || config.spawn.fruitProbability < 0 || config.spawn.fruitProbability > 1) {
-      errors.push('Fruit spawn probability must be between 0 and 1');
-    }
-    if (typeof config.spawn.mushroomProbability !== 'number' || config.spawn.mushroomProbability < 0 || config.spawn.mushroomProbability > 1) {
-      errors.push('Mushroom spawn probability must be between 0 and 1');
-    }
-
-    // Validate human parameters
-    if (typeof config.human.startingHealth !== 'number' || config.human.startingHealth < 1 || config.human.startingHealth > 200) {
-      errors.push('Human starting health must be between 1 and 200');
-    }
-    if (typeof config.human.maleVsMaleDamage !== 'number' || config.human.maleVsMaleDamage < 0 || config.human.maleVsMaleDamage > 100) {
-      errors.push('Male vs male damage must be between 0 and 100');
-    }
-    if (typeof config.human.maleVsWolfDamage !== 'number' || config.human.maleVsWolfDamage < 0 || config.human.maleVsWolfDamage > 100) {
-      errors.push('Male vs wolf damage must be between 0 and 100');
-    }
-    if (typeof config.human.reproductionProbability !== 'number' || config.human.reproductionProbability < 0 || config.human.reproductionProbability > 1) {
-      errors.push('Reproduction probability must be between 0 and 1');
-    }
-    if (typeof config.human.pregnancyPeriod !== 'number' || config.human.pregnancyPeriod < 1 || config.human.pregnancyPeriod > 100) {
-      errors.push('Pregnancy period must be between 1 and 100');
-    }
-    if (typeof config.human.cooldownPeriod !== 'number' || config.human.cooldownPeriod < 0 || config.human.cooldownPeriod > 100) {
-      errors.push('Cooldown period must be between 0 and 100');
-    }
-    if (typeof config.human.perceptionRange !== 'number' || config.human.perceptionRange < 0 || config.human.perceptionRange > 20) {
-      errors.push('Human perception range must be between 0 and 20');
-    }
-    if (typeof config.human.moveTowardFruitProbability !== 'number' || config.human.moveTowardFruitProbability < 0 || config.human.moveTowardFruitProbability > 1) {
-      errors.push('Move toward fruit probability must be between 0 and 1');
-    }
-    if (typeof config.human.gompertzA !== 'number' || config.human.gompertzA < 0) {
-      errors.push('Human Gompertz A must be >= 0');
-    }
-    if (typeof config.human.gompertzB !== 'number' || config.human.gompertzB < 0) {
-      errors.push('Human Gompertz B must be >= 0');
-    }
-
-    // Validate wolf parameters
-    if (typeof config.wolf.startingHealth !== 'number' || config.wolf.startingHealth < 1 || config.wolf.startingHealth > 200) {
-      errors.push('Wolf starting health must be between 1 and 200');
-    }
-    if (typeof config.wolf.damageToMale !== 'number' || config.wolf.damageToMale < 0 || config.wolf.damageToMale > 100) {
-      errors.push('Wolf damage to male must be between 0 and 100');
-    }
-    if (typeof config.wolf.damageToFemale !== 'number' || config.wolf.damageToFemale < 0 || config.wolf.damageToFemale > 100) {
-      errors.push('Wolf damage to female must be between 0 and 100');
-    }
-    if (typeof config.wolf.damageToDog !== 'number' || config.wolf.damageToDog < 0 || config.wolf.damageToDog > 100) {
-      errors.push('Wolf damage to dog must be between 0 and 100');
-    }
-    if (typeof config.wolf.perceptionRange !== 'number' || config.wolf.perceptionRange < 0 || config.wolf.perceptionRange > 20) {
-      errors.push('Wolf perception range must be between 0 and 20');
-    }
-    if (typeof config.wolf.moveTowardHumanProbability !== 'number' || config.wolf.moveTowardHumanProbability < 0 || config.wolf.moveTowardHumanProbability > 1) {
-      errors.push('Wolf move toward human probability must be between 0 and 1');
-    }
-    if (typeof config.wolf.spawnProbability !== 'number' || config.wolf.spawnProbability < 0 || config.wolf.spawnProbability > 1) {
-      errors.push('Wolf spawn probability must be between 0 and 1');
-    }
-    if (typeof config.wolf.gompertzA !== 'number' || config.wolf.gompertzA < 0) {
-      errors.push('Wolf Gompertz A must be >= 0');
-    }
-    if (typeof config.wolf.gompertzB !== 'number' || config.wolf.gompertzB < 0) {
-      errors.push('Wolf Gompertz B must be >= 0');
+    // Log warnings if any
+    if (warnings.length > 0) {
+      console.warn('[ConfigPanel] Configuration warnings:', warnings);
     }
 
-    // Validate dog parameters
-    if (typeof config.dog.startingHealth !== 'number' || config.dog.startingHealth < 1 || config.dog.startingHealth > 200) {
-      errors.push('Dog starting health must be between 1 and 200');
-    }
-    if (typeof config.dog.damageToWolf !== 'number' || config.dog.damageToWolf < 0 || config.dog.damageToWolf > 100) {
-      errors.push('Dog damage to wolf must be between 0 and 100');
-    }
-    if (typeof config.dog.perceptionRange !== 'number' || config.dog.perceptionRange < 0 || config.dog.perceptionRange > 20) {
-      errors.push('Dog perception range must be between 0 and 20');
-    }
-    if (typeof config.dog.moveTowardWolfProbability !== 'number' || config.dog.moveTowardWolfProbability < 0 || config.dog.moveTowardWolfProbability > 1) {
-      errors.push('Dog move toward wolf probability must be between 0 and 1');
-    }
-    if (typeof config.dog.spawnProbability !== 'number' || config.dog.spawnProbability < 0 || config.dog.spawnProbability > 1) {
-      errors.push('Dog spawn probability must be between 0 and 1');
-    }
-    if (typeof config.dog.gompertzA !== 'number' || config.dog.gompertzA < 0) {
-      errors.push('Dog Gompertz A must be >= 0');
-    }
-    if (typeof config.dog.gompertzB !== 'number' || config.dog.gompertzB < 0) {
-      errors.push('Dog Gompertz B must be >= 0');
-    }
-
-    // Validate fruit parameters
-    if (typeof config.fruit.energyValue !== 'number' || config.fruit.energyValue < 0 || config.fruit.energyValue > 200) {
-      errors.push('Fruit energy value must be between 0 and 200');
-    }
-    if (typeof config.fruit.spawnProbability !== 'number' || config.fruit.spawnProbability < 0 || config.fruit.spawnProbability > 1) {
-      errors.push('Fruit spawn probability must be between 0 and 1');
-    }
-    if (typeof config.fruit.roundsToRipen !== 'number' || config.fruit.roundsToRipen < 0 || config.fruit.roundsToRipen > 100) {
-      errors.push('Rounds to ripen must be between 0 and 100');
-    }
-
-    // Validate mushroom parameters
-    if (typeof config.mushroom.damageValue !== 'number' || config.mushroom.damageValue < 0 || config.mushroom.damageValue > 200) {
-      errors.push('Mushroom damage value must be between 0 and 200');
-    }
-    if (typeof config.mushroom.spawnProbability !== 'number' || config.mushroom.spawnProbability < 0 || config.mushroom.spawnProbability > 1) {
-      errors.push('Mushroom spawn probability must be between 0 and 1');
-    }
-
-    // Validate simulation parameters
-    if (typeof config.simulation.defaultSpeed !== 'number' || config.simulation.defaultSpeed < 10 || config.simulation.defaultSpeed > 5000) {
-      errors.push('Simulation speed must be between 10 and 5000 ms');
-    }
-
-    // Validate overcrowding parameters
-    if (typeof config.overcrowding.humanThreshold !== 'number' || config.overcrowding.humanThreshold < 10 || config.overcrowding.humanThreshold > 1000) {
-      errors.push('Human overcrowding threshold must be between 10 and 1000');
-    }
-    if (typeof config.overcrowding.humanMultiplier !== 'number' || config.overcrowding.humanMultiplier < 1 || config.overcrowding.humanMultiplier > 10) {
-      errors.push('Human overcrowding multiplier must be between 1 and 10');
-    }
-    if (typeof config.overcrowding.animalThreshold !== 'number' || config.overcrowding.animalThreshold < 10 || config.overcrowding.animalThreshold > 1000) {
-      errors.push('Animal overcrowding threshold must be between 10 and 1000');
-    }
-    if (typeof config.overcrowding.animalMultiplier !== 'number' || config.overcrowding.animalMultiplier < 1 || config.overcrowding.animalMultiplier > 10) {
-      errors.push('Animal overcrowding multiplier must be between 1 and 10');
-    }
-
-    return { valid: errors.length === 0, errors };
+    return mergedConfig;
   }
 
   /**
-   * Load configuration from uploaded JSON file
+   * Load configuration from uploaded JSON file (resilient mode)
    */
   private loadConfiguration(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -777,32 +702,23 @@ export class ConfigPanel {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
 
-        // Check for config object
-        if (!data.config) {
-          throw new Error('Invalid configuration file: missing config object');
+        // Support both wrapped (with version/timestamp) and direct config objects
+        const loadedConfig = data.config || data;
+
+        // Log version info if present
+        if (data.version) {
+          console.log('[ConfigPanel] Loading config version:', data.version);
         }
 
-        // Validate version (Step 2 - will be implemented next)
-        if (data.version && data.version !== '1.0') {
-          throw new Error(`Unsupported configuration version: ${data.version}. Expected version 1.0`);
-        }
+        // Resilient merge with defaults - fills in missing values, clamps invalid ones
+        this.config = this.mergeWithDefaults(loadedConfig);
 
-        // Comprehensive validation
-        const validation = this.validateConfiguration(data.config);
-        if (!validation.valid) {
-          const errorList = validation.errors.slice(0, 5).join('\n• ');
-          const remaining = validation.errors.length > 5 ? `\n...and ${validation.errors.length - 5} more errors` : '';
-          throw new Error(`Configuration validation failed:\n• ${errorList}${remaining}`);
-        }
-
-        // Load configuration
-        this.config = data.config;
+        // Update UI
         this.populateInputs();
         this.updateExpectedCounts();
         this.validateSpawnProbabilities();
 
-        console.log('[ConfigPanel] Configuration loaded from:', file.name);
-        console.log('[ConfigPanel] Validation passed:', validation.errors.length === 0 ? 'All checks passed' : validation.errors);
+        console.log('[ConfigPanel] Configuration loaded successfully from:', file.name);
 
         // Show success notification
         showNotification(
