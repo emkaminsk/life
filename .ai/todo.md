@@ -1860,11 +1860,959 @@ This phase addresses all gaps and creates comprehensive, student-friendly docume
 
 ---
 
+## 🧬 Phase 29: Energy-Driven Behavior System ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Core genetic algorithm enhancement for educational value
+**Estimated Time**: 8-12 hours
+**Blocking**: NO - Enhancement feature
+**Dependencies**: Phase 25 (Genetic Algorithms) must be complete
+**Reference**: PRD Sections 3.16.1-3.16.7, User Stories US-043 to US-046, US-051
+
+### Overview
+Transform current health into an energy system where behavioral decisions are modulated by energy state. Humans change priorities based on hunger (food-seeking), fullness (reproduction), and desperation (combat avoidance). This creates emergent resource-driven decision making and makes metabolism gene strategically important.
+
+### Educational Value
+- **Resource Management**: Students observe tradeoffs between movement, reproduction, and survival
+- **Behavioral Economics**: Energy-driven decisions mirror real biological resource allocation
+- **Emergent Strategies**: Different metabolic rates create distinct survival strategies
+- **Cause-Effect Chains**: Students connect food availability → energy → behavior → population
+
+### Background
+Current system has metabolism gene that costs energy per move, but behavioral decisions are fixed. Humans always seek food with same probability, always attempt reproduction, and don't adjust combat behavior based on energy reserves. This makes metabolism trait less impactful - it's just a "slow death" parameter without strategic implications.
+
+Phase 29 makes energy state a central decision-making factor, creating rich emergent behaviors where well-fed humans reproduce more, hungry humans prioritize food, and desperate humans avoid all combat.
+
+---
+
+### Phase 29.1: Energy State Infrastructure ❌ NOT STARTED
+**Estimated Time**: 1-2 hours
+**Files**: `src/types.ts`, `src/entities/Human.ts`, `src/utils/EnergyUtils.ts` (new)
+
+**Summary**: Define energy states and add helper methods to determine current energy state.
+
+#### Tasks
+- [ ] **Add Energy State Enum** (`src/types.ts`):
+  ```typescript
+  export enum EnergyState {
+    DESPERATE = 'DESPERATE',   // < 30% of maxHealth
+    HUNGRY = 'HUNGRY',         // < 50% of maxHealth
+    MODERATE = 'MODERATE',     // 50-80% of maxHealth
+    FULL = 'FULL',             // > 80% of maxHealth
+    SATIATED = 'SATIATED'      // = maxHealth
+  }
+  ```
+
+- [ ] **Create EnergyUtils Class** (`src/utils/EnergyUtils.ts`):
+  ```typescript
+  export class EnergyUtils {
+    static getEnergyState(currentHealth: number, maxHealth: number): EnergyState;
+    static getFoodSeekingMultiplier(state: EnergyState): number;
+    static getReproductionMultiplier(state: EnergyState): number;
+    static getCombatCautionMultiplier(state: EnergyState): number;
+    static shouldAvoidCombat(state: EnergyState): boolean; // DESPERATE = true
+  }
+  ```
+
+- [ ] **Add Method to Human Entity** (`src/entities/Human.ts`):
+  ```typescript
+  getEnergyState(): EnergyState {
+    return EnergyUtils.getEnergyState(this.health, this.genome.maxHealth);
+  }
+  ```
+
+#### Success Criteria
+- [ ] EnergyState enum compiles without errors
+- [ ] EnergyUtils class provides all multiplier calculations
+- [ ] Human entity can report current energy state
+- [ ] Energy state calculation is deterministic and correct
+
+---
+
+### Phase 29.2: Movement System Energy Integration ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `src/systems/MovementSystem.ts`
+
+**Summary**: Modulate food-seeking behavior based on energy state. Hungry humans seek food more aggressively, full humans show less interest.
+
+#### Tasks
+- [ ] **Update MovementSystem.process()** (`src/systems/MovementSystem.ts`):
+  - [ ] Get human's energy state: `const energyState = human.getEnergyState()`
+  - [ ] Calculate adjusted greed: `const adjustedGreed = human.genome.greed * EnergyUtils.getFoodSeekingMultiplier(energyState)`
+  - [ ] Use adjustedGreed instead of raw greed for food-seeking probability
+  - [ ] Apply to both male and female humans
+
+- [ ] **Update Wolf Avoidance** (for human caution):
+  - [ ] Calculate adjusted caution: `const adjustedCaution = human.genome.caution * EnergyUtils.getCombatCautionMultiplier(energyState)`
+  - [ ] Use adjustedCaution for wolf-avoidance decisions
+  - [ ] DESPERATE humans flee wolves with 100% probability (override caution)
+
+- [ ] **Male Combat Avoidance**:
+  - [ ] DESPERATE males avoid male-on-male fights (don't move toward other males)
+  - [ ] Implement fleeing behavior (move away from adjacent males when DESPERATE)
+
+#### Implementation Notes
+```typescript
+// Pseudo-code for food-seeking modulation
+if (humanEntity instanceof Human) {
+  const energyState = humanEntity.getEnergyState();
+  const adjustedGreed = humanEntity.genome.greed * EnergyUtils.getFoodSeekingMultiplier(energyState);
+
+  if (Random.chance(adjustedGreed)) {
+    // Move toward food
+  }
+}
+```
+
+#### Success Criteria
+- [ ] Hungry humans (< 50% health) seek food with 1.5× greed
+- [ ] Full humans (> 80% health) seek food with 0.5× greed
+- [ ] SATIATED humans (= maxHealth) seek food with 0.1× greed
+- [ ] DESPERATE humans flee from wolves 100% of time
+- [ ] DESPERATE males avoid male-on-male combat
+- [ ] All existing movement behaviors still work correctly
+
+---
+
+### Phase 29.3: Reproduction System Energy Integration ❌ NOT STARTED
+**Estimated Time**: 1-2 hours
+**Files**: `src/systems/ReproductionSystem.ts`
+
+**Summary**: Males at FULL energy prioritize reproduction (1.5× probability), DESPERATE/HUNGRY males skip reproduction attempts.
+
+#### Tasks
+- [ ] **Update ReproductionSystem.process()** (`src/systems/ReproductionSystem.ts`):
+  - [ ] Get male's energy state before reproduction check
+  - [ ] DESPERATE/HUNGRY: Skip reproduction attempt (survival priority)
+  - [ ] MODERATE: Normal reproduction probability
+  - [ ] FULL: Reproduction probability × 1.5
+
+- [ ] **Implementation**:
+  ```typescript
+  if (maleEntity instanceof Human) {
+    const energyState = maleEntity.getEnergyState();
+
+    // Skip reproduction if too hungry
+    if (energyState === EnergyState.DESPERATE || energyState === EnergyState.HUNGRY) {
+      continue;
+    }
+
+    // Adjust reproduction probability
+    let reproductionChance = config.human.reproductionProbability;
+    if (energyState === EnergyState.FULL) {
+      reproductionChance *= 1.5;
+    }
+
+    if (Random.chance(reproductionChance)) {
+      // Initiate pregnancy
+    }
+  }
+  ```
+
+#### Success Criteria
+- [ ] DESPERATE males skip all reproduction attempts
+- [ ] HUNGRY males skip all reproduction attempts
+- [ ] MODERATE males use normal reproduction probability
+- [ ] FULL males have 1.5× reproduction probability
+- [ ] Reproduction system still works correctly for all other mechanics
+- [ ] Pregnancy, cooldown, and birth unchanged
+
+---
+
+### Phase 29.4: Combat System Energy Integration ❌ NOT STARTED
+**Estimated Time**: 1-2 hours
+**Files**: `src/systems/CombatSystem.ts`
+
+**Summary**: DESPERATE males flee from male-on-male combat instead of fighting.
+
+#### Tasks
+- [ ] **Update Male-on-Male Combat** (`src/systems/CombatSystem.ts`):
+  - [ ] Before applying damage, check both males' energy states
+  - [ ] If either male is DESPERATE, they attempt to flee instead of fight
+  - [ ] Fleeing male takes no damage, other male takes no damage
+  - [ ] Fleeing male marked (movement system handles actual fleeing)
+
+- [ ] **Alternative Implementation** (simpler):
+  - [ ] DESPERATE males deal 0 damage in male-on-male combat
+  - [ ] DESPERATE males still take damage (they tried to flee but failed)
+  - [ ] This creates asymmetric combat where DESPERATE males lose fights
+
+- [ ] **Wolf Combat** (unchanged):
+  - [ ] Males counter-attack wolves regardless of energy state (survival instinct)
+  - [ ] Energy state only affects whether they move toward/away from wolves (handled in MovementSystem)
+
+#### Implementation Notes
+Simpler approach: DESPERATE males deal reduced damage (0.5× strength) in combat rather than full fleeing mechanic.
+
+```typescript
+if (male1.getEnergyState() === EnergyState.DESPERATE) {
+  male1Damage *= 0.5; // Reduced combat effectiveness
+}
+if (male2.getEnergyState() === EnergyState.DESPERATE) {
+  male2Damage *= 0.5;
+}
+```
+
+#### Success Criteria
+- [ ] DESPERATE males avoid or are ineffective in male-on-male combat
+- [ ] Energy state affects combat outcomes visibly
+- [ ] Wolf counter-attacks unchanged (survival instinct overrides energy state)
+- [ ] All existing combat mechanics still work correctly
+
+---
+
+### Phase 29.5: Tooltip Display Enhancement ❌ NOT STARTED
+**Estimated Time**: 1 hour
+**Files**: `src/ui/TooltipManager.ts`, `src/i18n/translations.ts`
+
+**Summary**: Display current energy state in tooltip alongside genetic traits.
+
+#### Tasks
+- [ ] **Update Tooltip Content** (`src/ui/TooltipManager.ts`):
+  - [ ] Add energy state section to tooltip
+  - [ ] Format: "Energy: HUNGRY (45/100 HP)"
+  - [ ] Color-code energy state (red: DESPERATE, orange: HUNGRY, yellow: MODERATE, green: FULL, bright green: SATIATED)
+
+- [ ] **Add Energy Cost Display**:
+  - [ ] Show metabolic cost per move: "Energy Cost: 10 HP/move"
+  - [ ] Calculate from: `metabolism × maxHealth`
+
+- [ ] **Add Behavioral Modifiers**:
+  - [ ] Show current food-seeking multiplier: "Food Seeking: 150% (HUNGRY)"
+  - [ ] Show current combat caution: "Combat Caution: 150% (HUNGRY)"
+  - [ ] Show reproduction status: "Reproduction: Disabled (HUNGRY)" or "Reproduction: 150% (FULL)"
+
+- [ ] **Localization** (`src/i18n/translations.ts`):
+  - [ ] Add energy state names (English/Polish)
+  - [ ] Add tooltip labels for all new fields
+
+#### Success Criteria
+- [ ] Tooltip shows current energy state with color coding
+- [ ] Tooltip shows metabolic cost per move
+- [ ] Tooltip shows behavioral modifiers (food-seeking, combat, reproduction)
+- [ ] All text localized in English and Polish
+- [ ] Tooltip updates in real-time as health changes
+
+---
+
+### Phase 29.6: Testing & Validation ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `tests/systems/MovementSystem.test.ts`, `tests/systems/ReproductionSystem.test.ts`, `tests/systems/CombatSystem.test.ts`, `tests/utils/EnergyUtils.test.ts` (new)
+
+**Summary**: Comprehensive testing of energy-driven behavior system.
+
+#### Tasks
+- [ ] **Unit Tests for EnergyUtils** (`tests/utils/EnergyUtils.test.ts`):
+  - [ ] Test energy state calculation (all 5 states)
+  - [ ] Test multiplier calculations (food-seeking, reproduction, combat)
+  - [ ] Test edge cases (health = 0, health = maxHealth, health > maxHealth)
+
+- [ ] **Integration Tests for Movement**:
+  - [ ] Verify HUNGRY humans seek food more aggressively
+  - [ ] Verify FULL humans seek food less aggressively
+  - [ ] Verify DESPERATE humans flee wolves 100%
+  - [ ] Verify DESPERATE males avoid other males
+
+- [ ] **Integration Tests for Reproduction**:
+  - [ ] Verify DESPERATE males skip reproduction
+  - [ ] Verify HUNGRY males skip reproduction
+  - [ ] Verify FULL males have increased reproduction probability
+
+- [ ] **Integration Tests for Combat**:
+  - [ ] Verify DESPERATE males deal reduced damage or flee
+  - [ ] Verify energy state doesn't affect wolf counter-attacks
+
+- [ ] **Behavioral Emergence Tests**:
+  - [ ] Run 100-round simulation with varied metabolism rates
+  - [ ] Verify low-metabolism humans (efficient) outcompete high-metabolism
+  - [ ] Verify well-fed populations reproduce faster
+  - [ ] Verify hungry populations cluster near food sources
+
+#### Success Criteria
+- [ ] All unit tests pass
+- [ ] All integration tests pass
+- [ ] No regression in existing tests
+- [ ] Behavioral emergence tests show expected patterns
+- [ ] System performs well (30+ FPS with 200-300 entities)
+
+---
+
+### Phase 29.7: Documentation & Configuration ❌ NOT STARTED
+**Estimated Time**: 1 hour
+**Files**: `CLAUDE.md`, `src/config.ts`, `src/ui/ConfigPanel.ts`
+
+**Summary**: Document energy system architecture and add configuration parameters if needed.
+
+#### Tasks
+- [ ] **Update CLAUDE.md**:
+  - [ ] Document energy state system
+  - [ ] Document behavioral modulation formulas
+  - [ ] Add examples of energy-driven decisions
+  - [ ] Update architecture overview with energy system
+
+- [ ] **Add Configuration Parameters** (optional, `src/config.ts`):
+  ```typescript
+  energy: {
+    desperateThreshold: 0.3,      // 30% of maxHealth
+    hungryThreshold: 0.5,         // 50% of maxHealth
+    fullThreshold: 0.8,           // 80% of maxHealth
+    hungryFoodMultiplier: 1.5,    // Food-seeking boost when hungry
+    fullFoodMultiplier: 0.5,      // Food-seeking reduction when full
+    fullReproductionMultiplier: 1.5, // Reproduction boost when full
+    desperateCombatReduction: 0.5,   // Combat damage reduction when desperate
+  }
+  ```
+
+- [ ] **Add Configuration UI** (if parameters added):
+  - [ ] Add "Energy System" section to ConfigPanel
+  - [ ] Add sliders/inputs for all thresholds and multipliers
+  - [ ] Add tooltips explaining each parameter
+  - [ ] Add validation
+
+#### Success Criteria
+- [ ] CLAUDE.md comprehensively documents energy system
+- [ ] Configuration parameters exposed (if added)
+- [ ] Configuration UI functional (if added)
+- [ ] All documentation clear and accurate
+
+---
+
+### Overall Success Criteria (Phase 29)
+- [ ] Energy states (DESPERATE, HUNGRY, MODERATE, FULL, SATIATED) calculated correctly
+- [ ] Food-seeking behavior modulated by energy state (1.5× when hungry, 0.5× when full)
+- [ ] Reproduction probability modulated (1.5× when full, 0× when hungry/desperate)
+- [ ] Combat behavior modulated (reduced effectiveness or fleeing when desperate)
+- [ ] Tooltip displays energy state and behavioral modifiers
+- [ ] All tests passing (unit + integration)
+- [ ] Build completes without errors
+- [ ] Performance target maintained (30+ FPS)
+- [ ] Educational value: Students observe resource-driven decision making
+- [ ] Metabolism gene becomes strategically important (emergent advantage)
+
+---
+
+## 🧬 Phase 30: Heritable Lifespan & Genome Evolution Tracking ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: HIGH - Core genetic algorithm enhancement
+**Estimated Time**: 10-14 hours
+**Blocking**: NO - Enhancement feature
+**Dependencies**: Phase 25 (Genetic Algorithms)
+**Reference**: PRD Sections 3.17.1-3.17.5, 3.18.1-3.18.8, User Stories US-047 to US-049, US-052
+
+### Overview
+Add longevity gene to genome (controls aging rate) and create comprehensive genome evolution visualization. Students can observe how genetic traits evolve over time, compare male vs female evolution, and understand natural selection through trait tracking.
+
+### Educational Value
+- **Natural Selection**: Students see advantageous traits increase over time
+- **Sexual Selection**: Compare male vs female trait evolution (sexual dimorphism)
+- **Tradeoffs**: Understand longevity vs reproduction rate tradeoffs
+- **Data Literacy**: Reading multi-line graphs, interpreting trends
+- **Scientific Method**: Form hypotheses about trait evolution, test via experimentation
+
+---
+
+### Phase 30.1: Longevity Gene Implementation ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `src/types.ts`, `src/utils/GenomeUtils.ts`, `src/systems/DeathSystem.ts`, `src/entities/Human.ts`
+
+**Summary**: Add longevity gene to Genome interface and integrate into aging calculations.
+
+#### Tasks
+- [ ] **Update Genome Interface** (`src/types.ts`):
+  ```typescript
+  export interface Genome {
+    maxHealth: number;
+    strength: number;
+    metabolism: number;
+    greed: number;
+    caution: number;
+    longevity: number;  // NEW: 0.5 - 2.0, modulates aging rate
+  }
+  ```
+
+- [ ] **Update GenomeUtils** (`src/utils/GenomeUtils.ts`):
+  - [ ] Update `createRandomGenome()`: Add longevity with gaussian distribution (mean 1.0, stdDev 0.3, clamp 0.5-2.0)
+  - [ ] Update `crossover()`: Add longevity inheritance with mutation (variance 0.2)
+
+- [ ] **Update DeathSystem** (`src/systems/DeathSystem.ts`):
+  - [ ] Calculate effective Gompertz B: `effectiveB = config.human.gompertzB * human.genome.longevity`
+  - [ ] Use effectiveB in Gompertz probability calculation
+  - [ ] Apply to both males and females
+
+- [ ] **Update Human Entity** (`src/entities/Human.ts`):
+  - [ ] Ensure genome includes longevity in constructor
+  - [ ] Verify longevity inherits correctly via GenomeUtils.crossover()
+
+#### Implementation Notes
+```typescript
+// In DeathSystem.ts
+if (entity instanceof Human) {
+  const effectiveGompertzB = config.human.gompertzB * entity.genome.longevity;
+  const deathProbability = gompertz(entity.age, config.human.gompertzA, effectiveGompertzB);
+  // ... apply overcrowding multiplier, check death
+}
+```
+
+#### Success Criteria
+- [ ] Longevity gene added to Genome interface
+- [ ] Longevity gene generates randomly (range 0.5-2.0, mean 1.0)
+- [ ] Longevity gene inherits via crossover with mutation
+- [ ] Longevity modulates Gompertz B parameter correctly
+- [ ] Low longevity (0.5) = longer lifespan observable
+- [ ] High longevity (2.0) = shorter lifespan observable
+- [ ] All existing genetic tests still pass
+
+---
+
+### Phase 30.2: Genome History Tracking Infrastructure ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `src/core/Game.ts`, `src/types.ts`
+
+**Summary**: Track average genome values per round for males and females separately.
+
+#### Tasks
+- [ ] **Add GenomeHistory Interface** (`src/types.ts`):
+  ```typescript
+  export interface GenomeSnapshot {
+    round: number;
+    maleAverage: Genome;
+    femaleAverage: Genome;
+    maleCount: number;
+    femaleCount: number;
+  }
+  ```
+
+- [ ] **Add Genome Tracking to Game** (`src/core/Game.ts`):
+  - [ ] Add property: `private genomeHistory: GenomeSnapshot[] = []`
+  - [ ] Add method: `private recordGenomeSnapshot(): void`
+  - [ ] Call `recordGenomeSnapshot()` after each round in `runRound()`
+
+- [ ] **Implement Genome Averaging**:
+  ```typescript
+  private recordGenomeSnapshot(): void {
+    const males: Human[] = [];
+    const females: Human[] = [];
+
+    // Collect all humans
+    for (let x = 0; x < this.board.width; x++) {
+      for (let y = 0; y < this.board.height; y++) {
+        const entity = this.board.getEntity(x, y);
+        if (entity instanceof Human) {
+          if (entity.sex === Sex.MALE) males.push(entity);
+          else females.push(entity);
+        }
+      }
+    }
+
+    // Calculate averages
+    const maleAverage = this.calculateGenomeAverage(males);
+    const femaleAverage = this.calculateGenomeAverage(females);
+
+    this.genomeHistory.push({
+      round: this.currentRound,
+      maleAverage,
+      femaleAverage,
+      maleCount: males.length,
+      femaleCount: females.length
+    });
+  }
+
+  private calculateGenomeAverage(humans: Human[]): Genome {
+    if (humans.length === 0) {
+      return {
+        maxHealth: 0,
+        strength: 0,
+        metabolism: 0,
+        greed: 0,
+        caution: 0,
+        longevity: 0
+      };
+    }
+
+    const sum = humans.reduce((acc, human) => ({
+      maxHealth: acc.maxHealth + human.genome.maxHealth,
+      strength: acc.strength + human.genome.strength,
+      metabolism: acc.metabolism + human.genome.metabolism,
+      greed: acc.greed + human.genome.greed,
+      caution: acc.caution + human.genome.caution,
+      longevity: acc.longevity + human.genome.longevity
+    }), { maxHealth: 0, strength: 0, metabolism: 0, greed: 0, caution: 0, longevity: 0 });
+
+    return {
+      maxHealth: sum.maxHealth / humans.length,
+      strength: sum.strength / humans.length,
+      metabolism: sum.metabolism / humans.length,
+      greed: sum.greed / humans.length,
+      caution: sum.caution / humans.length,
+      longevity: sum.longevity / humans.length
+    };
+  }
+  ```
+
+- [ ] **Add Public Getter**:
+  ```typescript
+  getGenomeHistory(): GenomeSnapshot[] {
+    return this.genomeHistory;
+  }
+  ```
+
+- [ ] **Reset Genome History**:
+  - [ ] Clear `genomeHistory` in `reset()` method
+
+#### Success Criteria
+- [ ] Genome history tracked each round
+- [ ] Male and female averages calculated correctly
+- [ ] Genome history accessible via public getter
+- [ ] History resets when game resets
+- [ ] No performance degradation (tracking is fast)
+
+---
+
+### Phase 30.3: Genome Evolution Graph UI ❌ NOT STARTED
+**Estimated Time**: 3-4 hours
+**Files**: `index.html`, `src/main.ts`
+
+**Summary**: Create new graph below population graph showing evolution of genetic traits over time.
+
+#### Tasks
+- [ ] **Add Graph Canvas** (`index.html`):
+  - [ ] Add new canvas element: `<canvas id="genomeGraphCanvas" width="280" height="180"></canvas>`
+  - [ ] Position below population graph in statistics panel
+  - [ ] Add heading: "📊 Genome Evolution"
+
+- [ ] **Add Trait Toggle Checkboxes** (`index.html`):
+  ```html
+  <div class="genome-graph-controls">
+    <label><input type="checkbox" id="showMaxHealth" checked> Max Health</label>
+    <label><input type="checkbox" id="showStrength" checked> Strength</label>
+    <label><input type="checkbox" id="showMetabolism" checked> Metabolism</label>
+    <label><input type="checkbox" id="showGreed"> Greed</label>
+    <label><input type="checkbox" id="showCaution"> Caution</label>
+    <label><input type="checkbox" id="showLongevity"> Longevity</label>
+  </div>
+  ```
+
+- [ ] **Create Graph Rendering Function** (`src/main.ts`):
+  ```typescript
+  function renderGenomeGraph(game: Game): void {
+    const canvas = document.getElementById('genomeGraphCanvas') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
+    const history = game.getGenomeHistory();
+
+    if (history.length === 0) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Get active traits from checkboxes
+    const activeTraits = getActiveTraits();
+
+    // Draw axes, grid, labels
+    drawGraphAxes(ctx, canvas.width, canvas.height);
+
+    // Draw trait lines
+    for (const trait of activeTraits) {
+      drawTraitLine(ctx, history, trait, 'male', getMaleColor(trait));
+      drawTraitLine(ctx, history, trait, 'female', getFemaleColor(trait));
+    }
+
+    // Draw legend
+    drawGenomeLegend(ctx, activeTraits, history[history.length - 1]);
+  }
+
+  function getActiveTraits(): string[] {
+    const traits = ['maxHealth', 'strength', 'metabolism', 'greed', 'caution', 'longevity'];
+    return traits.filter(trait => {
+      const checkbox = document.getElementById(`show${capitalizeFirst(trait)}`) as HTMLInputElement;
+      return checkbox && checkbox.checked;
+    });
+  }
+
+  function drawTraitLine(
+    ctx: CanvasRenderingContext2D,
+    history: GenomeSnapshot[],
+    trait: keyof Genome,
+    sex: 'male' | 'female',
+    color: string
+  ): void {
+    // Scale Y-axis based on trait type
+    const yScale = getYScale(trait, history, sex);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    for (let i = 0; i < history.length; i++) {
+      const snapshot = history[i];
+      const genome = sex === 'male' ? snapshot.maleAverage : snapshot.femaleAverage;
+      const value = genome[trait];
+
+      const x = (i / (history.length - 1)) * (canvas.width - 40) + 30;
+      const y = canvas.height - 30 - (value / yScale) * (canvas.height - 50);
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.stroke();
+  }
+  ```
+
+- [ ] **Define Color Palettes**:
+  ```typescript
+  const MALE_COLORS = {
+    maxHealth: '#0066cc',    // Dark blue
+    strength: '#3399ff',     // Royal blue
+    metabolism: '#66ccff',   // Cyan
+    greed: '#0099cc',        // Sky blue
+    caution: '#0055aa',      // Steel blue
+    longevity: '#003366'     // Navy
+  };
+
+  const FEMALE_COLORS = {
+    maxHealth: '#ff3366',    // Pink
+    strength: '#cc0066',     // Magenta
+    metabolism: '#ff6699',   // Rose
+    greed: '#ff9966',        // Coral
+    caution: '#cc3333',      // Crimson
+    longevity: '#990033'     // Maroon
+  };
+  ```
+
+- [ ] **Event Listeners for Checkboxes**:
+  - [ ] Add change listeners to all trait checkboxes
+  - [ ] Call `renderGenomeGraph(game)` on checkbox change
+  - [ ] Persist checkbox state in session storage (optional)
+
+#### Success Criteria
+- [ ] Graph canvas displays below population graph
+- [ ] Checkboxes toggle trait visibility
+- [ ] Male traits displayed in blue palette
+- [ ] Female traits displayed in pink/red palette
+- [ ] Graph auto-scales to fit active traits
+- [ ] Legend shows trait names and current values
+- [ ] Graph updates in real-time as simulation runs
+
+---
+
+### Phase 30.4: Graph Scaling & Legend ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `src/main.ts`
+
+**Summary**: Implement intelligent Y-axis scaling and comprehensive legend.
+
+#### Tasks
+- [ ] **Y-Axis Scaling by Trait Type**:
+  ```typescript
+  function getYScale(trait: keyof Genome, history: GenomeSnapshot[], sex: 'male' | 'female'): number {
+    // Find max value for this trait across all history
+    let maxValue = 0;
+    for (const snapshot of history) {
+      const genome = sex === 'male' ? snapshot.maleAverage : snapshot.femaleAverage;
+      maxValue = Math.max(maxValue, genome[trait]);
+    }
+
+    // Add 10% padding
+    return maxValue * 1.1;
+  }
+  ```
+
+- [ ] **Multi-Trait Y-Axis Scaling**:
+  - [ ] When multiple traits displayed, use unified scale OR separate scales
+  - [ ] Option 1: Normalize all traits to 0-1 range
+  - [ ] Option 2: Show raw values but use different Y-axes (complex UI)
+  - [ ] Recommendation: Normalize for simplicity
+
+- [ ] **Legend Implementation**:
+  ```typescript
+  function drawGenomeLegend(
+    ctx: CanvasRenderingContext2D,
+    activeTraits: string[],
+    currentSnapshot: GenomeSnapshot
+  ): void {
+    let y = 10;
+    const x = canvas.width - 150;
+
+    ctx.font = '11px Arial';
+
+    for (const trait of activeTraits) {
+      // Male line
+      ctx.fillStyle = getMaleColor(trait);
+      ctx.fillRect(x, y, 15, 2);
+      ctx.fillText(`♂ ${trait}: ${currentSnapshot.maleAverage[trait].toFixed(1)}`, x + 20, y + 5);
+      y += 15;
+
+      // Female line
+      ctx.fillStyle = getFemaleColor(trait);
+      ctx.fillRect(x, y, 15, 2);
+      ctx.fillText(`♀ ${trait}: ${currentSnapshot.femaleAverage[trait].toFixed(1)}`, x + 20, y + 5);
+      y += 15;
+    }
+  }
+  ```
+
+- [ ] **Axes and Grid**:
+  - [ ] Draw X-axis (rounds) with tick marks
+  - [ ] Draw Y-axis (trait values) with tick marks
+  - [ ] Add grid lines (light gray)
+  - [ ] Add axis labels: "Round" (X), "Trait Value" (Y)
+
+#### Success Criteria
+- [ ] Y-axis scales appropriately for displayed traits
+- [ ] Legend shows all active trait lines with colors
+- [ ] Legend shows current average values
+- [ ] Male/Female symbols (♂/♀) distinguish sex
+- [ ] Graph readable and professional-looking
+- [ ] Grid and axes properly labeled
+
+---
+
+### Phase 30.5: Localization ❌ NOT STARTED
+**Estimated Time**: 1 hour
+**Files**: `src/i18n/translations.ts`, `index.html`
+
+**Summary**: Add English/Polish translations for all genome graph UI elements.
+
+#### Tasks
+- [ ] **Add Translation Keys** (`src/i18n/translations.ts`):
+  ```typescript
+  genomeGraph: {
+    title: 'Genome Evolution',
+    maxHealth: 'Max Health',
+    strength: 'Strength',
+    metabolism: 'Metabolism',
+    greed: 'Greed',
+    caution: 'Caution',
+    longevity: 'Longevity',
+    male: 'Male',
+    female: 'Female',
+    round: 'Round',
+    value: 'Trait Value'
+  }
+  ```
+
+- [ ] **Polish Translations**:
+  ```typescript
+  genomeGraph: {
+    title: 'Ewolucja Genomu',
+    maxHealth: 'Maks. Zdrowie',
+    strength: 'Siła',
+    metabolism: 'Metabolizm',
+    greed: 'Chciwość',
+    caution: 'Ostrożność',
+    longevity: 'Długowieczność',
+    male: 'Mężczyzna',
+    female: 'Kobieta',
+    round: 'Runda',
+    value: 'Wartość Cechy'
+  }
+  ```
+
+- [ ] **Apply Translations in HTML**:
+  - [ ] Use `data-i18n` attributes for all text
+  - [ ] Update checkbox labels with translation keys
+  - [ ] Update heading with translation key
+
+- [ ] **Update Tooltip** (`src/ui/TooltipManager.ts`):
+  - [ ] Add longevity to tooltip display
+  - [ ] Format: "Longevity: 1.2 (20% faster aging)"
+  - [ ] Localize label
+
+#### Success Criteria
+- [ ] All UI text has English and Polish translations
+- [ ] Language switcher updates genome graph UI
+- [ ] Tooltip displays longevity gene
+- [ ] No untranslated text in Polish mode
+
+---
+
+### Phase 30.6: Testing & Validation ❌ NOT STARTED
+**Estimated Time**: 2-3 hours
+**Files**: `tests/systems/DeathSystem.test.ts`, `tests/utils/GenomeUtils.test.ts`, `tests/core/Game.test.ts`
+
+**Summary**: Comprehensive testing of longevity gene and genome tracking.
+
+#### Tasks
+- [ ] **Longevity Gene Tests**:
+  - [ ] Test longevity range (0.5-2.0) enforced in GenomeUtils
+  - [ ] Test longevity inheritance via crossover
+  - [ ] Test longevity mutation
+  - [ ] Test Gompertz B modulation (effectiveB = B × longevity)
+
+- [ ] **Death Rate Tests**:
+  - [ ] Verify longevity 0.5 → ~50% slower aging
+  - [ ] Verify longevity 2.0 → ~2× faster aging
+  - [ ] Verify death probability calculation correct
+
+- [ ] **Genome Tracking Tests**:
+  - [ ] Test genome averaging calculation
+  - [ ] Test male/female separation
+  - [ ] Test history accumulation
+  - [ ] Test history reset on game reset
+
+- [ ] **Graph Rendering Tests** (manual):
+  - [ ] Verify graph displays correctly
+  - [ ] Verify trait lines update in real-time
+  - [ ] Verify checkboxes toggle traits
+  - [ ] Verify colors correct (males blue, females pink/red)
+  - [ ] Verify legend shows current values
+
+- [ ] **Evolutionary Emergence Tests**:
+  - [ ] Run 200-round simulation with high wolf pressure
+  - [ ] Observe if high-strength genes increase in population
+  - [ ] Run 200-round simulation with high mushroom spawning
+  - [ ] Observe if high-maxHealth genes increase
+  - [ ] Run 200-round simulation with limited food
+  - [ ] Observe if low-metabolism genes increase
+
+#### Success Criteria
+- [ ] All unit tests pass
+- [ ] All integration tests pass
+- [ ] Longevity gene works correctly (observable lifespan variation)
+- [ ] Genome tracking accurate
+- [ ] Graph displays correctly
+- [ ] Evolutionary trends observable in long simulations
+- [ ] Performance maintained (30+ FPS)
+
+---
+
+### Overall Success Criteria (Phase 30)
+- [ ] Longevity gene added to Genome (range 0.5-2.0)
+- [ ] Longevity modulates aging rate via Gompertz B
+- [ ] Genome history tracked per round (males and females separate)
+- [ ] Genome evolution graph displays correctly
+- [ ] 6 trait lines (maxHealth, strength, metabolism, greed, caution, longevity) × 2 sexes
+- [ ] Checkboxes toggle trait visibility
+- [ ] Default: physical traits visible, behavioral traits hidden
+- [ ] Graph auto-scales and includes legend
+- [ ] Full English/Polish localization
+- [ ] All tests passing
+- [ ] Build completes without errors
+- [ ] Students can observe evolution and natural selection
+- [ ] Students can compare male vs female trait evolution
+
+---
+
+## 🐕 Phase 31: Dog Dietary Immunity ❌ NOT STARTED
+
+**Status**: ❌ NOT STARTED
+**Priority**: LOW - Simple quality-of-life feature
+**Estimated Time**: 1-2 hours
+**Blocking**: NO - Enhancement feature
+**Dependencies**: None
+**Reference**: PRD Section 3.19.1-3.19.3, User Story US-050
+
+### Overview
+Allow dogs to eat mushrooms without taking damage, providing immunity to mushroom toxins. This gives dogs additional ecosystem value (mushroom control) beyond wolf defense.
+
+### Educational Value
+- **Species Adaptation**: Students observe that different species have different dietary tolerances
+- **Ecosystem Balance**: Dogs help control mushroom overgrowth
+- **Niche Differentiation**: Dogs have two roles (wolf defense + mushroom cleanup)
+
+---
+
+### Phase 31.1: Implementation ❌ NOT STARTED
+**Estimated Time**: 30 minutes
+**Files**: `src/systems/EatingSystem.ts`
+
+**Summary**: Modify EatingSystem to allow dogs to eat mushrooms without damage.
+
+#### Tasks
+- [ ] **Update EatingSystem.process()** (`src/systems/EatingSystem.ts`):
+  - [ ] Check if entity eating mushroom is a Dog
+  - [ ] If Dog: Remove mushroom, don't apply damage
+  - [ ] If Human: Remove mushroom, apply damage (existing behavior)
+
+- [ ] **Implementation**:
+  ```typescript
+  // In EatingSystem, mushroom eating logic
+  if (adjacentEntity instanceof Mushroom) {
+    if (entity instanceof Dog) {
+      // Dog eats mushroom without harm
+      board.removeEntity(adjacentEntity.x, adjacentEntity.y);
+      renderer.addVisualEffect('eating', adjacentEntity.x, adjacentEntity.y);
+      // No damage applied
+    } else if (entity instanceof Human) {
+      // Human eats mushroom and takes damage (existing behavior)
+      entity.health -= config.mushroom.energyRemoved;
+      board.removeEntity(adjacentEntity.x, adjacentEntity.y);
+      renderer.addVisualEffect('eating', adjacentEntity.x, adjacentEntity.y);
+    }
+  }
+  ```
+
+#### Success Criteria
+- [ ] Dogs can eat mushrooms
+- [ ] Dogs health unchanged when eating mushrooms
+- [ ] Mushroom removed from board
+- [ ] Yellow flash displays
+- [ ] Humans still take damage from mushrooms (no change)
+
+---
+
+### Phase 31.2: Testing & Validation ❌ NOT STARTED
+**Estimated Time**: 30 minutes
+**Files**: `tests/systems/EatingSystem.test.ts`
+
+**Summary**: Add tests for dog mushroom immunity.
+
+#### Tasks
+- [ ] **Add Tests**:
+  - [ ] Test: Dog eats mushroom, health unchanged
+  - [ ] Test: Mushroom removed after dog eats it
+  - [ ] Test: Human still takes damage from mushrooms
+  - [ ] Test: Visual effect triggers for dog eating mushroom
+
+#### Success Criteria
+- [ ] All tests pass
+- [ ] No regression in existing eating tests
+
+---
+
+### Phase 31.3: Localization & Documentation ❌ NOT STARTED
+**Estimated Time**: 30 minutes
+**Files**: `src/i18n/translations.ts`, `CLAUDE.md`
+
+**Summary**: Document dog mushroom immunity and update localization if needed.
+
+#### Tasks
+- [ ] **Update Help Modal** (if exists):
+  - [ ] Add dog mushroom immunity to dog description
+  - [ ] Explain strategic value (mushroom control)
+
+- [ ] **Update CLAUDE.md**:
+  - [ ] Document dog eating behavior in "Eating System" section
+  - [ ] Note species-specific dietary tolerances
+
+- [ ] **Localization**:
+  - [ ] Add translation keys if help modal updated
+
+#### Success Criteria
+- [ ] Documentation updated
+- [ ] Help modal explains dog mushroom immunity (if applicable)
+- [ ] Localization complete
+
+---
+
+### Overall Success Criteria (Phase 31)
+- [ ] Dogs can eat mushrooms without taking damage
+- [ ] Humans still take damage from mushrooms
+- [ ] Mushrooms removed after being eaten by dogs
+- [ ] Visual effect (yellow flash) displays correctly
+- [ ] All tests passing
+- [ ] Documentation updated
+- [ ] Build completes without errors
+
+---
+
 ## 📋 Post-MVP Enhancements (Future)
 
 Items deferred beyond MVP scope:
 - [ ] Save/Load simulation state to file
 - [ ] Export simulation data (CSV/JSON)
+- [ ] Export genome evolution data (CSV)
 - [ ] Advanced statistics (avg age, population graphs)
 - [ ] Additional entity types (predator/prey variations)
 - [ ] Sound effects
