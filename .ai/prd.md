@@ -289,18 +289,18 @@ The solution must enable exploration-based learning where students discover prin
 3.16.4 **Reproduction-Seeking Behavior (Males)**:
   - DESPERATE/HUNGRY: No active reproduction seeking (survival takes priority)
   - MODERATE: Normal reproduction probability as configured
-  - FULL: Reproduction probability × 1.5 (prioritize reproduction when well-fed)
+  - FULL/SATIATED: Reproduction probability × 1.5 (prioritize reproduction when well-fed)
 
 3.16.5 **Combat Avoidance Modulation**:
   - DESPERATE: 100% flee from male-on-male combat (survival imperative)
   - HUNGRY: Predator avoidance probability = caution trait × 1.5 (increased caution)
   - MODERATE: Predator avoidance probability = caution trait (normal behavior)
-  - FULL: Predator avoidance probability = caution trait × 0.7 (more confident)
+  - FULL/SATIATED: Predator avoidance probability = caution trait × 0.7 (more confident)
 
-3.16.6 **Metabolic Energy Cost**: Each movement costs energy = metabolism gene × maxHealth gene. This creates heritable variation in energy efficiency. Examples:
-  - metabolism 0.1, maxHealth 100 → 10 energy per move
-  - metabolism 0.05, maxHealth 120 → 6 energy per move (more efficient)
-  - metabolism 0.15, maxHealth 80 → 12 energy per move (less efficient)
+3.16.6 **Metabolic Energy Cost**: Each movement costs energy = metabolism gene. This creates heritable variation in energy efficiency. Examples:
+  - metabolism 1 → 1 energy per move
+  - metabolism 0.5 → 0.5 energy per move (more efficient)
+  - metabolism 1.5 → 1.5 energy per move (less efficient)
 
 3.16.7 **Strategic Implications**: Energy-driven behavior creates emergent strategies. Humans with low metabolism (efficient) can travel farther. Humans with high greed find food faster when hungry. Humans with high caution survive predators better when weak.
 
@@ -893,7 +893,7 @@ Acceptance Criteria:
 Title: Observe energy consumption during movement
 Description: As a student, I want to see humans lose energy when moving so that I can understand metabolic costs.
 Acceptance Criteria:
-- Each move costs energy = metabolism gene × maxHealth gene
+- Each move costs energy = metabolism gene
 - Humans with low metabolism travel farther on same energy
 - Humans with high metabolism need more frequent feeding
 - Tooltip displays metabolic rate and energy cost per move

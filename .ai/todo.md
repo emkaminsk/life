@@ -1907,9 +1907,19 @@ Phase 29 makes energy state a central decision-making factor, creating rich emer
   ```typescript
   export class EnergyUtils {
     static getEnergyState(currentHealth: number, maxHealth: number): EnergyState;
+
+    // Food-seeking multipliers (PRD 3.16.3)
+    // DESPERATE/HUNGRY: 1.5×, MODERATE: 1.0×, FULL: 0.5×, SATIATED: 0.1×
     static getFoodSeekingMultiplier(state: EnergyState): number;
+
+    // Reproduction multipliers (PRD 3.16.4)
+    // DESPERATE/HUNGRY: 0× (skip), MODERATE: 1.0×, FULL/SATIATED: 1.5×
     static getReproductionMultiplier(state: EnergyState): number;
+
+    // Combat caution multipliers (PRD 3.16.5)
+    // DESPERATE: 100% flee override, HUNGRY: 1.5×, MODERATE: 1.0×, FULL/SATIATED: 0.7×
     static getCombatCautionMultiplier(state: EnergyState): number;
+
     static shouldAvoidCombat(state: EnergyState): boolean; // DESPERATE = true
   }
   ```
@@ -1969,6 +1979,8 @@ if (humanEntity instanceof Human) {
 - [ ] Full humans (> 80% health) seek food with 0.5× greed
 - [ ] SATIATED humans (= maxHealth) seek food with 0.1× greed
 - [ ] DESPERATE humans flee from wolves 100% of time
+- [ ] HUNGRY humans have increased wolf caution (1.5× caution trait)
+- [ ] FULL/SATIATED humans are more confident (0.7× caution trait)
 - [ ] DESPERATE males avoid male-on-male combat
 - [ ] All existing movement behaviors still work correctly
 
@@ -1978,14 +1990,14 @@ if (humanEntity instanceof Human) {
 **Estimated Time**: 1-2 hours
 **Files**: `src/systems/ReproductionSystem.ts`
 
-**Summary**: Males at FULL energy prioritize reproduction (1.5× probability), DESPERATE/HUNGRY males skip reproduction attempts.
+**Summary**: Males at FULL/SATIATED energy prioritize reproduction (1.5× probability), DESPERATE/HUNGRY males skip reproduction attempts.
 
 #### Tasks
 - [ ] **Update ReproductionSystem.process()** (`src/systems/ReproductionSystem.ts`):
   - [ ] Get male's energy state before reproduction check
   - [ ] DESPERATE/HUNGRY: Skip reproduction attempt (survival priority)
   - [ ] MODERATE: Normal reproduction probability
-  - [ ] FULL: Reproduction probability × 1.5
+  - [ ] FULL/SATIATED: Reproduction probability × 1.5
 
 - [ ] **Implementation**:
   ```typescript
@@ -1999,7 +2011,7 @@ if (humanEntity instanceof Human) {
 
     // Adjust reproduction probability
     let reproductionChance = config.human.reproductionProbability;
-    if (energyState === EnergyState.FULL) {
+    if (energyState === EnergyState.FULL || energyState === EnergyState.SATIATED) {
       reproductionChance *= 1.5;
     }
 
@@ -2014,6 +2026,7 @@ if (humanEntity instanceof Human) {
 - [ ] HUNGRY males skip all reproduction attempts
 - [ ] MODERATE males use normal reproduction probability
 - [ ] FULL males have 1.5× reproduction probability
+- [ ] SATIATED males have 1.5× reproduction probability
 - [ ] Reproduction system still works correctly for all other mechanics
 - [ ] Pregnancy, cooldown, and birth unchanged
 
@@ -2074,8 +2087,8 @@ if (male2.getEnergyState() === EnergyState.DESPERATE) {
   - [ ] Color-code energy state (red: DESPERATE, orange: HUNGRY, yellow: MODERATE, green: FULL, bright green: SATIATED)
 
 - [ ] **Add Energy Cost Display**:
-  - [ ] Show metabolic cost per move: "Energy Cost: 10 HP/move"
-  - [ ] Calculate from: `metabolism × maxHealth`
+  - [ ] Show metabolic cost per move: "Energy Cost: 1.0 HP/move"
+  - [ ] Calculate from: `metabolism` gene (NOT multiplied by maxHealth)
 
 - [ ] **Add Behavioral Modifiers**:
   - [ ] Show current food-seeking multiplier: "Food Seeking: 150% (HUNGRY)"
