@@ -32,3 +32,9 @@ export interface Genome {
   greed: number;        // Behavioral: Probability to move toward food (0-1)
   caution: number;      // Behavioral: Probability to run from predators (0-1)
 }
+
+export interface GenomeSnapshot {
+  round: number;
+  maleAverage: Genome;
+  femaleAverage: Genome;
+}

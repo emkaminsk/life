@@ -285,6 +285,7 @@ The solution must enable exploration-based learning where students discover prin
   - MODERATE: Food-seeking probability = greed trait (normal behavior)
   - FULL: Food-seeking probability = greed trait × 0.5 (reduced urgency)
   - SATIATED: Food-seeking probability = greed trait × 0.1 (minimal interest)
+  Food-seeking probability should be restricted to never exceed 100%
 
 3.16.4 **Reproduction-Seeking Behavior (Males)**:
   - DESPERATE/HUNGRY: No active reproduction seeking (survival takes priority)

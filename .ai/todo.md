@@ -1910,6 +1910,7 @@ Phase 29 makes energy state a central decision-making factor, creating rich emer
 
     // Food-seeking multipliers (PRD 3.16.3)
     // DESPERATE/HUNGRY: 1.5×, MODERATE: 1.0×, FULL: 0.5×, SATIATED: 0.1×
+    // IMPORTANT: Final probability must be capped at 1.0 (100%)
     static getFoodSeekingMultiplier(state: EnergyState): number;
 
     // Reproduction multipliers (PRD 3.16.4)
@@ -1949,7 +1950,8 @@ Phase 29 makes energy state a central decision-making factor, creating rich emer
 - [ ] **Update MovementSystem.process()** (`src/systems/MovementSystem.ts`):
   - [ ] Get human's energy state: `const energyState = human.getEnergyState()`
   - [ ] Calculate adjusted greed: `const adjustedGreed = human.genome.greed * EnergyUtils.getFoodSeekingMultiplier(energyState)`
-  - [ ] Use adjustedGreed instead of raw greed for food-seeking probability
+  - [ ] **CRITICAL**: Cap food-seeking probability at 1.0 (100%): `const finalGreed = Math.min(adjustedGreed, 1.0)`
+  - [ ] Use finalGreed instead of raw greed for food-seeking probability
   - [ ] Apply to both male and female humans
 
 - [ ] **Update Wolf Avoidance** (for human caution):
@@ -1968,7 +1970,10 @@ if (humanEntity instanceof Human) {
   const energyState = humanEntity.getEnergyState();
   const adjustedGreed = humanEntity.genome.greed * EnergyUtils.getFoodSeekingMultiplier(energyState);
 
-  if (Random.chance(adjustedGreed)) {
+  // Cap at 1.0 (100%) - CRITICAL: prevents probability > 1.0
+  const finalGreed = Math.min(adjustedGreed, 1.0);
+
+  if (Random.chance(finalGreed)) {
     // Move toward food
   }
 }
@@ -1978,6 +1983,7 @@ if (humanEntity instanceof Human) {
 - [ ] Hungry humans (< 50% health) seek food with 1.5× greed
 - [ ] Full humans (> 80% health) seek food with 0.5× greed
 - [ ] SATIATED humans (= maxHealth) seek food with 0.1× greed
+- [ ] **Food-seeking probability never exceeds 1.0 (100%)** even with high greed gene + multiplier
 - [ ] DESPERATE humans flee from wolves 100% of time
 - [ ] HUNGRY humans have increased wolf caution (1.5× caution trait)
 - [ ] FULL/SATIATED humans are more confident (0.7× caution trait)
@@ -2123,6 +2129,7 @@ if (male2.getEnergyState() === EnergyState.DESPERATE) {
 - [ ] **Integration Tests for Movement**:
   - [ ] Verify HUNGRY humans seek food more aggressively
   - [ ] Verify FULL humans seek food less aggressively
+  - [ ] **Verify food-seeking probability capped at 1.0** (test with greed=0.8 + 1.5× multiplier = 1.2 → should cap to 1.0)
   - [ ] Verify DESPERATE humans flee wolves 100%
   - [ ] Verify DESPERATE males avoid other males
 
