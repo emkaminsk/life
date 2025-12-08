@@ -269,6 +269,88 @@ The solution must enable exploration-based learning where students discover prin
 
 3.15.5 **Visibility**: Genetic traits are visible to the user via tooltips when hovering over a creature.
 
+### 3.16 Energy-Driven Behavior System
+
+3.16.1 **Health as Energy**: Current health represents energy level. All behavioral decisions are modulated by current energy state relative to maximum health.
+
+3.16.2 **Energy States**: Humans have five energy states based on current health percentage:
+  - **DESPERATE**: health < 30% of maxHealth
+  - **HUNGRY**: health < 50% of maxHealth
+  - **MODERATE**: health 50-80% of maxHealth
+  - **FULL**: health > 80% of maxHealth
+  - **SATIATED**: health = maxHealth
+
+3.16.3 **Food-Seeking Behavior Modulation**:
+  - DESPERATE/HUNGRY: Food-seeking probability = greed trait × 1.5 (prioritize survival)
+  - MODERATE: Food-seeking probability = greed trait (normal behavior)
+  - FULL: Food-seeking probability = greed trait × 0.5 (reduced urgency)
+  - SATIATED: Food-seeking probability = greed trait × 0.1 (minimal interest)
+
+3.16.4 **Reproduction-Seeking Behavior (Males)**:
+  - DESPERATE/HUNGRY: No active reproduction seeking (survival takes priority)
+  - MODERATE: Normal reproduction probability as configured
+  - FULL/SATIATED: Reproduction probability × 1.5 (prioritize reproduction when well-fed)
+
+3.16.5 **Combat Avoidance Modulation**:
+  - DESPERATE: 100% flee from male-on-male combat (survival imperative)
+  - HUNGRY: Predator avoidance probability = caution trait × 1.5 (increased caution)
+  - MODERATE: Predator avoidance probability = caution trait (normal behavior)
+  - FULL/SATIATED: Predator avoidance probability = caution trait × 0.7 (more confident)
+
+3.16.6 **Metabolic Energy Cost**: Each movement costs energy = metabolism gene. This creates heritable variation in energy efficiency. Examples:
+  - metabolism 1 → 1 energy per move
+  - metabolism 0.5 → 0.5 energy per move (more efficient)
+  - metabolism 1.5 → 1.5 energy per move (less efficient)
+
+3.16.7 **Strategic Implications**: Energy-driven behavior creates emergent strategies. Humans with low metabolism (efficient) can travel farther. Humans with high greed find food faster when hungry. Humans with high caution survive predators better when weak.
+
+### 3.17 Heritable Lifespan
+
+3.17.1 **Longevity Gene**: Each human has a longevity gene (range 0.5 - 2.0) that modulates their aging rate.
+
+3.17.2 **Lifespan Variation**: Lower longevity values = longer lifespan. Higher longevity values = shorter lifespan.
+  - longevity 0.5: Lives approximately twice as long as baseline
+  - longevity 1.0: Lives baseline lifespan
+  - longevity 2.0: Lives approximately half as long as baseline
+
+3.17.3 **Gompertz Modulation**: Effective aging rate = config.human.gompertzB × genome.longevity. This preserves configuration control while allowing genetic variation.
+
+3.17.4 **Inheritance**: Longevity gene inherits via crossover from parents with mutation, same as other genetic traits.
+
+3.17.5 **Evolutionary Pressure**: Longer-lived humans have more reproduction opportunities but cost more resources over lifetime. Shorter-lived humans reproduce faster across generations but have fewer individual opportunities.
+
+### 3.18 Genome Evolution Visualization
+
+3.18.1 **Population Genome Tracking**: System tracks average genome values for male and female populations separately each round.
+
+3.18.2 **Historical Genome Data**: Stores genome averages per round: `{ round, maleAverage: Genome, femaleAverage: Genome }`.
+
+3.18.3 **Evolution Graph Display**: Multi-line graph displays evolution of genetic traits over time, separate from population graph.
+
+3.18.4 **Trait Lines**: Each genetic trait (maxHealth, strength, metabolism, greed, caution, longevity) displays as separate line with color coding:
+  - Male traits: Blue color palette (dark blue, royal blue, cyan, sky blue, steel blue, navy)
+  - Female traits: Pink/Red color palette (pink, magenta, rose, coral, crimson, maroon)
+
+3.18.5 **Trait Visibility Toggles**: User can show/hide specific traits via checkboxes. Default visible: maxHealth, strength, metabolism (physical traits). Default hidden: greed, caution, longevity (behavioral traits).
+
+3.18.6 **Graph Scaling**: Graph auto-scales to fit displayed traits. Each trait has appropriate Y-axis scaling based on typical range (0-150 for maxHealth, 0-2.5 for multipliers, 0-1 for probabilities).
+
+3.18.7 **Legend Display**: Graph includes legend showing trait names, colors, and current average values for both sexes.
+
+3.18.8 **Educational Value**: Students can observe:
+  - Which traits increase/decrease over time (natural selection)
+  - Sexual dimorphism (male vs female trait divergence)
+  - Correlation between trait changes and population events
+  - Speed of evolution under different selection pressures
+
+### 3.19 Dog Dietary Immunity
+
+3.19.1 **Mushroom Consumption**: Dogs can eat mushrooms without taking damage (immunity to mushroom toxins).
+
+3.19.2 **Eating Behavior**: When dog is adjacent to mushroom during eating phase, dog consumes mushroom (removes from board) but health unchanged.
+
+3.19.3 **Strategic Implications**: Dogs help control mushroom overgrowth, providing additional ecosystem value beyond wolf control.
+
 ## 4. Product Boundaries
 
 ### 4.1 In Scope for MVP
@@ -795,6 +877,112 @@ Acceptance Criteria:
 - Creatures with high "Caution" flee from wolves
 - Creatures with high "Greed" aggressively seek fruit
 - Over time, successful traits become more common in the population (emergent behavior)
+
+### US-043: Energy-Driven Behavior
+Title: Observe energy-modulated decision making
+Description: As a student, I want to see humans change behavior based on their energy levels so that I can understand resource-driven decision making.
+Acceptance Criteria:
+- Hungry humans (health < 50%) actively seek food more aggressively
+- Well-fed humans (health > 80%) prioritize reproduction over food
+- Desperate humans (health < 30%) avoid all combat
+- Full energy humans (health = max) show minimal interest in food
+- Tooltip shows current energy state (DESPERATE, HUNGRY, MODERATE, FULL, SATIATED)
+- Energy state affects movement decisions visibly
+
+### US-044: Metabolic Energy Cost
+Title: Observe energy consumption during movement
+Description: As a student, I want to see humans lose energy when moving so that I can understand metabolic costs.
+Acceptance Criteria:
+- Each move costs energy = metabolism gene
+- Humans with low metabolism travel farther on same energy
+- Humans with high metabolism need more frequent feeding
+- Tooltip displays metabolic rate and energy cost per move
+- Health decreases each round proportional to metabolism
+
+### US-045: Reproduction Energy Threshold
+Title: Observe reproduction prioritization at high energy
+Description: As a student, I want to see well-fed males prioritize reproduction so that I can understand energy-reproduction tradeoffs.
+Acceptance Criteria:
+- Males at FULL energy (>80% health) have 1.5× reproduction probability
+- Males at DESPERATE/HUNGRY energy skip reproduction attempts
+- Males at MODERATE energy use normal reproduction probability
+- Energy-based reproduction creates emergent population dynamics
+
+### US-046: Combat Avoidance at Low Energy
+Title: Observe desperate survival behavior
+Description: As a student, I want to see desperate humans avoid fights so that I can understand survival prioritization.
+Acceptance Criteria:
+- DESPERATE males (health < 30%) flee from male-on-male combat 100% of time
+- HUNGRY males have increased caution (1.5× caution trait)
+- FULL males are more confident (0.7× caution trait)
+- Combat avoidance visible in movement patterns
+
+### US-047: Heritable Lifespan
+Title: Observe genetic variation in lifespan
+Description: As a student, I want to see some humans live longer than others based on genes so that I can understand heritable aging.
+Acceptance Criteria:
+- Each human has longevity gene (range 0.5 - 2.0)
+- Low longevity genes result in longer lifespans
+- High longevity genes result in shorter lifespans
+- Longevity gene inherits from parents with mutation
+- Tooltip displays longevity gene value
+- Population evolves toward optimal lifespan based on selection pressure
+
+### US-048: Genome Evolution Visualization
+Title: View genetic trait evolution over time
+Description: As a student, I want to see how average genetic traits change over time so that I can observe evolution in action.
+Acceptance Criteria:
+- Graph displays average genome values per round
+- Males and females tracked separately with different colors
+- All 6 genetic traits available for display (maxHealth, strength, metabolism, greed, caution, longevity)
+- Checkboxes allow toggling trait visibility
+- Default view shows physical traits (maxHealth, strength, metabolism)
+- Graph auto-scales to fit displayed trait ranges
+- Legend shows trait names, colors, and current average values
+- Students can correlate trait changes with population events
+
+### US-049: Sexual Dimorphism in Evolution
+Title: Observe male and female genetic divergence
+Description: As a student, I want to see if male and female genetics evolve differently so that I can understand sexual selection.
+Acceptance Criteria:
+- Male trait lines shown in blue color palette
+- Female trait lines shown in pink/red color palette
+- Separate tracking allows comparison of male vs female evolution
+- Students can observe if males develop higher strength (combat selection)
+- Students can observe if females develop different longevity (pregnancy risk)
+
+### US-050: Dog Mushroom Immunity
+Title: Observe dogs eating mushrooms safely
+Description: As a student, I want to see dogs eat mushrooms without harm so that I can understand species-specific adaptations.
+Acceptance Criteria:
+- Dogs adjacent to mushrooms eat them during eating phase
+- Dogs health unchanged when eating mushrooms (immunity)
+- Mushroom removed from board after dog eats it
+- Humans still take damage from mushrooms (no change)
+- Dogs help control mushroom overgrowth
+- Yellow flash displays when dog eats mushroom
+
+### US-051: Energy-Based Food Seeking
+Title: Observe greed modulation by energy state
+Description: As a student, I want to see food-seeking behavior change with hunger so that I can understand need-driven motivation.
+Acceptance Criteria:
+- DESPERATE/HUNGRY: greed trait × 1.5 (prioritize food)
+- MODERATE: greed trait × 1.0 (normal behavior)
+- FULL: greed trait × 0.5 (reduced urgency)
+- SATIATED: greed trait × 0.1 (minimal interest)
+- Movement patterns reflect energy-modulated greed
+- Hungry humans cluster near food sources
+
+### US-052: Evolution Graph Configuration
+Title: Configure genome evolution graph display
+Description: As a student, I want to control which genetic traits are shown on the graph so that I can focus on specific traits.
+Acceptance Criteria:
+- Checkboxes for each trait (6 total): maxHealth, strength, metabolism, greed, caution, longevity
+- Checking trait displays corresponding male and female lines
+- Unchecking trait hides corresponding lines
+- Default configuration: physical traits visible, behavioral traits hidden
+- Graph rescales when traits toggled
+- Configuration persists during session
 
 ## 6. Success Metrics
 
