@@ -42,8 +42,8 @@ export class I18n {
    */
   private detectBrowserLanguage(): Language {
     try {
-      const browserLang = navigator.language || (navigator as any).userLanguage;
-      if (browserLang && browserLang.toLowerCase().startsWith('pl')) {
+      const browserLang = navigator.language || (navigator as Navigator & { userLanguage?: string }).userLanguage;
+      if (browserLang?.toLowerCase().startsWith('pl')) {
         return Language.PL;
       }
     } catch (e) {
@@ -117,13 +117,13 @@ export class I18n {
    * @param obj - Object to traverse
    * @param path - Dot-separated path (e.g., 'header.title')
    */
-  private getNestedValue(obj: any, path: string): string | undefined {
+  private getNestedValue(obj: unknown, path: string): string | undefined {
     const keys = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
 
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
-        current = current[key];
+        current = (current as Record<string, unknown>)[key];
       } else {
         return undefined;
       }
@@ -165,7 +165,7 @@ export class I18n {
    * Notify all listeners of language change
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => listener(this.currentLanguage));
+    for (const listener of this.listeners) listener(this.currentLanguage);
   }
 
   /**

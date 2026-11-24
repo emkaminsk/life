@@ -15,6 +15,8 @@ export interface TranslationKeys {
     title: string;
     round: string;
     roundsPerSec: string;
+    fps: string;
+    helpTitle: string;
   };
 
   // Control buttons
@@ -22,6 +24,7 @@ export interface TranslationKeys {
     title: string;
     startGame: string;
     pause: string;
+    resume: string;
     runOneRound: string;
     runFiveRounds: string;
     runFree: string;
@@ -47,6 +50,22 @@ export interface TranslationKeys {
     total: string;
     populationGraph: string;
     waitingForData: string;
+    graphRound: string;
+  };
+
+  // Large-board initialization overlay
+  init: {
+    title: string;
+    spawning: string;
+    working: string;
+  };
+
+  // Accessibility labels
+  a11y: {
+    board: string;
+    close: string;
+    notifications: string;
+    language: string;
   };
 
   // Configuration panel sections
@@ -68,6 +87,7 @@ export interface TranslationKeys {
     spawnExceeds100: string;
     spawnWarning: string;
     spawnVeryHigh: string;
+    validationSummary: string;
 
     // Board Setup section
     boardSetup: string;
@@ -150,6 +170,10 @@ export interface TranslationKeys {
     configLoaded: string;
     configLoadErrorTitle: string;
     configLoadError: string;
+    configLoadInvalidTitle: string;
+    configLoadInvalid: string;
+    startErrorTitle: string;
+    startError: string;
   };
 
   // Rules modal
@@ -212,6 +236,13 @@ export interface TranslationKeys {
     invalidRange: string;
     spawnTooHigh: string;
     spawnWarning: string;
+    notANumber: string;
+    tooLow: string;
+    tooHigh: string;
+    notInteger: string;
+    rangeHint: string;
+    minHint: string;
+    wholeNumberHint: string;
   };
 
   // Tooltip messages

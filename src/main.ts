@@ -1,632 +1,296 @@
+/**
+ * Application entry point: wires DOM elements to the game. Logic lives in
+ * tested modules under src/ui (controls, keyboard, statistics, ConfigPanel…).
+ */
 import { Board } from './core/Board';
-import { Renderer } from './core/Renderer';
 import { Game } from './core/Game';
-import { Human } from './entities/Human';
-import { EntityType } from './types';
-import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
-import { TooltipManager } from './ui/TooltipManager';
-import { i18n } from './i18n/i18n';
-import { Language } from './i18n/types';
+import { Renderer } from './core/Renderer';
 import { initializeDOMRenderer } from './i18n/DOMRenderer';
+import { i18n } from './i18n/i18n';
+import type { Language } from './i18n/types';
+import { ConfigPanel, type GameConfig } from './ui/ConfigPanel';
+import { GameControls } from './ui/controls';
+import { debounce } from './ui/debounce';
+import { createDialog } from './ui/dialog';
+import { isLargeBoard, runWithProgress } from './ui/initProgress';
+import { handleKeydown } from './ui/keyboard';
+import { showNotification } from './ui/notifications';
+import { PopulationGraph } from './ui/PopulationGraph';
+import {
+  AlertTracker,
+  type AlertKind,
+  countPopulation,
+  type PopulationCounts,
+  RoundsPerSecondTracker,
+  renderStatistics,
+} from './ui/statistics';
+import { getCellAtPoint, TooltipManager } from './ui/TooltipManager';
+import { debugLog, isDebug } from './utils/debug';
 
-// Initialize i18n DOM renderer (must be called before any UI rendering)
+const t = (key: string, ...args: (string | number)[]) => i18n.t(key, ...args);
+const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+// ---------------------------------------------------------------- i18n
 initializeDOMRenderer();
+document.documentElement.lang = i18n.getCurrentLanguage();
 
-// Initialize language selector
-const languageSelector = document.getElementById('languageSelector') as HTMLSelectElement;
-if (languageSelector) {
-  // Set initial value from i18n
-  languageSelector.value = i18n.getCurrentLanguage();
+const languageSelector = byId<HTMLSelectElement>('languageSelector');
+languageSelector.value = i18n.getCurrentLanguage();
+languageSelector.addEventListener('change', () => {
+  i18n.setLanguage(languageSelector.value as Language);
+});
 
-  // Handle language change
-  languageSelector.addEventListener('change', (event) => {
-    const target = event.target as HTMLSelectElement;
-    const newLanguage = target.value as Language;
-    i18n.setLanguage(newLanguage);
-    console.log('[i18n] Language changed to:', newLanguage);
-  });
-}
-
-// Initialize
-const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+// ---------------------------------------------------------------- core objects
+const canvas = byId<HTMLCanvasElement>('gameCanvas');
+const gameArea = document.querySelector<HTMLElement>('.game-area');
 const board = new Board();
 const renderer = new Renderer(canvas);
 const game = new Game(board, renderer);
-
-// Initialize Config Panel
 const configPanel = new ConfigPanel();
-configPanel.onStart((config: GameConfig) => {
-  console.log('[Main] Starting game with config:', config);
+const tooltip = new TooltipManager();
+const graph = new PopulationGraph(byId<HTMLCanvasElement>('populationGraph'));
+const alerts = new AlertTracker();
+const roundsPerSec = new RoundsPerSecondTracker();
 
-  // Update board dimensions if changed
-  if (config.board.width !== board.width || config.board.height !== board.height) {
-    board.resize(config.board.width, config.board.height);
-    renderer.resize(config.board.width, config.board.height);
-  }
-
-  // Update game config
-  game.updateConfig(config);
-
-  // Check if board is large (> 50x50)
-  const isLargeBoard = board.width > 50 || board.height > 50;
-
-  if (isLargeBoard) {
-    // Show progress indicator for large boards
-    const progressOverlay = document.getElementById('initProgress');
-    const progressBar = document.getElementById('progressBar') as HTMLDivElement;
-    const progressText = document.getElementById('progressText');
-
-    if (progressOverlay && progressBar && progressText) {
-      progressOverlay.classList.add('active');
-
-      // Simulate async initialization with progress updates
-      new Promise<void>((resolve) => {
-        let progress = 0;
-        const totalCells = board.width * board.height;
-        let processedCells = 0;
-
-        const updateProgress = () => {
-          if (processedCells < totalCells) {
-            // Process in chunks to prevent freezing
-            const chunkSize = Math.min(100, totalCells - processedCells);
-            processedCells += chunkSize;
-            progress = Math.floor((processedCells / totalCells) * 100);
-
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `Spawning creatures: ${progress}%`;
-
-            if (processedCells < totalCells) {
-              requestAnimationFrame(updateProgress);
-            } else {
-              // Actually initialize the board
-              game.initializeBoard(config);
-              setTimeout(() => {
-                progressOverlay.classList.remove('active');
-                resolve();
-              }, 300);
-            }
-          }
-        };
-
-        updateProgress();
-      });
-    } else {
-      // Fallback if progress elements not found
-      game.initializeBoard(config);
-    }
-  } else {
-    // Small board - initialize normally
-    game.initializeBoard(config);
-  }
-
-  updateStatistics();
-
-  // Reset alert flags
-  maleExtinctionAlerted = false;
-  femaleExtinctionAlerted = false;
-  capacityWarningShown = false;
-  previousMaleCount = 0;
-  previousFemaleCount = 0;
-
-  startBtn.disabled = true;
-  pauseBtn.disabled = false;
-  stepBtn.disabled = false;
-  runBtn.disabled = false;
-  resetBtn.disabled = false;
-  finishBtn.disabled = false;
+const controls = new GameControls(game, {
+  pause: byId<HTMLButtonElement>('pauseBtn'),
+  step: byId<HTMLButtonElement>('stepBtn'),
+  runFive: byId<HTMLButtonElement>('runFiveBtn'),
+  run: byId<HTMLButtonElement>('runBtn'),
+  reset: byId<HTMLButtonElement>('resetBtn'),
+  finish: byId<HTMLButtonElement>('finishBtn'),
 });
 
-// Show config panel on page load
-configPanel.show();
+const speedSelect = byId<HTMLSelectElement>('speedSelect');
 
-// Initial render
-renderer.renderFull(board);
+// ---------------------------------------------------------------- header
+const roundEl = byId<HTMLElement>('round');
+const roundsPerSecEl = byId<HTMLElement>('roundsPerSec');
+const fpsEl = byId<HTMLElement>('fps');
 
-// Initialize Tooltip Manager
-const tooltipManager = new TooltipManager();
+function renderHeader(): void {
+  roundEl.textContent = t('header.round', board.round);
+  roundsPerSecEl.textContent = t('header.roundsPerSec', roundsPerSec.getRate());
+}
 
-// Mouse event handlers for tooltip
-let tooltipThrottleId: number | null = null;
+// FPS is a developer metric: only shown with ?debug (M14).
+if (isDebug()) {
+  fpsEl.hidden = false;
+  setInterval(() => {
+    fpsEl.textContent = t('header.fps', renderer.getCurrentFps());
+  }, 1000);
+}
+
+// ---------------------------------------------------------------- statistics
+let lastCounts: PopulationCounts | null = null;
+
+const ALERT_MESSAGES: Record<AlertKind, [string, string, 'error' | 'warning']> = {
+  maleExtinction: ['notifications.maleExtinctionTitle', 'notifications.allMalesDied', 'error'],
+  femaleExtinction: ['notifications.femaleExtinctionTitle', 'notifications.allFemalesDied', 'error'],
+  boardNearlyFull: ['notifications.boardNearlyFullTitle', 'notifications.boardNearlyFull', 'warning'],
+};
+
+function renderCounts(counts: PopulationCounts): void {
+  renderStatistics(counts, t);
+  canvas.setAttribute('aria-label', t('a11y.board', board.width, board.height, board.round, counts.total));
+}
+
+/** Recount the board and refresh every statistic. One counting pass. */
+function refreshStatistics(checkAlerts: boolean): void {
+  const counts = countPopulation(board);
+  lastCounts = counts;
+  renderCounts(counts);
+  renderHeader();
+  graph.render(game.getPopulationHistory());
+  if (checkAlerts) {
+    for (const kind of alerts.check(counts)) {
+      const [title, message, type] = ALERT_MESSAGES[kind];
+      showNotification(t(title), t(message), type);
+    }
+  }
+}
+
+// ---------------------------------------------------------------- tooltip (L4)
+let pointer: { clientX: number; clientY: number } | null = null;
+let tooltipFrame: number | null = null;
+
+function refreshTooltip(): void {
+  if (!pointer) return;
+  // Content box only: the canvas has a CSS border, and canvas.width is the HiDPI backing store.
+  const box = canvas.getBoundingClientRect();
+  const content = {
+    left: box.left + canvas.clientLeft,
+    top: box.top + canvas.clientTop,
+    width: canvas.clientWidth,
+    height: canvas.clientHeight,
+  };
+  const cell = getCellAtPoint(content, board.width, board.height, pointer.clientX, pointer.clientY);
+  const entity = cell ? board.getEntity(cell.x, cell.y) : null;
+  if (entity) tooltip.show(entity, pointer.clientX, pointer.clientY);
+  else tooltip.hide();
+}
 
 canvas.addEventListener('mousemove', (event) => {
-  // Throttle tooltip updates using requestAnimationFrame for ~60fps
-  if (tooltipThrottleId === null) {
-    tooltipThrottleId = requestAnimationFrame(() => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-
-      // Calculate cell coordinates
-      const cellSize = canvas.width / board.width;
-      const cellX = Math.floor(mouseX / cellSize);
-      const cellY = Math.floor(mouseY / cellSize);
-
-      // Check if cell is within board bounds
-      if (cellX >= 0 && cellX < board.width && cellY >= 0 && cellY < board.height) {
-        const entity = board.getEntity(cellX, cellY);
-        if (entity) {
-          // Show tooltip at mouse position
-          tooltipManager.show(entity, event.clientX, event.clientY);
-        } else {
-          tooltipManager.hide();
-        }
-      } else {
-        tooltipManager.hide();
-      }
-
-      tooltipThrottleId = null;
+  pointer = { clientX: event.clientX, clientY: event.clientY };
+  if (tooltipFrame === null) {
+    tooltipFrame = requestAnimationFrame(() => {
+      tooltipFrame = null;
+      refreshTooltip();
     });
   }
 });
 
 canvas.addEventListener('mouseleave', () => {
-  tooltipManager.hide();
-  if (tooltipThrottleId !== null) {
-    cancelAnimationFrame(tooltipThrottleId);
-    tooltipThrottleId = null;
+  pointer = null;
+  tooltip.hide();
+  if (tooltipFrame !== null) {
+    cancelAnimationFrame(tooltipFrame);
+    tooltipFrame = null;
   }
 });
 
-// Notification system
-let previousMaleCount = 0;
-let previousFemaleCount = 0;
-let maleExtinctionAlerted = false;
-let femaleExtinctionAlerted = false;
-let capacityWarningShown = false;
-
-export function showNotification(title: string, message: string, type: 'error' | 'warning' | 'info' = 'info'): void {
-  const container = document.getElementById('notificationContainer');
-  if (!container) return;
-
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-    <div class="notification-title">${title}</div>
-    <div class="notification-message">${message}</div>
-  `;
-
-  // Click to dismiss
-  notification.addEventListener('click', () => {
-    notification.style.opacity = '0';
-    setTimeout(() => notification.remove(), 200);
-  });
-
-  // Auto-dismiss after 5 seconds
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    setTimeout(() => notification.remove(), 200);
-  }, 5000);
-
-  container.appendChild(notification);
-}
-
-function checkForAlerts(): void {
-  const entities = board.getAllEntities();
-  const maleCount = entities.filter(e => e.type === EntityType.MALE).length;
-  const femaleCount = entities.filter(e => e.type === EntityType.FEMALE).length;
-  const totalCreatures = entities.filter(e =>
-    e.type === EntityType.MALE ||
-    e.type === EntityType.FEMALE ||
-    e.type === EntityType.WOLF ||
-    e.type === EntityType.DOG
-  ).length;
-  const totalCells = board.width * board.height;
-  const capacity = totalCreatures / totalCells;
-
-  // Extinction alerts
-  if (previousMaleCount > 0 && maleCount === 0 && !maleExtinctionAlerted) {
-    showNotification(
-      i18n.t('notifications.maleExtinctionTitle'),
-      i18n.t('notifications.allMalesDied'),
-      'error'
-    );
-    maleExtinctionAlerted = true;
-  }
-
-  if (previousFemaleCount > 0 && femaleCount === 0 && !femaleExtinctionAlerted) {
-    showNotification(
-      i18n.t('notifications.femaleExtinctionTitle'),
-      i18n.t('notifications.allFemalesDied'),
-      'error'
-    );
-    femaleExtinctionAlerted = true;
-  }
-
-  // Capacity warning
-  if (capacity >= 0.9 && !capacityWarningShown) {
-    showNotification(
-      i18n.t('notifications.boardNearlyFullTitle'),
-      i18n.t('notifications.boardNearlyFull'),
-      'warning'
-    );
-    capacityWarningShown = true;
-  } else if (capacity < 0.9 && capacityWarningShown) {
-    // Reset flag if capacity drops below 90%
-    capacityWarningShown = false;
-  }
-
-  // Update previous counts
-  previousMaleCount = maleCount;
-  previousFemaleCount = femaleCount;
-}
-
-// Update round counter
-function updateRoundCounter(): void {
-  const roundElement = document.getElementById('round');
-  if (roundElement) {
-    roundElement.textContent = i18n.t('header.round', board.round);
-  }
-}
-
-// Update rounds per second display
-function updateRoundsPerSec(): void {
-  const roundsPerSecElement = document.getElementById('roundsPerSec');
-  if (roundsPerSecElement) {
-    roundsPerSecElement.textContent = i18n.t('header.roundsPerSec', renderer.getCurrentFps());
-  }
-}
-
-// Update statistics
-function updateStatistics(): void {
-  const entities = board.getAllEntities();
-
-  const maleCount = entities.filter(e => e.type === EntityType.MALE).length;
-  const femaleCount = entities.filter(e => e.type === EntityType.FEMALE).length;
-  const wolfCount = entities.filter(e => e.type === EntityType.WOLF).length;
-  const dogCount = entities.filter(e => e.type === EntityType.DOG).length;
-  const fruitCount = entities.filter(e => e.type === EntityType.FRUIT).length;
-  const mushroomCount = entities.filter(e => e.type === EntityType.MUSHROOM).length;
-  const pregnantCount = entities.filter(e => e instanceof Human && e.isPregnant()).length;
-
-  document.getElementById('maleCount')!.textContent = maleCount.toString();
-  document.getElementById('femaleCount')!.textContent = femaleCount.toString();
-  document.getElementById('pregnantCount')!.textContent = pregnantCount.toString();
-  document.getElementById('wolfCount')!.textContent = wolfCount.toString();
-  document.getElementById('dogCount')!.textContent = dogCount.toString();
-  document.getElementById('fruitCount')!.textContent = fruitCount.toString();
-  document.getElementById('mushroomCount')!.textContent = mushroomCount.toString();
-}
-
-// Render population graph
-function renderPopulationGraph(): void {
-  const graphCanvas = document.getElementById('populationGraph') as HTMLCanvasElement;
-  if (!graphCanvas) return;
-
-  const ctx = graphCanvas.getContext('2d');
-  if (!ctx) return;
-
-  const history = game.getPopulationHistory();
-  const width = graphCanvas.width;
-  const height = graphCanvas.height;
-  const padding = 20;
-
-  // Clear canvas
-  ctx.fillStyle = '#fafafa';
-  ctx.fillRect(0, 0, width, height);
-
-  if (history.length < 2) {
-    // Not enough data to draw
-    ctx.fillStyle = '#999';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(i18n.t('stats.waitingForData'), width / 2, height / 2);
-    return;
-  }
-
-  // Find min/max for scaling
-  const maxPop = Math.max(...history, 1);
-  const minPop = Math.min(...history, 0);
-  const range = maxPop - minPop || 1;
-
-  // Draw axes
-  ctx.strokeStyle = '#999';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, height - padding);
-  ctx.lineTo(width - padding, height - padding);
-  ctx.stroke();
-
-  // Draw Y-axis labels
-  ctx.fillStyle = '#666';
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText(maxPop.toString(), padding - 5, padding + 5);
-  ctx.fillText(minPop.toString(), padding - 5, height - padding + 5);
-
-  // Draw line graph
-  ctx.strokeStyle = '#4CAF50';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  const graphWidth = width - 2 * padding;
-  const graphHeight = height - 2 * padding;
-  const xStep = graphWidth / Math.max(history.length - 1, 1);
-
-  history.forEach((pop, index) => {
-    const x = padding + index * xStep;
-    const y = height - padding - ((pop - minPop) / range) * graphHeight;
-
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
-
-  ctx.stroke();
-
-  // Draw X-axis label (rounds)
-  ctx.fillStyle = '#666';
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`Round ${history.length - 1}`, width - padding, height - padding + 15);
-  ctx.fillText('Round 0', padding, height - padding + 15);
-}
-
-// Update UI periodically
-setInterval(() => {
-  updateRoundCounter();
-  updateStatistics();
-  updateRoundsPerSec();
-  renderPopulationGraph();
-  checkForAlerts();
-}, 100);
-
-// Button handlers
-const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
-const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
-const stepBtn = document.getElementById('stepBtn') as HTMLButtonElement;
-const runBtn = document.getElementById('runBtn') as HTMLButtonElement;
-const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
-const finishBtn = document.getElementById('finishBtn') as HTMLButtonElement;
-const speedSelect = document.getElementById('speedSelect') as HTMLSelectElement;
-
-startBtn.addEventListener('click', async () => {
-  console.log('[UI] Start game clicked');
-
-  // Check if board is large (> 50x50)
-  const isLargeBoard = board.width > 50 || board.height > 50;
-
-  if (isLargeBoard) {
-    // Show progress indicator for large boards
-    const progressOverlay = document.getElementById('initProgress');
-    const progressBar = document.getElementById('progressBar') as HTMLDivElement;
-    const progressText = document.getElementById('progressText');
-
-    if (progressOverlay && progressBar && progressText) {
-      progressOverlay.classList.add('active');
-
-      // Simulate async initialization with progress updates
-      await new Promise<void>((resolve) => {
-        let progress = 0;
-        const totalCells = board.width * board.height;
-        let processedCells = 0;
-
-        const updateProgress = () => {
-          if (processedCells < totalCells) {
-            // Process in chunks to prevent freezing
-            const chunkSize = Math.min(100, totalCells - processedCells);
-            processedCells += chunkSize;
-            progress = Math.floor((processedCells / totalCells) * 100);
-
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `Spawning creatures: ${progress}%`;
-
-            if (processedCells < totalCells) {
-              requestAnimationFrame(updateProgress);
-            } else {
-              // Actually initialize the board
-              game.initializeBoard();
-              setTimeout(() => {
-                progressOverlay.classList.remove('active');
-                resolve();
-              }, 300);
-            }
-          }
-        };
-
-        updateProgress();
-      });
-    } else {
-      // Fallback if progress elements not found
-      game.initializeBoard();
-    }
-  } else {
-    // Small board - initialize normally
-    game.initializeBoard();
-  }
-
-  updateStatistics();
-
-  // Reset alert flags
-  maleExtinctionAlerted = false;
-  femaleExtinctionAlerted = false;
-  capacityWarningShown = false;
-  previousMaleCount = 0;
-  previousFemaleCount = 0;
-
-  startBtn.disabled = true;
-  pauseBtn.disabled = false;
-  stepBtn.disabled = false;
-  runBtn.disabled = false;
-  resetBtn.disabled = false;
-  finishBtn.disabled = false;
-});
-
-pauseBtn.addEventListener('click', () => {
-  console.log('[UI] Pause clicked');
-  if (game.running()) {
-    game.pause();
-    pauseBtn.textContent = 'Resume';
-    runBtn.disabled = false;
-    stepBtn.disabled = false;
-  } else {
-    game.start();
-    pauseBtn.textContent = 'Pause';
-    runBtn.disabled = true;
-    stepBtn.disabled = true;
-  }
-});
-
-stepBtn.addEventListener('click', () => {
-  console.log('[UI] Step clicked');
-  // Disable step button during animations
-  stepBtn.disabled = true;
-  game.step();
-});
-
-// Set up callback to re-enable step button when animations complete
-game.onStepComplete = () => {
-  stepBtn.disabled = false;
+// ---------------------------------------------------------------- game events (M13)
+game.onRoundComplete = () => {
+  if (game.running()) roundsPerSec.record(board.round);
+  refreshStatistics(true);
+  refreshTooltip();
 };
 
-runBtn.addEventListener('click', () => {
-  console.log('[UI] Run clicked');
-  game.start();
-  pauseBtn.textContent = 'Pause';
-  runBtn.disabled = true;
-  stepBtn.disabled = true;
-});
+game.onStepComplete = () => controls.handleStepComplete();
 
-resetBtn.addEventListener('click', () => {
-  console.log('[UI] Reset clicked');
-  game.reset();
-  updateStatistics();
-  renderPopulationGraph();
-  // Show config panel again for new game
+controls.onStateChange = (state) => {
+  if (state !== 'running') roundsPerSec.reset();
+  renderHeader();
+};
+
+// ---------------------------------------------------------------- layout (M12)
+function fitCanvas(): void {
+  if (!gameArea) return;
+  const style = getComputedStyle(gameArea);
+  const canvasBorder = canvas.offsetWidth - canvas.clientWidth; // 2px border each side
+  const available =
+    gameArea.clientWidth -
+    Number.parseFloat(style.paddingLeft || '0') -
+    Number.parseFloat(style.paddingRight || '0') -
+    canvasBorder;
+  if (available <= 0) return;
+  renderer.fitToWidth(available, board.width, board.height);
+  renderer.renderFull(board);
+}
+
+window.addEventListener('resize', debounce(fitCanvas, 150));
+
+// ---------------------------------------------------------------- start / reset
+const progressElements = {
+  overlay: document.getElementById('initProgress'),
+  bar: document.getElementById('progressBar'),
+  text: document.getElementById('progressText'),
+};
+
+let starting = false;
+
+async function startGame(config: GameConfig): Promise<void> {
+  if (starting) return;
+  starting = true;
+  try {
+    if (config.board.width !== board.width || config.board.height !== board.height) {
+      board.resize(config.board.width, config.board.height);
+      renderer.resize(config.board.width, config.board.height);
+    }
+    game.updateConfig(config); // Game stores a deep-frozen clone (H3)
+    renderer.setInjuredThreshold(config.board.injuredThreshold);
+    game.setSpeed(Number.parseInt(speedSelect.value, 10));
+    fitCanvas();
+
+    alerts.reset();
+    roundsPerSec.reset();
+    graph.reset();
+
+    await runWithProgress(() => game.initializeBoard(), isLargeBoard(board.width, board.height), progressElements, t);
+
+    refreshStatistics(true);
+    controls.begin(); // auto-start after initialization (PRD 3.13.6, M7)
+    // Keep keyboard focus somewhere useful now that the config dialog is gone.
+    byId<HTMLButtonElement>('pauseBtn').focus({ preventScroll: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    showNotification(t('notifications.startErrorTitle'), t('notifications.startError', message), 'error');
+    configPanel.show();
+  } finally {
+    starting = false;
+  }
+}
+
+function endGame(): void {
+  controls.setIdle();
+  game.reset(); // releases the config lock
+  graph.reset();
+  alerts.reset();
+  pointer = null;
+  tooltip.hide();
+  refreshStatistics(false);
   configPanel.show();
-  // Disable game controls
-  startBtn.disabled = true;
-  pauseBtn.disabled = true;
-  pauseBtn.textContent = 'Pause';
-  stepBtn.disabled = true;
-  runBtn.disabled = true;
-  resetBtn.disabled = true;
-  finishBtn.disabled = true;
+}
+
+configPanel.onStart((config) => {
+  void startGame(config);
 });
 
-finishBtn.addEventListener('click', () => {
-  console.log('[UI] Finish game clicked');
-  game.reset();
-  updateStatistics();
-  renderPopulationGraph();
-  // Show config panel again for new game
-  configPanel.show();
-  // Disable game controls
-  startBtn.disabled = true;
-  pauseBtn.disabled = true;
-  pauseBtn.textContent = 'Pause';
-  stepBtn.disabled = true;
-  runBtn.disabled = true;
-  resetBtn.disabled = true;
-  finishBtn.disabled = true;
-});
+byId<HTMLButtonElement>('pauseBtn').addEventListener('click', () => controls.togglePause());
+byId<HTMLButtonElement>('stepBtn').addEventListener('click', () => controls.step());
+byId<HTMLButtonElement>('runFiveBtn').addEventListener('click', () => controls.stepFive());
+byId<HTMLButtonElement>('runBtn').addEventListener('click', () => controls.runFree());
+byId<HTMLButtonElement>('resetBtn').addEventListener('click', endGame);
+byId<HTMLButtonElement>('finishBtn').addEventListener('click', endGame);
 
-// Speed control
 speedSelect.addEventListener('change', () => {
-  const speed = parseInt(speedSelect.value, 10);
-  console.log(`[UI] Speed changed to ${speed}ms`);
+  const speed = Number.parseInt(speedSelect.value, 10);
+  debugLog(`[UI] Speed changed to ${speed}ms`);
   game.setSpeed(speed);
 });
 
-// Rules Modal Controls
-const helpBtn = document.getElementById('helpBtn') as HTMLButtonElement;
-const rulesModal = document.getElementById('rulesModal') as HTMLDivElement;
-const closeModalBtn = document.getElementById('closeModal') as HTMLButtonElement;
-const modalTabs = document.querySelectorAll('.modal-tab');
-const tabContents = document.querySelectorAll('.tab-content');
+// ---------------------------------------------------------------- rules modal
+const rulesModal = byId<HTMLElement>('rulesModal');
+const rulesDialog = createDialog(rulesModal, { closeButton: document.getElementById('closeModal') });
+byId<HTMLButtonElement>('helpBtn').addEventListener('click', () => rulesDialog.open());
 
-function openRulesModal(): void {
-  rulesModal.classList.add('active');
-}
-
-function closeRulesModal(): void {
-  rulesModal.classList.remove('active');
-}
-
-helpBtn.addEventListener('click', openRulesModal);
-closeModalBtn.addEventListener('click', closeRulesModal);
-
-// Click outside modal to close
-rulesModal.addEventListener('click', (e) => {
-  if (e.target === rulesModal) {
-    closeRulesModal();
-  }
-});
-
-// Tab switching
-modalTabs.forEach(tab => {
+const modalTabs = Array.from(document.querySelectorAll<HTMLElement>('.modal-tab'));
+for (const tab of modalTabs) {
   tab.addEventListener('click', () => {
-    const tabName = tab.getAttribute('data-tab');
-
-    // Remove active class from all tabs and contents
-    modalTabs.forEach(t => t.classList.remove('active'));
-    tabContents.forEach(content => content.classList.remove('active'));
-
-    // Add active class to clicked tab and corresponding content
-    tab.classList.add('active');
-    const activeContent = document.getElementById(`${tabName}-tab`);
-    if (activeContent) {
-      activeContent.classList.add('active');
+    for (const other of modalTabs) {
+      const selected = other === tab;
+      other.classList.toggle('active', selected);
+      other.setAttribute('aria-selected', String(selected));
+      other.tabIndex = selected ? 0 : -1;
+      const panel = document.getElementById(`${other.dataset.tab}-tab`);
+      panel?.classList.toggle('active', selected);
     }
+  });
+}
+
+// ---------------------------------------------------------------- keyboard
+document.addEventListener('keydown', (e) => {
+  handleKeydown(e, {
+    game,
+    controls,
+    modal: rulesDialog,
+    isBlocked: () => configPanel.isVisible(),
   });
 });
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  // Escape to close modal
-  if (e.code === 'Escape' && rulesModal.classList.contains('active')) {
-    e.preventDefault();
-    closeRulesModal();
-    return;
-  }
-
-  // Ignore if user is typing in an input field
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) {
-    return;
-  }
-
-  // Ignore if modal is open
-  if (rulesModal.classList.contains('active')) {
-    return;
-  }
-
-  switch (e.code) {
-    case 'Space':
-      e.preventDefault();
-      pauseBtn.click();
-      break;
-    case 'ArrowRight':
-      e.preventDefault();
-      if (!game.running() && !stepBtn.disabled) {
-        stepBtn.click();
-      }
-      break;
-    case 'ArrowUp':
-      e.preventDefault();
-      if (!game.running() && !stepBtn.disabled) {
-        // Run 5 rounds
-        for (let i = 0; i < 5; i++) {
-          game.step();
-        }
-        console.log('[UI] Ran 5 rounds via Up arrow');
-      }
-      break;
-    case 'ArrowDown':
-    case 'ArrowLeft':
-      e.preventDefault();
-      if (game.running()) {
-        pauseBtn.click();
-      }
-      break;
-  }
+// ---------------------------------------------------------------- language changes
+i18n.onLanguageChange((language) => {
+  document.documentElement.lang = language;
+  languageSelector.value = language;
+  controls.refreshLabels();
+  if (lastCounts) renderCounts(lastCounts);
+  renderHeader();
+  graph.render(game.getPopulationHistory());
+  if (isDebug()) fpsEl.textContent = t('header.fps', renderer.getCurrentFps());
 });
 
-// Initial update
-updateRoundCounter();
-updateStatistics();
-
-console.log('Game of Life Simulator initialized');
-console.log('Board size:', board.width, 'x', board.height);
-console.log('Press "Start Game" to begin');
+// ---------------------------------------------------------------- initial state
+fitCanvas();
+refreshStatistics(false);
+configPanel.show();
+debugLog('Game of Life Simulator initialized', board.width, 'x', board.height);

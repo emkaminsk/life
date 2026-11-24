@@ -1,6 +1,15 @@
-import { DEFAULT_CONFIG } from '../config';
 import { i18n } from '../i18n/i18n';
-import { showNotification } from '../main';
+import { debugLog } from '../utils/debug';
+import {
+  FIELD_RULES,
+  type FieldError,
+  type FieldRule,
+  getDefaultConfig,
+  getValue,
+  mergeWithDefaults,
+  validateValue,
+} from './configValidation';
+import { showNotification } from './notifications';
 
 export interface GameConfig {
   board: {
@@ -65,687 +74,396 @@ export interface GameConfig {
   };
 }
 
+const SPAWN_IDS = ['spawnMaleHuman', 'spawnFemaleHuman', 'spawnWolf', 'spawnDog', 'spawnFruit', 'spawnMushroom'];
+const START_BUTTON_IDS = ['startGameBtn', 'startGameBtnTop'];
+
+export interface ValidationResult {
+  valid: boolean;
+  fieldErrors: FieldError[];
+  spawnTotal: number;
+  spawnExceeded: boolean;
+}
+
+/**
+ * Pre-game configuration form (PRD 3.7, US-007/008).
+ *
+ * Every numeric field is validated on input; Start stays disabled with a
+ * summary while anything is invalid. The config handed to onStart is a fresh
+ * clone, never this panel's internal object (Game freezes what it receives).
+ */
 export class ConfigPanel {
   private panel: HTMLElement;
   private config: GameConfig;
   private onStartCallback: ((config: GameConfig) => void) | null = null;
 
   constructor() {
-    this.panel = document.getElementById('configPanel')!;
-    this.config = this.getDefaultConfig();
+    const panel = document.getElementById('configPanel');
+    if (!panel) throw new Error('Config panel element not found');
+    this.panel = panel;
+    this.config = getDefaultConfig();
+    this.prepareInputs();
     this.setupEventListeners();
   }
 
-  private getDefaultConfig(): GameConfig {
-    return {
-      board: {
-        width: DEFAULT_CONFIG.board.width,
-        height: DEFAULT_CONFIG.board.height,
-        injuredThreshold: DEFAULT_CONFIG.board.injuredThreshold,
-      },
-      spawn: {
-        maleHumanProbability: DEFAULT_CONFIG.spawn.maleHumanProbability,
-        femaleHumanProbability: DEFAULT_CONFIG.spawn.femaleHumanProbability,
-        wolfProbability: DEFAULT_CONFIG.spawn.wolfProbability,
-        dogProbability: DEFAULT_CONFIG.spawn.dogProbability,
-        fruitProbability: DEFAULT_CONFIG.spawn.fruitProbability,
-        mushroomProbability: DEFAULT_CONFIG.spawn.mushroomProbability,
-      },
-      human: {
-        startingHealth: DEFAULT_CONFIG.human.startingHealth,
-        maleVsMaleDamage: DEFAULT_CONFIG.human.maleVsMaleDamage,
-        maleVsWolfDamage: DEFAULT_CONFIG.human.maleVsWolfDamage,
-        reproductionProbability: DEFAULT_CONFIG.human.reproductionProbability,
-        pregnancyPeriod: DEFAULT_CONFIG.human.pregnancyPeriod,
-        cooldownPeriod: DEFAULT_CONFIG.human.cooldownPeriod,
-        perceptionRange: DEFAULT_CONFIG.human.perceptionRange,
-        moveTowardFruitProbability: DEFAULT_CONFIG.human.moveTowardFruitProbability,
-        gompertzA: DEFAULT_CONFIG.human.gompertzA,
-        gompertzB: DEFAULT_CONFIG.human.gompertzB,
-      },
-      wolf: {
-        startingHealth: DEFAULT_CONFIG.wolf.startingHealth,
-        damageToMale: DEFAULT_CONFIG.wolf.damageToMale,
-        damageToFemale: DEFAULT_CONFIG.wolf.damageToFemale,
-        damageToDog: DEFAULT_CONFIG.wolf.damageToDog,
-        perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
-        moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
-        spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
-        gompertzA: DEFAULT_CONFIG.wolf.gompertzA,
-        gompertzB: DEFAULT_CONFIG.wolf.gompertzB,
-      },
-      dog: {
-        startingHealth: DEFAULT_CONFIG.dog.startingHealth,
-        damageToWolf: DEFAULT_CONFIG.dog.damageToWolf,
-        perceptionRange: DEFAULT_CONFIG.dog.perceptionRange,
-        moveTowardWolfProbability: DEFAULT_CONFIG.dog.moveTowardWolfProbability,
-        spawnProbability: DEFAULT_CONFIG.dog.spawnProbability,
-        gompertzA: DEFAULT_CONFIG.dog.gompertzA,
-        gompertzB: DEFAULT_CONFIG.dog.gompertzB,
-      },
-      fruit: {
-        energyHealed: DEFAULT_CONFIG.fruit.energyHealed,
-        spawnProbability: DEFAULT_CONFIG.fruit.spawnProbability,
-        roundsToRipen: DEFAULT_CONFIG.fruit.roundsToRipen,
-      },
-      mushroom: {
-        energyRemoved: DEFAULT_CONFIG.mushroom.energyRemoved,
-        spawnProbability: DEFAULT_CONFIG.mushroom.spawnProbability,
-      },
-      overcrowding: {
-        humanThreshold: DEFAULT_CONFIG.overcrowding.humanThreshold,
-        humanMultiplier: DEFAULT_CONFIG.overcrowding.humanMultiplier,
-        animalThreshold: DEFAULT_CONFIG.overcrowding.animalThreshold,
-        animalMultiplier: DEFAULT_CONFIG.overcrowding.animalMultiplier,
-      },
-    };
+  // ---------------------------------------------------------------- setup
+
+  /** Sync min/max attributes from the rules, add error slots and range hints. */
+  private prepareInputs(): void {
+    for (const rule of FIELD_RULES) {
+      const input = this.getInput(rule.id);
+      if (!input) continue;
+      input.min = String(rule.min);
+      if (rule.max !== undefined) input.max = String(rule.max);
+      else input.removeAttribute('max');
+      input.required = true;
+
+      const errorId = `${rule.id}-error`;
+      if (!document.getElementById(errorId)) {
+        const error = document.createElement('div');
+        error.id = errorId;
+        error.className = 'field-error';
+        const row = input.closest('.config-row');
+        if (row) row.insertAdjacentElement('afterend', error);
+        else input.insertAdjacentElement('afterend', error);
+      }
+      input.setAttribute('aria-describedby', errorId);
+    }
+    this.updateHints();
   }
 
   private setupEventListeners(): void {
-    // Save configuration button
-    const saveBtn = document.getElementById('saveConfigBtn');
-    saveBtn?.addEventListener('click', () => this.saveConfiguration());
+    document.getElementById('saveConfigBtn')?.addEventListener('click', () => this.saveConfiguration());
+    document.getElementById('loadConfigBtn')?.addEventListener('click', () => this.triggerLoadConfiguration());
+    document.getElementById('loadConfigFile')?.addEventListener('change', (e) => this.loadConfiguration(e));
+    document.getElementById('resetConfigBtn')?.addEventListener('click', () => this.resetToDefaults());
+    for (const id of START_BUTTON_IDS) {
+      document.getElementById(id)?.addEventListener('click', () => this.handleStartGame());
+    }
+    document.getElementById('collapseAllBtn')?.addEventListener('click', () => this.toggleCollapseAll());
 
-    // Load configuration button
-    const loadBtn = document.getElementById('loadConfigBtn');
-    loadBtn?.addEventListener('click', () => this.triggerLoadConfiguration());
+    for (const header of Array.from(document.querySelectorAll<HTMLElement>('.config-section-header'))) {
+      header.addEventListener('click', () => this.toggleSection(header));
+    }
 
-    // Hidden file input for load
-    const loadFileInput = document.getElementById('loadConfigFile') as HTMLInputElement;
-    loadFileInput?.addEventListener('change', (e) => this.loadConfiguration(e));
+    for (const rule of FIELD_RULES) {
+      const input = this.getInput(rule.id);
+      if (!input) continue;
+      input.addEventListener('input', () => this.validate());
+      input.addEventListener('change', () => this.validate());
+    }
 
-    // Reset to defaults button
-    const resetBtn = document.getElementById('resetConfigBtn');
-    resetBtn?.addEventListener('click', () => this.resetToDefaults());
-
-    // Start game button (bottom)
-    const startBtn = document.getElementById('startGameBtn');
-    startBtn?.addEventListener('click', () => this.handleStartGame());
-
-    // Start game button (top)
-    const startBtnTop = document.getElementById('startGameBtnTop');
-    startBtnTop?.addEventListener('click', () => this.handleStartGame());
-
-    // Collapse all button
-    const collapseAllBtn = document.getElementById('collapseAllBtn');
-    collapseAllBtn?.addEventListener('click', () => this.toggleCollapseAll());
-
-    // Collapsible sections
-    const sectionHeaders = document.querySelectorAll('.config-section-header');
-    sectionHeaders.forEach(header => {
-      header.addEventListener('click', () => this.toggleSection(header as HTMLElement));
-    });
-
-    // Input change listeners for real-time validation
-    const spawnInputs = [
-      'spawnMaleHuman',
-      'spawnFemaleHuman',
-      'spawnWolf',
-      'spawnDog',
-      'spawnFruit',
-      'spawnMushroom',
-      'boardWidth',
-      'boardHeight'
-    ];
-
-    spawnInputs.forEach(id => {
-      const input = document.getElementById(id);
-      if (input) {
-        input.addEventListener('input', () => {
-          this.updateExpectedCounts();
-          this.validateSpawnProbabilities();
-        });
-        input.addEventListener('change', () => {
-          this.updateExpectedCounts();
-          this.validateSpawnProbabilities();
-        });
-      }
-    });
-
-    // Add validation styling for all number inputs
-    const allInputs = document.querySelectorAll('.config-row input[type="number"]');
-    allInputs.forEach(input => {
-      input.addEventListener('input', () => this.validateInput(input as HTMLInputElement));
-      input.addEventListener('change', () => this.validateInput(input as HTMLInputElement));
-    });
-
-    // Listen for language changes to update UI text
     i18n.onLanguageChange(() => {
       this.updateButtonTexts();
-      this.updateLabels();
+      this.updateHints();
+      this.validate();
     });
 
-    // Keyboard shortcuts
+    // Ctrl/Cmd+S save, Ctrl/Cmd+O load – only while the panel is showing.
     document.addEventListener('keydown', (e) => {
-      // Ctrl+S or Cmd+S: Save configuration
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if (!this.isVisible() || !(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 's') {
         e.preventDefault();
         this.saveConfiguration();
-      }
-      // Ctrl+O or Cmd+O: Load configuration
-      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+      } else if (e.key === 'o') {
         e.preventDefault();
         this.triggerLoadConfiguration();
       }
     });
   }
 
-  private validateInput(input: HTMLInputElement): void {
-    const value = parseFloat(input.value);
-    const min = parseFloat(input.min);
-    const max = parseFloat(input.max);
+  // ---------------------------------------------------------------- inputs
 
-    if (isNaN(value) || value < min || value > max) {
-      input.style.borderColor = '#ef5350';
-      input.style.backgroundColor = '#ffebee';
-    } else {
-      input.style.borderColor = '#ddd';
-      input.style.backgroundColor = 'white';
-    }
+  private getInput(id: string): HTMLInputElement | null {
+    const el = document.getElementById(id);
+    return el instanceof HTMLInputElement ? el : null;
   }
 
-  private toggleSection(header: HTMLElement): void {
-    const section = header.parentElement;
-    section?.classList.toggle('collapsed');
-  }
-
-  private toggleCollapseAll(): void {
-    const sections = document.querySelectorAll('.config-section');
-    const collapseBtn = document.getElementById('collapseAllBtn') as HTMLButtonElement;
-
-    if (!collapseBtn) return;
-
-    // Check if all sections are collapsed
-    const allCollapsed = Array.from(sections).every(section =>
-      section.classList.contains('collapsed')
-    );
-
-    // Toggle all sections
-    sections.forEach(section => {
-      if (allCollapsed) {
-        section.classList.remove('collapsed');
-      } else {
-        section.classList.add('collapsed');
-      }
-    });
-
-    // Update button text
-    this.updateButtonTexts();
-  }
-
-  private resetToDefaults(): void {
-    this.config = this.getDefaultConfig();
-    this.populateInputs();
-    console.log('[ConfigPanel] Reset to default values');
-  }
-
-  private populateInputs(): void {
-    // Board configuration
-    this.setInputValue('boardWidth', this.config.board.width);
-    this.setInputValue('boardHeight', this.config.board.height);
-    this.setInputValue('injuredThreshold', this.config.board.injuredThreshold);
-
-    // Spawn probabilities
-    this.setInputValue('spawnMaleHuman', this.config.spawn.maleHumanProbability);
-    this.setInputValue('spawnFemaleHuman', this.config.spawn.femaleHumanProbability);
-    this.setInputValue('spawnWolf', this.config.spawn.wolfProbability);
-    this.setInputValue('spawnDog', this.config.spawn.dogProbability);
-    this.setInputValue('spawnFruit', this.config.spawn.fruitProbability);
-    this.setInputValue('spawnMushroom', this.config.spawn.mushroomProbability);
-
-    // Human configuration
-    this.setInputValue('humanHealth', this.config.human.startingHealth);
-    this.setInputValue('humanMaleDamage', this.config.human.maleVsMaleDamage);
-    this.setInputValue('humanWolfDamage', this.config.human.maleVsWolfDamage);
-    this.setInputValue('humanReproduction', this.config.human.reproductionProbability);
-    this.setInputValue('humanPregnancy', this.config.human.pregnancyPeriod);
-    this.setInputValue('humanCooldown', this.config.human.cooldownPeriod);
-    this.setInputValue('humanGompertzA', this.config.human.gompertzA);
-    this.setInputValue('humanGompertzB', this.config.human.gompertzB);
-    this.setInputValue('humanPerception', this.config.human.perceptionRange);
-    this.setInputValue('humanFruitProb', this.config.human.moveTowardFruitProbability);
-
-    // Wolf configuration
-    this.setInputValue('wolfHealth', this.config.wolf.startingHealth);
-    this.setInputValue('wolfDamageToMale', this.config.wolf.damageToMale);
-    this.setInputValue('wolfDamageToFemale', this.config.wolf.damageToFemale);
-    this.setInputValue('wolfDamageToDog', this.config.wolf.damageToDog);
-    this.setInputValue('wolfGompertzA', this.config.wolf.gompertzA);
-    this.setInputValue('wolfGompertzB', this.config.wolf.gompertzB);
-    this.setInputValue('wolfPerception', this.config.wolf.perceptionRange);
-    this.setInputValue('wolfHumanProb', this.config.wolf.moveTowardHumanProbability);
-    this.setInputValue('wolfSpawn', this.config.wolf.spawnProbability);
-
-    // Dog configuration
-    this.setInputValue('dogHealth', this.config.dog.startingHealth);
-    this.setInputValue('dogDamage', this.config.dog.damageToWolf);
-    this.setInputValue('dogGompertzA', this.config.dog.gompertzA);
-    this.setInputValue('dogGompertzB', this.config.dog.gompertzB);
-    this.setInputValue('dogPerception', this.config.dog.perceptionRange);
-    this.setInputValue('dogWolfProb', this.config.dog.moveTowardWolfProbability);
-    this.setInputValue('dogSpawn', this.config.dog.spawnProbability);
-
-    // Fruit configuration
-    this.setInputValue('fruitHealing', this.config.fruit.energyHealed);
-    this.setInputValue('fruitSpawn', this.config.fruit.spawnProbability);
-    this.setInputValue('fruitRipen', this.config.fruit.roundsToRipen);
-
-    // Mushroom configuration
-    this.setInputValue('mushroomDamage', this.config.mushroom.energyRemoved);
-    this.setInputValue('mushroomSpawn', this.config.mushroom.spawnProbability);
-
-    // Overcrowding configuration
-    this.setInputValue('humanThreshold', this.config.overcrowding.humanThreshold);
-    this.setInputValue('humanMultiplier', this.config.overcrowding.humanMultiplier);
-    this.setInputValue('animalThreshold', this.config.overcrowding.animalThreshold);
-    this.setInputValue('animalMultiplier', this.config.overcrowding.animalMultiplier);
-
-    this.updateExpectedCounts();
-    this.validateSpawnProbabilities();
+  /** Parsed value of an input; NaN when empty or not a number. */
+  private getInputValue(id: string): number {
+    const input = this.getInput(id);
+    if (!input) return Number.NaN;
+    const raw = input.value.trim();
+    return raw === '' ? Number.NaN : Number(raw);
   }
 
   private setInputValue(id: string, value: number): void {
-    const input = document.getElementById(id) as HTMLInputElement;
-    if (input) {
-      input.value = value.toString();
+    const input = this.getInput(id);
+    if (input) input.value = String(value);
+  }
+
+  private populateInputs(): void {
+    for (const rule of FIELD_RULES) {
+      this.setInputValue(rule.id, getValue(this.config, rule));
+    }
+    this.validate();
+  }
+
+  /** Build a brand-new config object from the current form values. */
+  private readConfigFromInputs(): GameConfig {
+    const config = getDefaultConfig();
+    for (const rule of FIELD_RULES) {
+      if (!this.getInput(rule.id)) continue; // keep default for fields absent from the DOM
+      (config[rule.section] as unknown as Record<string, number>)[rule.key] = this.getInputValue(rule.id);
+    }
+    return config;
+  }
+
+  // ---------------------------------------------------------------- validation
+
+  private hintFor(rule: FieldRule): string {
+    let hint =
+      rule.max !== undefined ? i18n.t('errors.rangeHint', rule.min, rule.max) : i18n.t('errors.minHint', rule.min);
+    if (rule.integer) hint += ` (${i18n.t('errors.wholeNumberHint')})`;
+    return hint;
+  }
+
+  /** Tooltips with the valid range for each parameter (PRD 3.7.12). */
+  private updateHints(): void {
+    for (const rule of FIELD_RULES) {
+      const input = this.getInput(rule.id);
+      if (input) input.title = this.hintFor(rule);
     }
   }
 
-  private getInputValue(id: string): number {
-    const input = document.getElementById(id) as HTMLInputElement;
-    return input ? parseFloat(input.value) : 0;
+  private messageFor(error: FieldError): string {
+    switch (error.code) {
+      case 'notANumber':
+        return i18n.t('errors.notANumber');
+      case 'tooLow':
+        return i18n.t('errors.tooLow', error.arg ?? error.rule.min);
+      case 'tooHigh':
+        return i18n.t('errors.tooHigh', error.arg ?? error.rule.max ?? '');
+      case 'notInteger':
+        return i18n.t('errors.notInteger');
+    }
   }
 
-  private validateSpawnProbabilities(): boolean {
-    const total =
-      this.getInputValue('spawnMaleHuman') +
-      this.getInputValue('spawnFemaleHuman') +
-      this.getInputValue('spawnWolf') +
-      this.getInputValue('spawnDog') +
-      this.getInputValue('spawnFruit') +
-      this.getInputValue('spawnMushroom');
+  /**
+   * Validate every field, update per-field messages, the spawn-sum message,
+   * the summary and the Start buttons. Returns the overall result.
+   */
+  validate(): ValidationResult {
+    const fieldErrors: FieldError[] = [];
 
-    const validationMsg = document.getElementById('spawnValidation');
-    const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
-    const startBtnTop = document.getElementById('startGameBtnTop') as HTMLButtonElement;
-
-    if (total > 1.0) {
-      if (validationMsg) {
-        validationMsg.textContent = `❌ ${i18n.t('config.totalSpawnProbability')} ${(total * 100).toFixed(1)}% ${i18n.t('config.spawnExceeds100')}`;
-        validationMsg.className = 'validation-error';
+    for (const rule of FIELD_RULES) {
+      const input = this.getInput(rule.id);
+      if (!input) continue;
+      const error = validateValue(rule, this.getInputValue(rule.id));
+      const slot = document.getElementById(`${rule.id}-error`);
+      if (error) {
+        fieldErrors.push(error);
+        input.classList.add('invalid');
+        input.setAttribute('aria-invalid', 'true');
+        if (slot) slot.textContent = this.messageFor(error);
+      } else {
+        input.classList.remove('invalid');
+        input.removeAttribute('aria-invalid');
+        if (slot) slot.textContent = '';
       }
-      if (startBtn) startBtn.disabled = true;
-      if (startBtnTop) startBtnTop.disabled = true;
-      return false;
+    }
+
+    const total = SPAWN_IDS.reduce((sum, id) => sum + this.getInputValue(id), 0);
+    const spawnExceeded = Number.isFinite(total) && total > 1 + 1e-9;
+    this.renderSpawnMessage(total, spawnExceeded);
+    this.updateExpectedCounts();
+
+    const problemCount = fieldErrors.length + (spawnExceeded ? 1 : 0);
+    const valid = problemCount === 0;
+
+    for (const id of START_BUTTON_IDS) {
+      const btn = document.getElementById(id);
+      if (btn instanceof HTMLButtonElement) btn.disabled = !valid;
+    }
+    const summary = document.getElementById('configValidationSummary');
+    if (summary) {
+      summary.textContent = valid ? '' : `❌ ${i18n.t('config.validationSummary', problemCount)}`;
+      summary.hidden = valid;
+    }
+
+    return { valid, fieldErrors, spawnTotal: total, spawnExceeded };
+  }
+
+  private renderSpawnMessage(total: number, exceeded: boolean): void {
+    const msg = document.getElementById('spawnValidation');
+    if (!msg) return;
+    const pct = `${(total * 100).toFixed(1)}%`;
+    if (!Number.isFinite(total)) {
+      msg.textContent = '';
+      msg.className = 'validation-message';
+    } else if (exceeded) {
+      msg.textContent = `❌ ${i18n.t('config.totalSpawnProbability')} ${pct} ${i18n.t('config.spawnExceeds100')}`;
+      msg.className = 'validation-message validation-error';
     } else if (total > 0.9) {
-      if (validationMsg) {
-        validationMsg.textContent = `⚠️ ${i18n.t('config.spawnWarning')} ${i18n.t('config.totalSpawnProbability')} ${(total * 100).toFixed(1)}% ${i18n.t('config.spawnVeryHigh')}`;
-        validationMsg.className = 'validation-warning';
-      }
-      if (startBtn) startBtn.disabled = false;
-      if (startBtnTop) startBtnTop.disabled = false;
-      return true;
+      msg.textContent = `⚠️ ${i18n.t('config.spawnWarning')} ${i18n.t('config.totalSpawnProbability')} ${pct} ${i18n.t('config.spawnVeryHigh')} - ${i18n.t('errors.spawnWarning')}`;
+      msg.className = 'validation-message validation-warning';
     } else {
-      if (validationMsg) {
-        validationMsg.textContent = `✓ ${i18n.t('config.totalSpawnProbability')}: ${(total * 100).toFixed(1)}%`;
-        validationMsg.className = 'validation-success';
-      }
-      if (startBtn) startBtn.disabled = false;
-      if (startBtnTop) startBtnTop.disabled = false;
-      return true;
+      msg.textContent = `✓ ${i18n.t('config.totalSpawnProbability')}: ${pct}`;
+      msg.className = 'validation-message validation-success';
     }
   }
 
   private updateExpectedCounts(): void {
-    const width = this.getInputValue('boardWidth');
-    const height = this.getInputValue('boardHeight');
-    const totalCells = width * height;
-
-    const expectedMales = Math.round(totalCells * this.getInputValue('spawnMaleHuman'));
-    const expectedFemales = Math.round(totalCells * this.getInputValue('spawnFemaleHuman'));
-    const expectedWolves = Math.round(totalCells * this.getInputValue('spawnWolf'));
-    const expectedDogs = Math.round(totalCells * this.getInputValue('spawnDog'));
-    const expectedFruits = Math.round(totalCells * this.getInputValue('spawnFruit'));
-    const expectedMushrooms = Math.round(totalCells * this.getInputValue('spawnMushroom'));
-
-    const expectedText = document.getElementById('expectedCounts');
-    if (expectedText) {
-      expectedText.textContent = i18n.t('config.expectedCreaturesDetailed', expectedMales, expectedFemales, expectedWolves, expectedDogs, expectedFruits, expectedMushrooms);
-    }
+    const el = document.getElementById('expectedCounts');
+    if (!el) return;
+    const cells = this.getInputValue('boardWidth') * this.getInputValue('boardHeight');
+    const expected = SPAWN_IDS.map((id) => {
+      const n = Math.round(cells * this.getInputValue(id));
+      return Number.isFinite(n) ? n : '?';
+    });
+    el.textContent = i18n.t('config.expectedCreaturesDetailed', ...expected);
   }
 
-  private readConfigFromInputs(): void {
-    // Board
-    this.config.board.width = this.getInputValue('boardWidth');
-    this.config.board.height = this.getInputValue('boardHeight');
-    this.config.board.injuredThreshold = this.getInputValue('injuredThreshold');
+  // ---------------------------------------------------------------- sections
 
-    // Spawn probabilities
-    this.config.spawn.maleHumanProbability = this.getInputValue('spawnMaleHuman');
-    this.config.spawn.femaleHumanProbability = this.getInputValue('spawnFemaleHuman');
-    this.config.spawn.wolfProbability = this.getInputValue('spawnWolf');
-    this.config.spawn.dogProbability = this.getInputValue('spawnDog');
-    this.config.spawn.fruitProbability = this.getInputValue('spawnFruit');
-    this.config.spawn.mushroomProbability = this.getInputValue('spawnMushroom');
+  private toggleSection(header: HTMLElement): void {
+    const section = header.closest('.config-section');
+    if (!section) return;
+    this.setSectionCollapsed(section, !section.classList.contains('collapsed'));
+    this.updateButtonTexts();
+  }
 
-    // Human configuration
-    this.config.human.startingHealth = this.getInputValue('humanHealth');
-    this.config.human.maleVsMaleDamage = this.getInputValue('humanMaleDamage');
-    this.config.human.maleVsWolfDamage = this.getInputValue('humanWolfDamage');
-    this.config.human.reproductionProbability = this.getInputValue('humanReproduction');
-    this.config.human.pregnancyPeriod = this.getInputValue('humanPregnancy');
-    this.config.human.cooldownPeriod = this.getInputValue('humanCooldown');
-    this.config.human.gompertzA = this.getInputValue('humanGompertzA');
-    this.config.human.gompertzB = this.getInputValue('humanGompertzB');
-    this.config.human.perceptionRange = this.getInputValue('humanPerception');
-    this.config.human.moveTowardFruitProbability = this.getInputValue('humanFruitProb');
+  private setSectionCollapsed(section: Element, collapsed: boolean): void {
+    section.classList.toggle('collapsed', collapsed);
+    section.querySelector('.config-section-header')?.setAttribute('aria-expanded', String(!collapsed));
+  }
 
-    // Wolf configuration
-    this.config.wolf.startingHealth = this.getInputValue('wolfHealth');
-    this.config.wolf.damageToMale = this.getInputValue('wolfDamageToMale');
-    this.config.wolf.damageToFemale = this.getInputValue('wolfDamageToFemale');
-    this.config.wolf.damageToDog = this.getInputValue('wolfDamageToDog');
-    this.config.wolf.gompertzA = this.getInputValue('wolfGompertzA');
-    this.config.wolf.gompertzB = this.getInputValue('wolfGompertzB');
-    this.config.wolf.perceptionRange = this.getInputValue('wolfPerception');
-    this.config.wolf.moveTowardHumanProbability = this.getInputValue('wolfHumanProb');
-    this.config.wolf.spawnProbability = this.getInputValue('wolfSpawn');
+  private allCollapsed(): boolean {
+    const sections = Array.from(document.querySelectorAll('.config-section'));
+    return sections.length > 0 && sections.every((s) => s.classList.contains('collapsed'));
+  }
 
-    // Dog configuration
-    this.config.dog.startingHealth = this.getInputValue('dogHealth');
-    this.config.dog.damageToWolf = this.getInputValue('dogDamage');
-    this.config.dog.gompertzA = this.getInputValue('dogGompertzA');
-    this.config.dog.gompertzB = this.getInputValue('dogGompertzB');
-    this.config.dog.perceptionRange = this.getInputValue('dogPerception');
-    this.config.dog.moveTowardWolfProbability = this.getInputValue('dogWolfProb');
-    this.config.dog.spawnProbability = this.getInputValue('dogSpawn');
+  private toggleCollapseAll(): void {
+    const collapse = !this.allCollapsed();
+    for (const section of Array.from(document.querySelectorAll('.config-section'))) {
+      this.setSectionCollapsed(section, collapse);
+    }
+    this.updateButtonTexts();
+  }
 
-    // Fruit configuration
-    this.config.fruit.energyHealed = this.getInputValue('fruitHealing');
-    this.config.fruit.spawnProbability = this.getInputValue('fruitSpawn');
-    this.config.fruit.roundsToRipen = this.getInputValue('fruitRipen');
+  private updateButtonTexts(): void {
+    const btn = document.getElementById('collapseAllBtn');
+    if (btn) btn.textContent = this.allCollapsed() ? i18n.t('config.expand') : i18n.t('config.collapse');
+  }
 
-    // Mushroom configuration
-    this.config.mushroom.energyRemoved = this.getInputValue('mushroomDamage');
-    this.config.mushroom.spawnProbability = this.getInputValue('mushroomSpawn');
+  // ---------------------------------------------------------------- lifecycle
 
-    // Overcrowding configuration
-    this.config.overcrowding.humanThreshold = this.getInputValue('humanThreshold');
-    this.config.overcrowding.humanMultiplier = this.getInputValue('humanMultiplier');
-    this.config.overcrowding.animalThreshold = this.getInputValue('animalThreshold');
-    this.config.overcrowding.animalMultiplier = this.getInputValue('animalMultiplier');
+  private resetToDefaults(): void {
+    this.config = getDefaultConfig();
+    this.populateInputs();
+    debugLog('[ConfigPanel] Reset to default values');
   }
 
   private handleStartGame(): void {
-    if (!this.validateSpawnProbabilities()) {
-      return;
-    }
-
-    this.readConfigFromInputs();
+    if (!this.validate().valid) return;
+    this.config = this.readConfigFromInputs();
     this.hide();
-
-    if (this.onStartCallback) {
-      this.onStartCallback(this.config);
-    }
+    this.onStartCallback?.(structuredClone(this.config));
   }
 
   show(): void {
     this.panel.style.display = 'flex';
+    this.panel.removeAttribute('aria-hidden');
     this.populateInputs();
     this.updateButtonTexts();
-    this.updateLabels();
-    // Disable the old start button in sidebar when config panel is shown
-    const oldStartBtn = document.getElementById('startBtn') as HTMLButtonElement;
-    if (oldStartBtn) {
-      oldStartBtn.disabled = true;
-    }
+    document.getElementById('startGameBtnTop')?.focus();
   }
 
   hide(): void {
     this.panel.style.display = 'none';
+    this.panel.setAttribute('aria-hidden', 'true');
+  }
+
+  isVisible(): boolean {
+    return this.panel.style.display !== 'none';
   }
 
   onStart(callback: (config: GameConfig) => void): void {
     this.onStartCallback = callback;
   }
 
-  private updateButtonTexts(): void {
-    const collapseBtn = document.getElementById('collapseAllBtn') as HTMLButtonElement;
-    if (collapseBtn) {
-      // Check current state to determine which text to show
-      const sections = document.querySelectorAll('.config-section');
-      const allCollapsed = Array.from(sections).every(section =>
-        section.classList.contains('collapsed')
-      );
-      collapseBtn.textContent = allCollapsed ? i18n.t('config.expand') : i18n.t('config.collapse');
-    }
+  /** A copy of the last applied/loaded configuration. */
+  getConfig(): GameConfig {
+    return structuredClone(this.config);
   }
 
-  private updateLabels(): void {
-    // Update all elements with data-i18n attributes
-    const elements = document.querySelectorAll('[data-i18n]');
-    elements.forEach(element => {
-      const key = element.getAttribute('data-i18n');
-      if (key) {
-        element.textContent = i18n.t(key);
-      }
-    });
-  }
+  // ---------------------------------------------------------------- save / load
 
-  /**
-   * Save current configuration to JSON file
-   */
   private saveConfiguration(): void {
-    // Read current configuration from inputs
-    this.readConfigFromInputs();
-
-    // Create JSON structure with version and timestamp
     const configData = {
       version: '1.0',
       timestamp: new Date().toISOString(),
-      config: this.config
+      config: this.readConfigFromInputs(),
     };
-
-    // Convert to JSON string with pretty formatting
-    const jsonString = JSON.stringify(configData, null, 2);
-
-    // Create blob and download link
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-
-    // Generate filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
     a.download = `game-of-life-config-${timestamp}.json`;
-
-    // Trigger download
     document.body.appendChild(a);
     a.click();
-
-    // Cleanup
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    console.log('[ConfigPanel] Configuration saved:', a.download);
-
-    // Show success notification
-    showNotification(
-      i18n.t('notifications.configSavedTitle'),
-      i18n.t('notifications.configSaved', a.download),
-      'info'
-    );
+    debugLog('[ConfigPanel] Configuration saved:', a.download);
+    showNotification(i18n.t('notifications.configSavedTitle'), i18n.t('notifications.configSaved', a.download), 'info');
   }
 
-  /**
-   * Trigger the hidden file input for loading configuration
-   */
   private triggerLoadConfiguration(): void {
-    const fileInput = document.getElementById('loadConfigFile') as HTMLInputElement;
-    fileInput?.click();
+    (document.getElementById('loadConfigFile') as HTMLInputElement | null)?.click();
   }
 
   /**
-   * Deep merge configuration with defaults, filling in missing values
+   * Apply parsed JSON from a config file. Missing values take defaults; loaded
+   * values go through exactly the same validation as typed ones, so
+   * out-of-range numbers are flagged (and block Start) rather than clamped.
+   * Returns the validation result.
    */
-  private mergeWithDefaults(loaded: any): GameConfig {
-    const defaults = this.getDefaultConfig();
-    const warnings: string[] = [];
-
-    // Helper to safely get a number value with validation
-    const getNumber = (obj: any, path: string, defaultValue: number, min?: number, max?: number): number => {
-      const value = obj;
-      if (typeof value === 'number' && !isNaN(value)) {
-        if (min !== undefined && value < min) {
-          warnings.push(`${path} (${value}) below minimum (${min}), using ${min}`);
-          return min;
-        }
-        if (max !== undefined && value > max) {
-          warnings.push(`${path} (${value}) above maximum (${max}), using ${max}`);
-          return max;
-        }
-        return value;
-      }
-      if (value !== undefined) {
-        warnings.push(`${path} has invalid value, using default (${defaultValue})`);
-      }
-      return defaultValue;
-    };
-
-    // Merge board configuration
-    const board = loaded.board || {};
-    const mergedConfig: GameConfig = {
-      board: {
-        width: getNumber(board.width, 'board.width', defaults.board.width, 10, 100),
-        height: getNumber(board.height, 'board.height', defaults.board.height, 10, 100),
-        injuredThreshold: getNumber(board.injuredThreshold, 'board.injuredThreshold', defaults.board.injuredThreshold, 0, 100),
-      },
-      spawn: {
-        maleHumanProbability: getNumber(loaded.spawn?.maleHumanProbability, 'spawn.maleHumanProbability', defaults.spawn.maleHumanProbability, 0, 1),
-        femaleHumanProbability: getNumber(loaded.spawn?.femaleHumanProbability, 'spawn.femaleHumanProbability', defaults.spawn.femaleHumanProbability, 0, 1),
-        wolfProbability: getNumber(loaded.spawn?.wolfProbability, 'spawn.wolfProbability', defaults.spawn.wolfProbability, 0, 1),
-        dogProbability: getNumber(loaded.spawn?.dogProbability, 'spawn.dogProbability', defaults.spawn.dogProbability, 0, 1),
-        fruitProbability: getNumber(loaded.spawn?.fruitProbability, 'spawn.fruitProbability', defaults.spawn.fruitProbability, 0, 1),
-        mushroomProbability: getNumber(loaded.spawn?.mushroomProbability, 'spawn.mushroomProbability', defaults.spawn.mushroomProbability, 0, 1),
-      },
-      human: {
-        startingHealth: getNumber(loaded.human?.startingHealth, 'human.startingHealth', defaults.human.startingHealth, 1, 200),
-        maleVsMaleDamage: getNumber(loaded.human?.maleVsMaleDamage, 'human.maleVsMaleDamage', defaults.human.maleVsMaleDamage, 0, 100),
-        maleVsWolfDamage: getNumber(loaded.human?.maleVsWolfDamage, 'human.maleVsWolfDamage', defaults.human.maleVsWolfDamage, 0, 100),
-        reproductionProbability: getNumber(loaded.human?.reproductionProbability, 'human.reproductionProbability', defaults.human.reproductionProbability, 0, 1),
-        pregnancyPeriod: getNumber(loaded.human?.pregnancyPeriod, 'human.pregnancyPeriod', defaults.human.pregnancyPeriod, 1, 100),
-        cooldownPeriod: getNumber(loaded.human?.cooldownPeriod, 'human.cooldownPeriod', defaults.human.cooldownPeriod, 0, 100),
-        perceptionRange: getNumber(loaded.human?.perceptionRange, 'human.perceptionRange', defaults.human.perceptionRange, 0, 20),
-        moveTowardFruitProbability: getNumber(loaded.human?.moveTowardFruitProbability, 'human.moveTowardFruitProbability', defaults.human.moveTowardFruitProbability, 0, 1),
-        gompertzA: getNumber(loaded.human?.gompertzA, 'human.gompertzA', defaults.human.gompertzA, 0),
-        gompertzB: getNumber(loaded.human?.gompertzB, 'human.gompertzB', defaults.human.gompertzB, 0),
-      },
-      wolf: {
-        startingHealth: getNumber(loaded.wolf?.startingHealth, 'wolf.startingHealth', defaults.wolf.startingHealth, 1, 200),
-        damageToMale: getNumber(loaded.wolf?.damageToMale, 'wolf.damageToMale', defaults.wolf.damageToMale, 0, 100),
-        damageToFemale: getNumber(loaded.wolf?.damageToFemale, 'wolf.damageToFemale', defaults.wolf.damageToFemale, 0, 100),
-        damageToDog: getNumber(loaded.wolf?.damageToDog, 'wolf.damageToDog', defaults.wolf.damageToDog, 0, 100),
-        perceptionRange: getNumber(loaded.wolf?.perceptionRange, 'wolf.perceptionRange', defaults.wolf.perceptionRange, 0, 20),
-        moveTowardHumanProbability: getNumber(loaded.wolf?.moveTowardHumanProbability, 'wolf.moveTowardHumanProbability', defaults.wolf.moveTowardHumanProbability, 0, 1),
-        spawnProbability: getNumber(loaded.wolf?.spawnProbability, 'wolf.spawnProbability', defaults.wolf.spawnProbability, 0, 1),
-        gompertzA: getNumber(loaded.wolf?.gompertzA, 'wolf.gompertzA', defaults.wolf.gompertzA, 0),
-        gompertzB: getNumber(loaded.wolf?.gompertzB, 'wolf.gompertzB', defaults.wolf.gompertzB, 0),
-      },
-      dog: {
-        startingHealth: getNumber(loaded.dog?.startingHealth, 'dog.startingHealth', defaults.dog.startingHealth, 1, 200),
-        damageToWolf: getNumber(loaded.dog?.damageToWolf, 'dog.damageToWolf', defaults.dog.damageToWolf, 0, 100),
-        perceptionRange: getNumber(loaded.dog?.perceptionRange, 'dog.perceptionRange', defaults.dog.perceptionRange, 0, 20),
-        moveTowardWolfProbability: getNumber(loaded.dog?.moveTowardWolfProbability, 'dog.moveTowardWolfProbability', defaults.dog.moveTowardWolfProbability, 0, 1),
-        spawnProbability: getNumber(loaded.dog?.spawnProbability, 'dog.spawnProbability', defaults.dog.spawnProbability, 0, 1),
-        gompertzA: getNumber(loaded.dog?.gompertzA, 'dog.gompertzA', defaults.dog.gompertzA, 0),
-        gompertzB: getNumber(loaded.dog?.gompertzB, 'dog.gompertzB', defaults.dog.gompertzB, 0),
-      },
-      fruit: {
-        // Support both old (energyValue) and new (energyHealed) property names
-        energyHealed: getNumber(loaded.fruit?.energyHealed ?? loaded.fruit?.energyValue, 'fruit.energyHealed', defaults.fruit.energyHealed, 0, 200),
-        spawnProbability: getNumber(loaded.fruit?.spawnProbability, 'fruit.spawnProbability', defaults.fruit.spawnProbability, 0, 1),
-        roundsToRipen: getNumber(loaded.fruit?.roundsToRipen, 'fruit.roundsToRipen', defaults.fruit.roundsToRipen, 0, 100),
-      },
-      mushroom: {
-        // Support both old (damageValue) and new (energyRemoved) property names
-        energyRemoved: getNumber(loaded.mushroom?.energyRemoved ?? loaded.mushroom?.damageValue, 'mushroom.energyRemoved', defaults.mushroom.energyRemoved, 0, 200),
-        spawnProbability: getNumber(loaded.mushroom?.spawnProbability, 'mushroom.spawnProbability', defaults.mushroom.spawnProbability, 0, 1),
-      },
-      overcrowding: {
-        humanThreshold: getNumber(loaded.overcrowding?.humanThreshold, 'overcrowding.humanThreshold', defaults.overcrowding.humanThreshold, 10, 1000),
-        humanMultiplier: getNumber(loaded.overcrowding?.humanMultiplier, 'overcrowding.humanMultiplier', defaults.overcrowding.humanMultiplier, 1, 10),
-        animalThreshold: getNumber(loaded.overcrowding?.animalThreshold, 'overcrowding.animalThreshold', defaults.overcrowding.animalThreshold, 10, 1000),
-        animalMultiplier: getNumber(loaded.overcrowding?.animalMultiplier, 'overcrowding.animalMultiplier', defaults.overcrowding.animalMultiplier, 1, 10),
-      },
-    };
-
-    // Log warnings if any
-    if (warnings.length > 0) {
-      console.warn('[ConfigPanel] Configuration warnings:', warnings);
+  applyLoadedData(data: unknown, fileName: string): ValidationResult {
+    const wrapped = data as { config?: unknown; version?: unknown } | null;
+    const loaded = wrapped && typeof wrapped === 'object' && 'config' in wrapped ? wrapped.config : data;
+    if (wrapped && typeof wrapped === 'object' && wrapped.version) {
+      debugLog('[ConfigPanel] Loading config version:', wrapped.version);
     }
 
-    return mergedConfig;
+    const { config, replaced } = mergeWithDefaults(loaded);
+    if (replaced.length > 0) debugLog('[ConfigPanel] Non-numeric values replaced by defaults:', replaced);
+    this.config = config;
+    this.populateInputs();
+    const result = this.validate();
+
+    if (result.valid) {
+      showNotification(i18n.t('notifications.configLoadedTitle'), i18n.t('notifications.configLoaded', fileName), 'info');
+    } else {
+      showNotification(
+        i18n.t('notifications.configLoadInvalidTitle'),
+        i18n.t('notifications.configLoadInvalid', result.fieldErrors.length + (result.spawnExceeded ? 1 : 0)),
+        'warning',
+      );
+    }
+    return result;
   }
 
-  /**
-   * Load configuration from uploaded JSON file (resilient mode)
-   */
   private loadConfiguration(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const data = JSON.parse(content);
-
-        // Support both wrapped (with version/timestamp) and direct config objects
-        const loadedConfig = data.config || data;
-
-        // Log version info if present
-        if (data.version) {
-          console.log('[ConfigPanel] Loading config version:', data.version);
-        }
-
-        // Resilient merge with defaults - fills in missing values, clamps invalid ones
-        this.config = this.mergeWithDefaults(loadedConfig);
-
-        // Update UI
-        this.populateInputs();
-        this.updateExpectedCounts();
-        this.validateSpawnProbabilities();
-
-        console.log('[ConfigPanel] Configuration loaded successfully from:', file.name);
-
-        // Show success notification
-        showNotification(
-          i18n.t('notifications.configLoadedTitle'),
-          i18n.t('notifications.configLoaded', file.name),
-          'info'
-        );
+        this.applyLoadedData(JSON.parse(content), file.name);
       } catch (error) {
-        console.error('[ConfigPanel] Error loading configuration:', error);
-
-        // Show error notification
         const errorMessage = error instanceof Error ? error.message : 'Invalid JSON file';
         showNotification(
           i18n.t('notifications.configLoadErrorTitle'),
           i18n.t('notifications.configLoadError', errorMessage),
-          'error'
+          'error',
         );
       }
     };
-
     reader.readAsText(file);
-
-    // Reset file input so the same file can be loaded again if needed
     input.value = '';
-  }
-
-  getConfig(): GameConfig {
-    return this.config;
   }
 }

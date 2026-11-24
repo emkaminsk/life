@@ -14,6 +14,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f5f5f5;
+      color: #222;
       padding: 20px;
     }
 
@@ -24,8 +25,10 @@
 
     header {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      gap: 10px 20px;
       margin-bottom: 20px;
       background: white;
       padding: 15px 20px;
@@ -38,32 +41,46 @@
       color: #333;
     }
 
+    .header-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      align-items: center;
+    }
+
     .round-counter {
       font-size: 18px;
       font-weight: bold;
-      color: #666;
+      color: #555;
+      font-variant-numeric: tabular-nums;
     }
 
     .main-content {
       display: flex;
       gap: 20px;
+      align-items: flex-start;
     }
 
     .game-area {
       flex: 1;
+      min-width: 0;
+      overflow: auto;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    canvas {
+    #gameCanvas {
       border: 2px solid #333;
       display: block;
+      margin: 0 auto;
+      box-sizing: content-box;
     }
 
     .sidebar {
       width: 250px;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -88,9 +105,11 @@
       gap: 10px;
     }
 
+    /* ---------- Buttons ---------- */
     button {
       padding: 10px 15px;
       font-size: 14px;
+      font-family: inherit;
       border: none;
       border-radius: 4px;
       cursor: pointer;
@@ -98,73 +117,143 @@
       font-weight: 500;
     }
 
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    :focus-visible {
+      outline: 3px solid #1565c0;
+      outline-offset: 2px;
+    }
+
     .btn-primary {
-      background: #007bff;
+      background: #2e7d32;
       color: white;
     }
 
-    .btn-primary:hover {
-      background: #0056b3;
+    .btn-primary:hover:not(:disabled) {
+      background: #1b5e20;
     }
 
     .btn-success {
-      background: #28a745;
+      background: #2e7d32;
       color: white;
     }
 
-    .btn-success:hover {
-      background: #218838;
+    .btn-success:hover:not(:disabled) {
+      background: #1b5e20;
     }
 
     .btn-warning {
       background: #ffc107;
-      color: #333;
+      color: #222;
     }
 
-    .btn-warning:hover {
+    .btn-warning:hover:not(:disabled) {
       background: #e0a800;
     }
 
     .btn-danger {
-      background: #dc3545;
+      background: #c62828;
       color: white;
     }
 
-    .btn-danger:hover {
-      background: #c82333;
+    .btn-danger:hover:not(:disabled) {
+      background: #8e0000;
     }
 
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+      border: 1px solid #bbb;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+
+    .speed-control {
+      margin-top: 15px;
+    }
+
+    .speed-control label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .speed-control select {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #999;
+      border-radius: 4px;
+      background: white;
+    }
+
+    /* ---------- Statistics ---------- */
     .stats-grid {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .stat-row {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       padding: 8px;
       background: #f8f9fa;
       border-radius: 4px;
+      font-size: 15px;
     }
 
     .stat-label {
       font-weight: 500;
-      color: #666;
+      color: #555;
     }
 
     .stat-value {
       font-weight: bold;
-      color: #333;
+      color: #222;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* Notification System */
+    .stat-detail {
+      flex-basis: 100%;
+      font-size: 13px;
+      color: #555;
+      text-align: right;
+    }
+
+    .stat-total {
+      font-weight: 600;
+      background: #e8f5e9;
+      color: #1b5e20;
+      justify-content: center;
+    }
+
+    .graph-title {
+      font-size: 14px;
+      margin: 15px 0 10px;
+      color: #555;
+    }
+
+    #populationGraph {
+      border: 1px solid #ddd;
+      background: #fafafa;
+      max-width: 100%;
+    }
+
+    /* ---------- Notifications ---------- */
     #notificationContainer {
       position: fixed;
       top: 20px;
       right: 20px;
-      z-index: 1000;
-      max-width: 400px;
+      z-index: 2500;
+      max-width: min(400px, calc(100vw - 40px));
     }
 
     .notification {
@@ -184,27 +273,27 @@
     }
 
     .notification.error {
-      border-left-color: #f44336;
+      border-left-color: #c62828;
     }
 
     .notification.warning {
-      border-left-color: #ff9800;
+      border-left-color: #ef6c00;
     }
 
     .notification.info {
-      border-left-color: #2196F3;
+      border-left-color: #1565c0;
     }
 
     .notification-title {
       font-weight: bold;
       font-size: 14px;
       margin-bottom: 5px;
-      color: #333;
+      color: #222;
     }
 
     .notification-message {
       font-size: 13px;
-      color: #666;
+      color: #555;
     }
 
     @keyframes slideIn {
@@ -218,14 +307,11 @@
       }
     }
 
-    /* Rules Modal */
+    /* ---------- Rules Modal ---------- */
     #rulesModal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0, 0, 0, 0.5);
       z-index: 2000;
       align-items: center;
@@ -261,32 +347,32 @@
 
     .close-btn {
       background: none;
-      border: none;
       font-size: 24px;
-      cursor: pointer;
-      color: #666;
+      line-height: 1;
+      color: #555;
       padding: 0;
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
     }
 
     .close-btn:hover {
-      color: #333;
+      color: #222;
+      background: #eee;
     }
 
     .modal-tabs {
       display: flex;
+      flex-wrap: wrap;
       border-bottom: 1px solid #ddd;
       background: #f8f9fa;
     }
 
     .modal-tab {
       padding: 12px 20px;
-      cursor: pointer;
-      border: none;
+      border-radius: 0;
       background: none;
       font-size: 14px;
-      color: #666;
+      color: #555;
       border-bottom: 2px solid transparent;
     }
 
@@ -295,8 +381,8 @@
     }
 
     .modal-tab.active {
-      color: #007bff;
-      border-bottom-color: #007bff;
+      color: #0056b3;
+      border-bottom-color: #0056b3;
       background: white;
     }
 
@@ -323,43 +409,36 @@
 
     .tab-content p, .tab-content li {
       line-height: 1.6;
-      color: #666;
+      color: #444;
       font-size: 14px;
     }
 
-    .tab-content ul {
+    .tab-content ul, .tab-content ol {
       margin-left: 20px;
     }
 
     .help-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
+      flex-shrink: 0;
       width: 40px;
       height: 40px;
+      padding: 0;
       border-radius: 50%;
-      background: #007bff;
+      background: #0056b3;
       color: white;
-      border: none;
       font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 100;
-      transition: background 0.2s;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
 
     .help-btn:hover {
-      background: #0056b3;
+      background: #003f80;
     }
 
-    /* Initialization Progress */
+    /* ---------- Initialization Progress ---------- */
     #initProgress {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0, 0, 0, 0.7);
       z-index: 3000;
       align-items: center;
@@ -374,12 +453,12 @@
       background: white;
       border-radius: 8px;
       padding: 30px;
-      min-width: 300px;
+      width: min(360px, calc(100vw - 40px));
       text-align: center;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
 
-    .progress-content h3 {
+    .progress-content h2 {
       margin: 0 0 20px 0;
       font-size: 18px;
       color: #333;
@@ -396,24 +475,31 @@
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #4CAF50, #45a049);
+      background: #2e7d32;
       width: 0%;
       transition: width 0.2s;
     }
 
-    .progress-text {
-      font-size: 14px;
-      color: #666;
+    .progress-bar.indeterminate {
+      background: repeating-linear-gradient(45deg, #2e7d32 0 10px, #43a047 10px 20px);
+      background-size: 28px 28px;
+      animation: progressStripes 0.6s linear infinite;
     }
 
-    /* Configuration Modal */
+    @keyframes progressStripes {
+      to { background-position: 28px 0; }
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* ---------- Configuration Modal ---------- */
     .config-modal {
       display: flex;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0, 0, 0, 0.7);
       z-index: 2000;
       justify-content: center;
@@ -432,8 +518,17 @@
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     }
 
+    .config-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
     .config-content h1 {
-      margin: 0 0 10px 0;
+      margin: 0;
       font-size: 28px;
       color: #333;
     }
@@ -441,13 +536,29 @@
     .config-subtitle {
       margin: 0 0 25px 0;
       font-size: 14px;
-      color: #666;
+      color: #555;
+    }
+
+    .config-top-actions {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .config-top-actions button {
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .config-top-actions .btn-primary {
+      flex: 1;
     }
 
     .language-selector {
       padding: 8px 12px;
       font-size: 14px;
-      border: 2px solid #ddd;
+      border: 2px solid #bbb;
       border-radius: 6px;
       background: white;
       cursor: pointer;
@@ -455,14 +566,9 @@
       font-weight: 500;
     }
 
-    .language-selector:hover {
-      border-color: #4CAF50;
-    }
-
+    .language-selector:hover,
     .language-selector:focus {
-      outline: none;
-      border-color: #4CAF50;
-      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+      border-color: #2e7d32;
     }
 
     .config-section {
@@ -472,13 +578,23 @@
       overflow: hidden;
     }
 
+    .config-section-title {
+      margin: 0;
+      font-size: 16px;
+    }
+
     .config-section-header {
+      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 15px 20px;
       background: #f8f8f8;
-      cursor: pointer;
+      color: #333;
+      border-radius: 0;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: left;
       user-select: none;
     }
 
@@ -486,14 +602,12 @@
       background: #f0f0f0;
     }
 
-    .config-section-header h2 {
-      margin: 0;
-      font-size: 16px;
-      color: #333;
+    .config-section-header:focus-visible {
+      outline-offset: -3px;
     }
 
     .toggle-icon {
-      font-size: 12px;
+      font-size: 13px;
       transition: transform 0.2s;
     }
 
@@ -513,26 +627,44 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
       margin-bottom: 15px;
     }
 
     .config-row label {
       font-size: 14px;
-      color: #555;
+      color: #444;
       flex: 1;
     }
 
     .config-row input {
-      width: 100px;
+      width: 110px;
+      flex-shrink: 0;
       padding: 6px 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #999;
       border-radius: 4px;
       font-size: 14px;
+      background: white;
     }
 
     .config-row input:focus {
-      outline: none;
-      border-color: #4CAF50;
+      border-color: #2e7d32;
+    }
+
+    .config-row input.invalid {
+      border: 2px solid #c62828;
+      background: #ffebee;
+    }
+
+    .field-error {
+      margin: -10px 0 15px;
+      font-size: 13px;
+      color: #c62828;
+      text-align: right;
+    }
+
+    .field-error:empty {
+      display: none;
     }
 
     .config-divider {
@@ -549,22 +681,30 @@
       font-weight: 500;
     }
 
+    .validation-message:empty {
+      display: none;
+    }
+
     .validation-error {
       background: #ffebee;
-      color: #c62828;
+      color: #b71c1c;
       border: 1px solid #ef5350;
     }
 
     .validation-warning {
       background: #fff3e0;
-      color: #e65100;
+      color: #a84300;
       border: 1px solid #ff9800;
     }
 
     .validation-success {
       background: #e8f5e9;
-      color: #2e7d32;
+      color: #1b5e20;
       border: 1px solid #4CAF50;
+    }
+
+    #configValidationSummary {
+      margin: 0 0 20px;
     }
 
     .expected-counts {
@@ -573,12 +713,13 @@
       background: #f5f5f5;
       border-radius: 4px;
       font-size: 13px;
-      color: #666;
+      color: #555;
       text-align: center;
     }
 
     .config-controls {
       display: flex;
+      flex-wrap: wrap;
       gap: 15px;
       margin-top: 25px;
       padding-top: 20px;
@@ -586,44 +727,20 @@
     }
 
     .config-controls button {
-      flex: 1;
+      flex: 1 1 140px;
       padding: 12px 20px;
       font-size: 15px;
       font-weight: 600;
     }
 
-    .btn-primary {
-      background: #4CAF50;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #45a049;
-    }
-
-    .btn-primary:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .btn-secondary {
-      background: #f5f5f5;
-      color: #333;
-      border: 1px solid #ddd;
-    }
-
-    .btn-secondary:hover {
-      background: #e0e0e0;
-    }
-
-    /* Entity Tooltip */
+    /* ---------- Entity Tooltip ---------- */
     .entity-tooltip {
       position: fixed;
       background: rgba(0, 0, 0, 0.9);
       color: white;
       padding: 10px 12px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
       pointer-events: none;
       z-index: 1000;
       display: none;
@@ -632,7 +749,7 @@
 
     .tooltip-header {
       font-weight: bold;
-      font-size: 13px;
+      font-size: 14px;
       margin-bottom: 6px;
       border-bottom: 1px solid rgba(255,255,255,0.3);
       padding-bottom: 4px;
@@ -642,44 +759,90 @@
       margin: 3px 0;
       line-height: 1.4;
     }
+
+    .tooltip-separator {
+      margin: 8px 0;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* ---------- Narrow screens ---------- */
+    @media (max-width: 900px) {
+      body {
+        padding: 10px;
+      }
+
+      .main-content {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .sidebar {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 15px;
+      }
+
+      .game-area {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .config-content {
+        padding: 20px;
+      }
+
+      .config-content h1 {
+        font-size: 22px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <button id="helpBtn" class="help-btn" title="View Rules">?</button>
-  <div id="notificationContainer"></div>
+  <div id="notificationContainer" role="status" aria-live="polite" aria-label="Notifications" data-i18n-aria-label="a11y.notifications"></div>
 
   <!-- Entity Tooltip -->
-  <div id="entityTooltip" class="entity-tooltip">
+  <div id="entityTooltip" class="entity-tooltip" aria-hidden="true">
     <div class="tooltip-header"></div>
     <div class="tooltip-stats"></div>
   </div>
 
-  <!-- Initialization Progress -->
-  <div id="initProgress">
+  <!-- Initialization Progress (boards larger than 50x50) -->
+  <div id="initProgress" role="dialog" aria-modal="true" aria-labelledby="initTitle">
     <div class="progress-content">
-      <h3>⏳ Initializing Game...</h3>
-      <div class="progress-bar-container">
+      <h2 id="initTitle" data-i18n="init.title">⏳ Initializing game...</h2>
+      <div class="progress-bar-container" role="progressbar" aria-labelledby="progressText">
         <div class="progress-bar" id="progressBar"></div>
       </div>
-      <div class="progress-text" id="progressText">Spawning creatures: 0%</div>
+      <div class="progress-text" id="progressText" aria-live="polite">Spawning creatures...</div>
     </div>
   </div>
 
   <!-- Rules Modal -->
-  <div id="rulesModal">
+  <div id="rulesModal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 data-i18n="rules.title">📖 Game Rules & Reference</h2>
-        <button class="close-btn" id="closeModal">&times;</button>
+        <h2 id="rulesTitle" data-i18n="rules.title">📖 Game Rules & Reference</h2>
+        <button type="button" class="close-btn" id="closeModal" aria-label="Close" data-i18n-aria-label="a11y.close">&times;</button>
       </div>
-      <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="rules" data-i18n="rules.tabGameRules">Game Rules</button>
-        <button class="modal-tab" data-tab="creatures" data-i18n="rules.tabCreatures">Creatures</button>
-        <button class="modal-tab" data-tab="plants" data-i18n="rules.tabPlants">Plants</button>
-        <button class="modal-tab" data-tab="controls" data-i18n="rules.tabControls">Controls</button>
+      <div class="modal-tabs" role="tablist">
+        <button type="button" class="modal-tab active" role="tab" id="tab-rules" aria-controls="rules-tab" aria-selected="true" tabindex="0" data-tab="rules" data-i18n="rules.tabGameRules">Game Rules</button>
+        <button type="button" class="modal-tab" role="tab" id="tab-creatures" aria-controls="creatures-tab" aria-selected="false" tabindex="-1" data-tab="creatures" data-i18n="rules.tabCreatures">Creatures</button>
+        <button type="button" class="modal-tab" role="tab" id="tab-plants" aria-controls="plants-tab" aria-selected="false" tabindex="-1" data-tab="plants" data-i18n="rules.tabPlants">Plants</button>
+        <button type="button" class="modal-tab" role="tab" id="tab-controls" aria-controls="controls-tab" aria-selected="false" tabindex="-1" data-tab="controls" data-i18n="rules.tabControls">Controls</button>
       </div>
       <div class="modal-body">
-        <div class="tab-content active" id="rules-tab">
+        <div class="tab-content active" id="rules-tab" role="tabpanel" aria-labelledby="tab-rules">
           <h3 data-i18n="rules.gameRulesTitle">🎮 How the Game Works</h3>
           <p data-i18n="rules.roundPriorityDesc">This simulator shows how populations interact in an ecosystem. Each round, all creatures follow these phases in order:</p>
           <ol>
@@ -698,7 +861,7 @@
             <li data-i18n="rules.importantRule3">When populations exceed thresholds, death rates increase (overcrowding)</li>
           </ul>
         </div>
-        <div class="tab-content" id="creatures-tab">
+        <div class="tab-content" id="creatures-tab" role="tabpanel" aria-labelledby="tab-creatures">
           <h3 data-i18n="rules.malesTitle">👨 Male Humans</h3>
           <p data-i18n="rules.malesDesc">Males can fight each other and wolves. They can reproduce with females. Males move toward nearby fruits when hungry.</p>
           <h3 data-i18n="rules.femalesTitle">👩 Female Humans</h3>
@@ -708,13 +871,13 @@
           <h3 data-i18n="rules.dogsTitle">🐕 Dogs</h3>
           <p data-i18n="rules.dogsDesc">Dogs protect humans by attacking wolves. They move toward nearby wolves and can counter-attack when wolves attack them. Dogs age and die naturally.</p>
         </div>
-        <div class="tab-content" id="plants-tab">
+        <div class="tab-content" id="plants-tab" role="tabpanel" aria-labelledby="tab-plants">
           <h3 data-i18n="rules.fruitsTitle">🍎 Fruits</h3>
           <p data-i18n="rules.fruitsDesc">Fruits provide energy to humans. They take 2 rounds to ripen (shown by color change). Only ripe fruits can be eaten. Humans heal when eating fruits.</p>
           <h3 data-i18n="rules.mushroomsTitle">🍄 Mushrooms</h3>
           <p data-i18n="rules.mushroomsDesc">Mushrooms are poisonous! When humans eat mushrooms, they lose health instead of gaining it. Be careful - mushrooms look similar to fruits but are dangerous.</p>
         </div>
-        <div class="tab-content" id="controls-tab">
+        <div class="tab-content" id="controls-tab" role="tabpanel" aria-labelledby="tab-controls">
           <h3 data-i18n="rules.keyboardShortcutsTitle">⌨️ Keyboard Shortcuts</h3>
           <ul>
             <li data-i18n="rules.keySpace"><strong>Space</strong> - Pause/Resume simulation</li>
@@ -733,40 +896,42 @@
   <div class="container">
     <header>
       <h1 data-i18n="header.title">Game of Life Educational Simulator</h1>
-      <div style="display: flex; gap: 20px; align-items: center;">
+      <div class="header-info">
         <div class="round-counter" id="round">Round: 0</div>
         <div class="round-counter" id="roundsPerSec">Rounds/sec: 0</div>
+        <div class="round-counter" id="fps" hidden></div>
+        <button type="button" id="helpBtn" class="help-btn" title="View rules" aria-label="View rules" data-i18n-title="header.helpTitle" data-i18n-aria-label="header.helpTitle" aria-haspopup="dialog">?</button>
       </div>
     </header>
 
-    <div class="main-content">
+    <main class="main-content">
       <div class="game-area">
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" role="img" aria-label="Ecosystem board"></canvas>
       </div>
 
-      <div class="sidebar">
-        <div class="panel">
-          <h2 data-i18n="controls.title">Controls</h2>
+      <aside class="sidebar">
+        <section class="panel" aria-labelledby="controlsTitle">
+          <h2 id="controlsTitle" data-i18n="controls.title">Controls</h2>
           <div class="controls">
-            <button id="startBtn" class="btn-success" data-i18n="controls.startGame">Start Game</button>
-            <button id="pauseBtn" class="btn-warning" disabled data-i18n="controls.pause">Pause</button>
-            <button id="stepBtn" class="btn-primary" data-i18n="controls.runOneRound">Step</button>
-            <button id="runBtn" class="btn-primary" disabled data-i18n="controls.runFree">Run</button>
-            <button id="resetBtn" class="btn-danger" disabled data-i18n="controls.reset">Reset</button>
-            <button id="finishBtn" class="btn-danger" disabled data-i18n="controls.finishGame">Finish Game</button>
-            <div style="margin-top: 15px;">
-              <label style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;" data-i18n="controls.speed">Speed</label>
-              <select id="speedSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="500" data-i18n="controls.slow">Slow (500ms)</option>
-                <option value="200" selected data-i18n="controls.medium">Medium (200ms)</option>
-                <option value="50" data-i18n="controls.fast">Fast (50ms)</option>
+            <button type="button" id="pauseBtn" class="btn-warning" disabled>Pause</button>
+            <button type="button" id="stepBtn" class="btn-primary" disabled data-i18n="controls.runOneRound">Run One Round</button>
+            <button type="button" id="runFiveBtn" class="btn-primary" disabled data-i18n="controls.runFiveRounds">Run Five Rounds</button>
+            <button type="button" id="runBtn" class="btn-primary" disabled data-i18n="controls.runFree">Run Free</button>
+            <button type="button" id="resetBtn" class="btn-danger" disabled data-i18n="controls.reset">Reset</button>
+            <button type="button" id="finishBtn" class="btn-danger" disabled data-i18n="controls.finishGame">Finish Game</button>
+            <div class="speed-control">
+              <label for="speedSelect" data-i18n="controls.speed">Speed:</label>
+              <select id="speedSelect">
+                <option value="500" data-i18n="controls.slow">Slow</option>
+                <option value="200" selected data-i18n="controls.medium">Medium</option>
+                <option value="50" data-i18n="controls.fast">Fast</option>
               </select>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="panel">
-          <h2 data-i18n="stats.statistics">Statistics</h2>
+        <section class="panel" aria-labelledby="statsTitle">
+          <h2 id="statsTitle" data-i18n="stats.statistics">Statistics</h2>
           <div class="stats-grid">
             <div class="stat-row">
               <span class="stat-label">👨 <span data-i18n="stats.males">Males</span></span>
@@ -791,28 +956,28 @@
             <div class="stat-row">
               <span class="stat-label">🍎 <span data-i18n="stats.fruits">Fruits</span></span>
               <span class="stat-value" id="fruitCount">0</span>
+              <span class="stat-detail" id="fruitRipeUnripe">0 ripe / 0 unripe</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">🍄 <span data-i18n="stats.mushrooms">Mushrooms</span></span>
               <span class="stat-value" id="mushroomCount">0</span>
             </div>
+            <div class="stat-row stat-total" id="totalCreatures">Total creatures: 0/0</div>
           </div>
-          <div style="margin-top: 15px;">
-            <h3 style="font-size: 14px; margin-bottom: 10px; color: #666;" data-i18n="stats.populationGraph">Population Over Time</h3>
-            <canvas id="populationGraph" width="220" height="120" style="border: 1px solid #ddd; background: #fafafa;"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
+          <h3 class="graph-title" data-i18n="stats.populationGraph">Population Graph</h3>
+          <canvas id="populationGraph" width="220" height="120" role="img" aria-labelledby="statsTitle"></canvas>
+        </section>
+      </aside>
+    </main>
   </div>
 
   <!-- Configuration Panel Modal -->
-  <div id="configPanel" class="config-modal">
+  <div id="configPanel" class="config-modal" role="dialog" aria-modal="true" aria-labelledby="configTitle">
     <div class="config-content">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h1 data-i18n="config.configPanel">Game Configuration</h1>
+      <div class="config-title-row">
+        <h1 id="configTitle" data-i18n="config.configPanel">Game Configuration</h1>
         <!-- Language Selector -->
-        <select id="languageSelector" class="language-selector" aria-label="Select language">
+        <select id="languageSelector" class="language-selector" aria-label="Select language" data-i18n-aria-label="a11y.language">
           <option value="en">🇬🇧 English</option>
           <option value="pl">🇵🇱 Polski</option>
         </select>
@@ -820,78 +985,83 @@
       <p class="config-subtitle" data-i18n="config.configSubtitle">Configure parameters before starting the simulation</p>
 
       <!-- Top Action Buttons -->
-      <div style="margin-bottom: 25px; display: flex; gap: 10px;">
-        <button id="startGameBtnTop" class="btn-primary" style="flex: 1; padding: 14px 20px; font-size: 16px; font-weight: 600;" data-i18n="controls.startGame">Start Game</button>
-        <button id="collapseAllBtn" class="btn-secondary" style="padding: 14px 20px; font-size: 16px; font-weight: 600;" data-i18n="config.collapseAll">Collapse</button>
+      <div class="config-top-actions">
+        <button type="button" id="startGameBtnTop" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
+        <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
       </div>
+      <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
 
       <!-- Board & Spawn Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.boardSetup">📐 Board & Spawn Probabilities</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection1">
+            <span data-i18n="config.boardSetup">📐 Board & Spawn Probabilities</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection1">
           <div class="config-row">
-            <label for="boardWidth" data-i18n="config.boardWidth">Board Width (10-100):</label>
+            <label for="boardWidth" data-i18n="config.boardWidth">Board Width:</label>
             <input type="number" id="boardWidth" min="10" max="100" value="30">
           </div>
           <div class="config-row">
-            <label for="boardHeight" data-i18n="config.boardHeight">Board Height (10-100):</label>
+            <label for="boardHeight" data-i18n="config.boardHeight">Board Height:</label>
             <input type="number" id="boardHeight" min="10" max="100" value="30">
           </div>
           <div class="config-row">
-            <label for="injuredThreshold" data-i18n="config.injuredThreshold">Injured Threshold % (0-100):</label>
+            <label for="injuredThreshold" data-i18n="config.injuredThreshold">Injured Threshold %:</label>
             <input type="number" id="injuredThreshold" min="0" max="100" value="50">
           </div>
           <hr class="config-divider">
           <div class="config-row">
-            <label for="spawnMaleHuman" data-i18n="config.maleSpawn">Male Human Spawn (0-1):</label>
+            <label for="spawnMaleHuman" data-i18n="config.maleSpawn">Male Human Spawn:</label>
             <input type="number" id="spawnMaleHuman" min="0" max="1" step="0.01" value="0.15">
           </div>
           <div class="config-row">
-            <label for="spawnFemaleHuman" data-i18n="config.femaleSpawn">Female Human Spawn (0-1):</label>
+            <label for="spawnFemaleHuman" data-i18n="config.femaleSpawn">Female Human Spawn:</label>
             <input type="number" id="spawnFemaleHuman" min="0" max="1" step="0.01" value="0.15">
           </div>
           <div class="config-row">
-            <label for="spawnWolf" data-i18n="config.wolfSpawn">Wolf Spawn (0-1):</label>
+            <label for="spawnWolf" data-i18n="config.wolfSpawn">Wolf Spawn:</label>
             <input type="number" id="spawnWolf" min="0" max="1" step="0.01" value="0.05">
           </div>
           <div class="config-row">
-            <label for="spawnDog" data-i18n="config.dogSpawn">Dog Spawn (0-1):</label>
+            <label for="spawnDog" data-i18n="config.dogSpawn">Dog Spawn:</label>
             <input type="number" id="spawnDog" min="0" max="1" step="0.01" value="0.03">
           </div>
           <div class="config-row">
-            <label for="spawnFruit" data-i18n="config.fruitSpawn">Fruit Spawn (0-1):</label>
+            <label for="spawnFruit" data-i18n="config.fruitSpawn">Fruit Spawn:</label>
             <input type="number" id="spawnFruit" min="0" max="1" step="0.01" value="0.10">
           </div>
           <div class="config-row">
-            <label for="spawnMushroom" data-i18n="config.mushroomSpawn">Mushroom Spawn (0-1):</label>
+            <label for="spawnMushroom" data-i18n="config.mushroomSpawn">Mushroom Spawn:</label>
             <input type="number" id="spawnMushroom" min="0" max="1" step="0.01" value="0.01">
           </div>
           <div id="spawnValidation" class="validation-message"></div>
           <div id="expectedCounts" class="expected-counts"></div>
         </div>
-      </div>
+      </section>
 
       <!-- Human Configuration Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.humanConfig">👨👩 Human Configuration</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection2">
+            <span data-i18n="config.humanConfig">👨👩 Human Configuration</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection2">
           <div class="config-row">
             <label for="humanHealth" data-i18n="config.humanHealth">Starting Health:</label>
-            <input type="number" id="humanHealth" min="1" max="1000" value="100">
+            <input type="number" id="humanHealth" min="1" value="100">
           </div>
           <div class="config-row">
             <label for="humanMaleDamage" data-i18n="config.maleVsMaleDamage">Male vs Male Damage:</label>
-            <input type="number" id="humanMaleDamage" min="0" max="100" value="20">
+            <input type="number" id="humanMaleDamage" min="0" value="20">
           </div>
           <div class="config-row">
             <label for="humanWolfDamage" data-i18n="config.maleVsWolfDamage">Male vs Wolf Damage:</label>
-            <input type="number" id="humanWolfDamage" min="0" max="100" value="25">
+            <input type="number" id="humanWolfDamage" min="0" value="25">
           </div>
           <div class="config-row">
             <label for="humanReproduction" data-i18n="config.reproductionProb">Reproduction Probability:</label>
@@ -899,65 +1069,67 @@
           </div>
           <div class="config-row">
             <label for="humanPregnancy" data-i18n="config.pregnancyPeriod">Pregnancy Period (rounds):</label>
-            <input type="number" id="humanPregnancy" min="1" max="20" value="3">
+            <input type="number" id="humanPregnancy" min="1" value="3">
           </div>
           <div class="config-row">
             <label for="humanCooldown" data-i18n="config.cooldownPeriod">Cooldown Period (rounds):</label>
-            <input type="number" id="humanCooldown" min="0" max="20" value="2">
+            <input type="number" id="humanCooldown" min="0" value="2">
           </div>
           <div class="config-row">
             <label for="humanGompertzA" data-i18n="config.humanGompertzA">Gompertz A (mortality rate):</label>
-            <input type="number" id="humanGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.0001">
+            <input type="number" id="humanGompertzA" min="0" step="0.00001" value="0.0001">
           </div>
           <div class="config-row">
             <label for="humanGompertzB" data-i18n="config.humanGompertzB">Gompertz B (acceleration):</label>
-            <input type="number" id="humanGompertzB" min="0.01" max="1" step="0.01" value="0.1">
+            <input type="number" id="humanGompertzB" min="0" step="0.01" value="0.1">
           </div>
           <div class="config-row">
             <label for="humanPerception" data-i18n="config.humanPerception">Perception Range (cells):</label>
-            <input type="number" id="humanPerception" min="1" max="20" value="5">
+            <input type="number" id="humanPerception" min="0" value="5">
           </div>
           <div class="config-row">
             <label for="humanFruitProb" data-i18n="config.moveTowardFruit">Move Toward Fruit Probability:</label>
             <input type="number" id="humanFruitProb" min="0" max="1" step="0.01" value="0.7">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Wolf Configuration Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.wolfConfig">🐺 Wolf Configuration</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection3">
+            <span data-i18n="config.wolfConfig">🐺 Wolf Configuration</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection3">
           <div class="config-row">
             <label for="wolfHealth" data-i18n="config.wolfHealth">Starting Health:</label>
-            <input type="number" id="wolfHealth" min="1" max="1000" value="80">
+            <input type="number" id="wolfHealth" min="1" value="80">
           </div>
           <div class="config-row">
             <label for="wolfDamageToMale" data-i18n="config.wolfDamageToMale">Damage to Male Human:</label>
-            <input type="number" id="wolfDamageToMale" min="0" max="100" value="30" title="Damage dealt to male humans (males fight back with configured counter-damage)">
+            <input type="number" id="wolfDamageToMale" min="0" value="30">
           </div>
           <div class="config-row">
             <label for="wolfDamageToFemale" data-i18n="config.wolfDamageToFemale">Damage to Female Human:</label>
-            <input type="number" id="wolfDamageToFemale" min="0" max="100" value="40" title="Damage dealt to female humans (females do not fight back)">
+            <input type="number" id="wolfDamageToFemale" min="0" value="40">
           </div>
           <div class="config-row">
             <label for="wolfDamageToDog" data-i18n="config.wolfDamageToDog">Counter-Damage to Dog:</label>
-            <input type="number" id="wolfDamageToDog" min="0" max="100" value="17" title="Damage dealt to dogs when dogs attack wolves (typically half of dog's damage)">
+            <input type="number" id="wolfDamageToDog" min="0" value="17">
           </div>
           <div class="config-row">
             <label for="wolfGompertzA" data-i18n="config.wolfGompertzA">Gompertz A (mortality rate):</label>
-            <input type="number" id="wolfGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.0002">
+            <input type="number" id="wolfGompertzA" min="0" step="0.00001" value="0.0002">
           </div>
           <div class="config-row">
             <label for="wolfGompertzB" data-i18n="config.wolfGompertzB">Gompertz B (acceleration):</label>
-            <input type="number" id="wolfGompertzB" min="0.01" max="1" step="0.01" value="0.12">
+            <input type="number" id="wolfGompertzB" min="0" step="0.01" value="0.12">
           </div>
           <div class="config-row">
             <label for="wolfPerception" data-i18n="config.wolfPerception">Perception Range (cells):</label>
-            <input type="number" id="wolfPerception" min="1" max="20" value="7">
+            <input type="number" id="wolfPerception" min="0" value="7">
           </div>
           <div class="config-row">
             <label for="wolfHumanProb" data-i18n="config.moveTowardHuman">Move Toward Human Probability:</label>
@@ -968,34 +1140,36 @@
             <input type="number" id="wolfSpawn" min="0" max="1" step="0.0001" value="0.002">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Dog Configuration Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.dogConfig">🐕 Dog Configuration</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection4">
+            <span data-i18n="config.dogConfig">🐕 Dog Configuration</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection4">
           <div class="config-row">
             <label for="dogHealth" data-i18n="config.dogHealth">Starting Health:</label>
-            <input type="number" id="dogHealth" min="1" max="1000" value="70">
+            <input type="number" id="dogHealth" min="1" value="70">
           </div>
           <div class="config-row">
             <label for="dogDamage" data-i18n="config.dogDamage">Damage to Wolf:</label>
-            <input type="number" id="dogDamage" min="0" max="100" value="35">
+            <input type="number" id="dogDamage" min="0" value="35">
           </div>
           <div class="config-row">
             <label for="dogGompertzA" data-i18n="config.dogGompertzA">Gompertz A (mortality rate):</label>
-            <input type="number" id="dogGompertzA" min="0.00001" max="0.01" step="0.00001" value="0.00015">
+            <input type="number" id="dogGompertzA" min="0" step="0.00001" value="0.00015">
           </div>
           <div class="config-row">
             <label for="dogGompertzB" data-i18n="config.dogGompertzB">Gompertz B (acceleration):</label>
-            <input type="number" id="dogGompertzB" min="0.01" max="1" step="0.01" value="0.11">
+            <input type="number" id="dogGompertzB" min="0" step="0.01" value="0.11">
           </div>
           <div class="config-row">
             <label for="dogPerception" data-i18n="config.dogPerception">Perception Range (cells):</label>
-            <input type="number" id="dogPerception" min="1" max="20" value="6">
+            <input type="number" id="dogPerception" min="0" value="6">
           </div>
           <div class="config-row">
             <label for="dogWolfProb" data-i18n="config.moveTowardWolf">Move Toward Wolf Probability:</label>
@@ -1006,18 +1180,20 @@
             <input type="number" id="dogSpawn" min="0" max="1" step="0.0001" value="0.001">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Fruit Configuration Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.fruitConfig">🍎 Fruit Configuration</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection5">
+            <span data-i18n="config.fruitConfig">🍎 Fruit Configuration</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection5">
           <div class="config-row">
             <label for="fruitHealing" data-i18n="config.fruitEnergy">Energy Healed:</label>
-            <input type="number" id="fruitHealing" min="1" max="100" value="30">
+            <input type="number" id="fruitHealing" min="0" value="30">
           </div>
           <div class="config-row">
             <label for="fruitSpawn" data-i18n="config.fruitSpawnProb">Spawn Probability (per round):</label>
@@ -1025,36 +1201,40 @@
           </div>
           <div class="config-row">
             <label for="fruitRipen" data-i18n="config.roundsToRipen">Rounds to Ripen:</label>
-            <input type="number" id="fruitRipen" min="0" max="10" value="2">
+            <input type="number" id="fruitRipen" min="0" value="2">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Mushroom Configuration Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.mushroomConfig">🍄 Mushroom Configuration</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection6">
+            <span data-i18n="config.mushroomConfig">🍄 Mushroom Configuration</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection6">
           <div class="config-row">
             <label for="mushroomDamage" data-i18n="config.mushroomEnergy">Energy Removed (damage):</label>
-            <input type="number" id="mushroomDamage" min="1" max="100" value="40">
+            <input type="number" id="mushroomDamage" min="0" value="40">
           </div>
           <div class="config-row">
             <label for="mushroomSpawn" data-i18n="config.mushroomSpawnProb">Spawn Probability (per round):</label>
             <input type="number" id="mushroomSpawn" min="0" max="1" step="0.001" value="0.005">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Population Control Section -->
-      <div class="config-section">
-        <div class="config-section-header">
-          <h2 data-i18n="config.populationControl">⚖️ Population Control</h2>
-          <span class="toggle-icon">▼</span>
-        </div>
-        <div class="config-section-body">
+      <section class="config-section">
+        <h2 class="config-section-title">
+          <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection7">
+            <span data-i18n="config.populationControl">⚖️ Population Control</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div class="config-section-body" id="configSection7">
           <div class="config-row">
             <label for="humanThreshold" data-i18n="config.humanThreshold">Human Overcrowding Threshold:</label>
             <input type="number" id="humanThreshold" min="10" max="1000" value="100">
@@ -1072,15 +1252,15 @@
             <input type="number" id="animalMultiplier" min="1" max="10" step="0.1" value="2">
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Control Buttons -->
       <div class="config-controls">
-        <button id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Save configuration to JSON file (Ctrl+S)">Save Configuration</button>
-        <button id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Load configuration from JSON file (Ctrl+O)">Load Configuration</button>
-        <input type="file" id="loadConfigFile" accept=".json" style="display: none;">
-        <button id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
-        <button id="startGameBtn" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
+        <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S">Save Configuration</button>
+        <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O">Load Configuration</button>
+        <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
+        <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
+        <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
       </div>
     </div>
   </div>

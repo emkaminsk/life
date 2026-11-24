@@ -10,12 +10,15 @@ export const translations: Translations = {
       title: 'Game of Life Educational Simulator',
       round: 'Round: {0}',
       roundsPerSec: 'Rounds/sec: {0}',
+      fps: 'FPS: {0}',
+      helpTitle: 'View rules',
     },
 
     controls: {
       title: 'Controls',
       startGame: 'Start Game',
       pause: 'Pause',
+      resume: 'Resume',
       runOneRound: 'Run One Round',
       runFiveRounds: 'Run Five Rounds',
       runFree: 'Run Free',
@@ -40,6 +43,20 @@ export const translations: Translations = {
       total: 'Total creatures: {0}/{1}',
       populationGraph: 'Population Graph',
       waitingForData: 'Waiting for data...',
+      graphRound: 'Round {0}',
+    },
+
+    init: {
+      title: 'Initializing game...',
+      spawning: 'Spawning creatures: {0}%',
+      working: 'Spawning creatures...',
+    },
+
+    a11y: {
+      board: 'Ecosystem board, {0} by {1} fields, round {2}, {3} creatures',
+      close: 'Close',
+      notifications: 'Notifications',
+      language: 'Select language',
     },
 
     config: {
@@ -59,6 +76,7 @@ export const translations: Translations = {
       spawnExceeds100: 'exceeds 100%',
       spawnWarning: 'Warning:',
       spawnVeryHigh: 'is very high',
+      validationSummary: 'Fix {0} invalid value(s) before starting the game.',
 
       boardSetup: 'Board Setup',
       boardWidth: 'Board Width',
@@ -133,6 +151,10 @@ export const translations: Translations = {
       configLoaded: 'Configuration loaded from {0}',
       configLoadErrorTitle: '❌ Load Error',
       configLoadError: 'Failed to load configuration: {0}',
+      configLoadInvalidTitle: '⚠️ Check Loaded Values',
+      configLoadInvalid: '{0} loaded value(s) are invalid - fix the highlighted fields before starting.',
+      startErrorTitle: '❌ Cannot Start',
+      startError: 'The game could not be started: {0}',
     },
 
     rules: {
@@ -189,6 +211,13 @@ export const translations: Translations = {
       invalidRange: 'Value must be between {0} and {1}',
       spawnTooHigh: 'Total spawn probabilities exceed 100%',
       spawnWarning: 'High spawn probability may cause overcrowding',
+      notANumber: 'Please enter a number',
+      tooLow: 'Must be at least {0}',
+      tooHigh: 'Must be at most {0}',
+      notInteger: 'Must be a whole number',
+      rangeHint: 'Valid range: {0} to {1}',
+      minHint: 'Valid range: {0} or more',
+      wholeNumberHint: 'whole numbers only',
     },
 
     tooltip: {
@@ -219,12 +248,15 @@ export const translations: Translations = {
       title: 'Symulator Edukacyjny Gra w Życie',
       round: 'Runda: {0}',
       roundsPerSec: 'Rundy/sek: {0}',
+      fps: 'FPS: {0}',
+      helpTitle: 'Zobacz zasady',
     },
 
     controls: {
       title: 'Sterowanie',
       startGame: 'Rozpocznij Grę',
       pause: 'Pauza',
+      resume: 'Wznów',
       runOneRound: 'Jedna Runda',
       runFiveRounds: 'Pięć Rund',
       runFree: 'Uruchom Swobodnie',
@@ -249,6 +281,20 @@ export const translations: Translations = {
       total: 'Łącznie stworzeń: {0}/{1}',
       populationGraph: 'Wykres Populacji',
       waitingForData: 'Oczekiwanie na dane...',
+      graphRound: 'Runda {0}',
+    },
+
+    init: {
+      title: 'Inicjalizacja gry...',
+      spawning: 'Tworzenie stworzeń: {0}%',
+      working: 'Tworzenie stworzeń...',
+    },
+
+    a11y: {
+      board: 'Plansza ekosystemu, {0} na {1} pól, runda {2}, {3} stworzeń',
+      close: 'Zamknij',
+      notifications: 'Powiadomienia',
+      language: 'Wybierz język',
     },
 
     config: {
@@ -268,6 +314,7 @@ export const translations: Translations = {
       spawnExceeds100: 'przekracza 100%',
       spawnWarning: 'Ostrzeżenie:',
       spawnVeryHigh: 'jest bardzo wysokie',
+      validationSummary: 'Popraw {0} nieprawidłowych wartości przed rozpoczęciem gry.',
 
       boardSetup: 'Ustawienia Planszy',
       boardWidth: 'Szerokość Planszy',
@@ -316,7 +363,7 @@ export const translations: Translations = {
       fruitConfig: 'Konfiguracja Owoców',
       fruitEnergy: 'Uleczona Energia',
       fruitSpawnProb: 'Prawdopodobieństwo Pojawienia na Rundę',
-      roundsToRipen: 'Rounds to Ripen',
+      roundsToRipen: 'Rundy do Dojrzenia',
 
       mushroomConfig: 'Konfiguracja Muchomorów',
       mushroomEnergy: 'Utracona Energia',
@@ -342,6 +389,10 @@ export const translations: Translations = {
       configLoaded: 'Konfiguracja wczytana z {0}',
       configLoadErrorTitle: '❌ Błąd Wczytywania',
       configLoadError: 'Nie udało się wczytać konfiguracji: {0}',
+      configLoadInvalidTitle: '⚠️ Sprawdź Wczytane Wartości',
+      configLoadInvalid: 'Nieprawidłowe wczytane wartości: {0} - popraw zaznaczone pola przed rozpoczęciem.',
+      startErrorTitle: '❌ Nie Można Rozpocząć',
+      startError: 'Nie udało się rozpocząć gry: {0}',
     },
 
     rules: {
@@ -398,6 +449,13 @@ export const translations: Translations = {
       invalidRange: 'Wartość musi być między {0} a {1}',
       spawnTooHigh: 'Suma prawdopodobieństw pojawienia przekracza 100%',
       spawnWarning: 'Wysokie prawdopodobieństwo pojawienia może spowodować przepełnienie',
+      notANumber: 'Wpisz liczbę',
+      tooLow: 'Musi wynosić co najmniej {0}',
+      tooHigh: 'Musi wynosić co najwyżej {0}',
+      notInteger: 'Musi być liczbą całkowitą',
+      rangeHint: 'Prawidłowy zakres: od {0} do {1}',
+      minHint: 'Prawidłowy zakres: {0} lub więcej',
+      wholeNumberHint: 'tylko liczby całkowite',
     },
 
     tooltip: {

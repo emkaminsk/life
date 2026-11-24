@@ -72,3 +72,18 @@ ran at ~10 FPS with 733 ms worst frame; ~60% CPU in `MovementSystem` filters.
 - **Poison flash**: red (CLAUDE.md/README); PRD US-012 updated.
 - **Flash duration**: 1000 ms per spec; one flash per cell (newest wins).
 - **Out of scope** (pending in todo): PRD 3.16 energy states, 3.17 longevity, 3.18 genome evolution graph (TraitChart exists but is not yet wired), 3.19 dog mushroom immunity.
+
+## Outcome
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Tests | 346 (1 flaky, ~40-50% tautological) | 419 behaviour tests, stable across repeated runs |
+| Statement coverage | 46% | 98% (thresholds enforced at 80%) |
+| Test type errors | 121 (tests not type-checked) | 0 (`npm run typecheck`) |
+| Biome lint errors in `src/` | several | 0 |
+| Dense 100×100 board (~4,900 entities, headless) | ~10 FPS, 733 ms worst frame | ~19 FPS, 144 ms worst frame |
+
+All High/Medium/Low findings above are implemented, with these remaining items:
+- **US-029 real progress bar** for large boards needs a chunked/async `Game.initializeBoard`; the overlay is now honest (indeterminate until done) rather than a fake percentage.
+- **TraitChart** (PRD 3.18) is tested and translated but intentionally not wired; it belongs to the pending genome-evolution phase.
+- Biome *formatting* (not lint) differences were left alone to keep the diff reviewable; run `npm run format` in a separate commit if desired.

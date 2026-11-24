@@ -1,4 +1,5 @@
-import { Genome, GenomeSnapshot } from '../types';
+import { i18n } from '../i18n/i18n';
+import type { Genome, GenomeSnapshot } from '../types';
 
 export class TraitChart {
   private canvas: HTMLCanvasElement;
@@ -53,7 +54,7 @@ export class TraitChart {
     const traits: (keyof Genome)[] = ['maxHealth', 'strength', 'metabolism', 'greed', 'caution'];
     return traits.filter(trait => {
       const checkbox = document.getElementById(`show${this.capitalizeFirst(trait)}`) as HTMLInputElement;
-      return checkbox && checkbox.checked;
+      return checkbox?.checked ?? false;
     });
   }
 
@@ -121,9 +122,9 @@ export class TraitChart {
     this.ctx.textAlign = 'center';
 
     // X-axis labels
-    this.ctx.fillText('Round 0', 30, this.canvas.height - 15);
+    this.ctx.fillText(i18n.t('stats.graphRound', 0), 30, this.canvas.height - 15);
     if (this.history.length > 1) {
-      this.ctx.fillText(`Round ${this.history.length - 1}`, this.canvas.width - 10, this.canvas.height - 15);
+      this.ctx.fillText(i18n.t('stats.graphRound', this.history.length - 1), this.canvas.width - 10, this.canvas.height - 15);
     }
   }
 
@@ -160,7 +161,7 @@ export class TraitChart {
     this.ctx.fillStyle = '#999';
     this.ctx.font = '12px sans-serif';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('Waiting for data...', this.canvas.width / 2, this.canvas.height / 2);
+    this.ctx.fillText(i18n.t('stats.waitingForData'), this.canvas.width / 2, this.canvas.height / 2);
   }
 
   private getMaleColor(trait: keyof Genome): string {
