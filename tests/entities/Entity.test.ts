@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Entity } from '../../src/entities/Entity'
 import { EntityType } from '../../src/types'
+import { Wolf, Dog, Fruit, Mushroom } from '../../src/entities'
+import { DEFAULT_CONFIG } from '../../src/config'
 import { createHuman, createWolf, createDog } from '../setup'
 
 /**
@@ -235,5 +237,33 @@ describe('Entity Base Class', () => {
       expect(human.type).toBe(originalType)
       expect(human.type).toBe(EntityType.MALE) // createHuman defaults to MALE
     })
+  })
+})
+
+describe('Entity maxHealth and injured %', () => {
+  it('wolves, dogs and plants take maxHealth from their starting health', () => {
+    expect(new Wolf(0, 0, 80).maxHealth).toBe(80)
+    expect(new Dog(0, 0, 70).maxHealth).toBe(70)
+    expect(new Fruit(0, 0).maxHealth).toBe(1)
+    expect(new Mushroom(0, 0).maxHealth).toBe(1)
+  })
+
+  it('isInjured compares health as a percentage of max health', () => {
+    const wolf = new Wolf(0, 0, 80)
+    wolf.health = 41 // 51%
+    expect(wolf.isInjured(50)).toBe(false)
+    wolf.health = 39 // 48.75%
+    expect(wolf.isInjured(50)).toBe(true)
+  })
+
+  it('heal defaults to capping at maxHealth', () => {
+    const dog = new Dog(0, 0, 70)
+    dog.health = 60
+    dog.heal(50)
+    expect(dog.health).toBe(70)
+  })
+
+  it('Mushroom defaults energyRemoved to the config default', () => {
+    expect(new Mushroom(0, 0).energyRemoved).toBe(DEFAULT_CONFIG.mushroom.energyRemoved)
   })
 })

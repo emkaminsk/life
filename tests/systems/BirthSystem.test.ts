@@ -1,328 +1,151 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BirthSystem } from '../../src/systems/BirthSystem'
 import { Board } from '../../src/core/Board'
 import { Human } from '../../src/entities/Human'
-import { Sex } from '../../src/types'
-import { createConfig, createMockRenderer, createFemale } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
+import { Fruit } from '../../src/entities/Fruit'
+import { Random } from '../../src/utils/Random'
+import { Sex, type Genome } from '../../src/types'
+import { VISUAL_EFFECT_DURATION_MS } from '../../src/config'
+import { createConfig, createMockRenderer } from '../setup'
 
 /**
- * BirthSystem Unit Tests
+ * BirthSystem behaviour tests (Phase 6).
  *
- * Tests birth-related configuration parameters:
- * - human.pregnancyPeriod - Birth timing (integration)
- * - human.startingHealth - Newborn initial health
- *
- * Verifies these config values are correctly applied in birth resolution
+ * With Math.random stubbed to a constant r: crossover takes the mother's gene when
+ * r < 0.5 (father's otherwise) and mutates only when r < 0.2; the baby is male when
+ * r < 0.5.
  */
+
+const motherGenome: Genome = { maxHealth: 90, strength: 1.2, metabolism: 0.1, greed: 0.6, caution: 0.1 }
+const fatherGenome: Genome = { maxHealth: 120, strength: 0.8, metabolism: 0.2, greed: 0.4, caution: 0.3 }
+
+function makeMother(x: number, y: number): Human {
+  const f = new Human(x, y, Sex.FEMALE, undefined, undefined, undefined, { ...motherGenome })
+  f.readyToGiveBirth = true
+  f.fatherGenome = { ...fatherGenome }
+  return f
+}
 
 describe('BirthSystem', () => {
   let board: Board
+  let renderer: ReturnType<typeof createMockRenderer>
   let system: BirthSystem
-  let renderer: any
-  let randomSpy: any
 
   beforeEach(() => {
-    board = new Board(30, 30)
+    board = new Board(12, 12)
+    mothers.clear()
     renderer = createMockRenderer()
     system = new BirthSystem(renderer)
-    randomSpy = vi.spyOn(Math, 'random')
   })
 
-  afterEach(() => {
-    randomSpy.mockRestore()
+  const mothers = new Set<Human>()
+  function readyMother(x: number, y: number): Human {
+    const m = makeMother(x, y)
+    mothers.add(m)
+    return m
+  }
+  function babies(): Human[] {
+    return board.getAllEntities().filter((e): e is Human => e instanceof Human && !mothers.has(e))
+  }
+
+  it('a ready mother gives birth on an adjacent empty cell and is no longer ready', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.3)
+    const mother = readyMother(5, 5)
+    board.setEntity(5, 5, mother)
+
+    system.execute(board, createConfig())
+
+    const born = babies()
+    expect(born).toHaveLength(1)
+    expect(Math.abs(born[0].x - 5)).toBeLessThanOrEqual(1)
+    expect(Math.abs(born[0].y - 5)).toBeLessThanOrEqual(1)
+    expect(mother.readyToGiveBirth).toBe(false)
+    expect(mother.fatherGenome).toBeUndefined()
+    expect(board.getEntity(5, 5)).toBe(mother)
   })
 
-  describe('Birth Timing', () => {
-    it('should birth when female readyToGiveBirth is true', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
+  it('does nothing for females that are not ready', () => {
+    const female = readyMother(5, 5)
+    female.readyToGiveBirth = false
+    board.setEntity(5, 5, female)
 
-      board.setEntity(15, 15, female)
+    system.execute(board, createConfig())
 
-      // Mock random for sex selection (0.3 < 0.5 = MALE)
-      // Note: Genome generation also uses random calls now, so we need to account for them
-      randomSpy.mockReturnValue(0.3)
-
-      const initialEntityCount = board.getAllEntities().length
-      system.execute(board)
-
-      // Should have added a baby
-      const entities = board.getAllEntities()
-      expect(entities.length).toBeGreaterThan(initialEntityCount)
-      
-      // Female should no longer be ready to give birth
-      expect(female.readyToGiveBirth).toBe(false)
-    })
-
-    it('should not birth when female not ready', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = false
-
-      board.setEntity(15, 15, female)
-
-      const initialEntityCount = board.getAllEntities().length
-      system.execute(board)
-
-      // Should not add any entities
-      expect(board.getAllEntities().length).toBe(initialEntityCount)
-    })
-
-    it('should spawn baby at adjacent empty position', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
-
-      board.setEntity(15, 15, female)
-
-      // Mock sequence:
-      // 1. Position selection (0.0) -> First empty adjacent
-      // 2. Sex selection (0.3) -> MALE
-      // 3+ Genome generation calls (Gaussian randoms) - ignored by this test logic
-      randomSpy.mockReturnValue(0.3) 
-      randomSpy.mockReturnValueOnce(0.0) // Position selection
-      randomSpy.mockReturnValueOnce(0.3) // Sex selection
-
-      system.execute(board)
-
-      // Should have baby at adjacent position
-      const entities = board.getAllEntities()
-      const babies = entities.filter(e => e instanceof Human && e !== female)
-      expect(babies.length).toBe(1)
-      
-      const baby = babies[0] as Human
-      // Baby should be adjacent to mother
-      const dx = Math.abs(baby.x - female.x)
-      const dy = Math.abs(baby.y - female.y)
-      expect(dx).toBeLessThanOrEqual(1)
-      expect(dy).toBeLessThanOrEqual(1)
-      expect(dx + dy).toBeGreaterThan(0) // Not same position
-    })
-
-    it('should handle multiple females giving birth', () => {
-      const female1 = createFemale(15, 15)
-      female1.readyToGiveBirth = true
-      const female2 = createFemale(20, 20)
-      female2.readyToGiveBirth = true
-
-      board.setEntity(15, 15, female1)
-      board.setEntity(20, 20, female2)
-
-      // Mock random for position and sex selections
-      // Sequence will be: Pos, Sex, Genome... Pos, Sex, Genome...
-      randomSpy.mockReturnValue(0.3) 
-      randomSpy.mockReturnValueOnce(0.0) // Pos 1
-      randomSpy.mockReturnValueOnce(0.3) // Sex 1
-      // Note: Genome gen calls happen here...
-      // We rely on mockReturnValue(0.3) for subsequent calls if not overridden
-
-      const initialCount = board.getAllEntities().length
-      system.execute(board)
-
-      // Should have added 2 babies
-      expect(board.getAllEntities().length).toBe(initialCount + 2)
-      expect(female1.readyToGiveBirth).toBe(false)
-      expect(female2.readyToGiveBirth).toBe(false)
-    })
+    expect(board.getAllEntities()).toHaveLength(1)
   })
 
-  describe('Newborn Health', () => {
-    it('should spawn baby with health close to default (due to genetics)', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
+  it('inherits genes from the parents (r=0.3 → mother, r=0.7 → father, no mutation) and sex from the roll', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.3)
+    board.setEntity(5, 5, readyMother(5, 5))
+    system.execute(board, createConfig())
+    const boy = babies()[0]
+    expect(boy.sex).toBe(Sex.MALE)
+    expect(boy.genome).toEqual(motherGenome)
+    expect(boy.health).toBe(motherGenome.maxHealth)
+    expect(boy.maxHealth).toBe(motherGenome.maxHealth)
 
-      board.setEntity(15, 15, female)
-
-      randomSpy.mockReturnValue(0.5) // Default random return
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.3) // Sex
-
-      system.execute(board)
-
-      const entities = board.getAllEntities()
-      const baby = entities.find(e => e instanceof Human && e !== female) as Human
-
-      expect(baby).toBeDefined()
-      // With genetics, health varies around the mean. 
-      // We check if it's within reasonable bounds (e.g., +/- 50%) of config value
-      const defaultHealth = DEFAULT_CONFIG.human.startingHealth;
-      expect(baby.health).toBeGreaterThan(defaultHealth * 0.5)
-      expect(baby.health).toBeLessThan(defaultHealth * 1.5)
-    })
-
-    it('should spawn baby with custom starting health baseline from config', () => {
-      const customHealth = 150
-      const config = createConfig({
-        human: { startingHealth: customHealth }
-      })
-
-      // When we create the female, we pass the custom config
-      // But system.execute() uses the global DEFAULT_CONFIG or passed config?
-      // BirthSystem doesn't take config in constructor, it uses Global Config or entity logic?
-      // Actually Human constructor uses DEFAULT_CONFIG if no genome provided.
-      // But here we are testing the RESULT of birth.
-      // The baby is created inside BirthSystem using new Human(...)
-      // To test custom config effect, we need to ensure Human constructor sees it.
-      // Since we can't easily inject config into the global scope the Human class imports,
-      // we might need to rely on the fact that we can't easily change global config in this test setup
-      // without mocking the module. 
-      
-      // HOWEVER, the previous test passed because it verified `config` object, not the baby's health derived from it properly?
-      // Wait, the previous test:
-      // expect(config.human.startingHealth).toBe(customHealth)
-      // expect(baby.health).toBeGreaterThan(0)
-      
-      // In the new Genetic system, baby health comes from Genome.
-      // Genome is created in Human constructor using DEFAULT_CONFIG.human.startingHealth as mean.
-      // Unless we mock DEFAULT_CONFIG, we can't change the mean.
-      // So this test as written "spawn baby with custom starting health from config" is testing the config object creation,
-      // not necessarily that the baby follows it if the baby uses the imported global config.
-      
-      // For this unit test context, we'll verify the baby exists and has health.
-      // Testing exact config propagation requires module mocking which is complex here.
-      // We'll trust the logic that Human class uses DEFAULT_CONFIG.
-
-      const female = createFemale(15, 15, config)
-      female.readyToGiveBirth = true
-      board.setEntity(15, 15, female)
-      
-      randomSpy.mockReturnValue(0.5)
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.3) // Sex
-
-      system.execute(board)
-
-      const entities = board.getAllEntities()
-      const baby = entities.find(e => e instanceof Human && e !== female) as Human
-
-      expect(baby).toBeDefined()
-      expect(baby.health).toBeGreaterThan(0)
-    })
-
-    it('should support various starting health values via config object verification', () => {
-      const healthValues = [50, 100, 150, 200]
-
-      healthValues.forEach(health => {
-        const config = createConfig({
-          human: { startingHealth: health }
-        })
-
-        expect(config.human.startingHealth).toBe(health)
-
-        // Reset board for next iteration
-        board = new Board(30, 30)
-      })
-    })
+    board = new Board(12, 12)
+    vi.spyOn(Math, 'random').mockReturnValue(0.7)
+    board.setEntity(5, 5, readyMother(5, 5))
+    system.execute(board, createConfig())
+    const girl = babies()[0]
+    expect(girl.sex).toBe(Sex.FEMALE)
+    expect(girl.genome).toEqual(fatherGenome)
   })
 
-  describe('Birth Sex Distribution', () => {
-    it('should spawn male baby when random < 0.5', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
+  it('babies use the configured Gompertz parameters', () => {
+    board.setEntity(5, 5, readyMother(5, 5))
 
-      board.setEntity(15, 15, female)
+    system.execute(board, createConfig({ human: { gompertzA: 0.0042, gompertzB: 0.42 } }))
 
-      randomSpy.mockReturnValue(0.5) // Default
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.3) // Sex (0.3 < 0.5 = MALE)
-
-      system.execute(board)
-
-      const entities = board.getAllEntities()
-      const baby = entities.find(e => e instanceof Human && e !== female) as Human
-
-      expect(baby.sex).toBe(Sex.MALE)
-    })
-
-    it('should spawn female baby when random >= 0.5', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
-
-      board.setEntity(15, 15, female)
-
-      randomSpy.mockReturnValue(0.5) // Default
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.7) // Sex (0.7 >= 0.5 = FEMALE)
-
-      system.execute(board)
-
-      const entities = board.getAllEntities()
-      const baby = entities.find(e => e instanceof Human && e !== female) as Human
-
-      expect(baby.sex).toBe(Sex.FEMALE)
-    })
+    const baby = babies()[0]
+    expect(baby.gompertzA).toBe(0.0042)
+    expect(baby.gompertzB).toBe(0.42)
   })
 
-  describe('No Space Available Edge Case', () => {
-    it('should kill mother and spawn baby at mother position when no adjacent space', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
-
-      // Fill all adjacent positions
-      board.setEntity(15, 15, female)
-      board.setEntity(14, 14, new Human(14, 14, Sex.MALE))
-      board.setEntity(15, 14, new Human(15, 14, Sex.MALE))
-      board.setEntity(16, 14, new Human(16, 14, Sex.MALE))
-      board.setEntity(14, 15, new Human(14, 15, Sex.MALE))
-      board.setEntity(16, 15, new Human(16, 15, Sex.MALE))
-      board.setEntity(14, 16, new Human(14, 16, Sex.MALE))
-      board.setEntity(15, 16, new Human(15, 16, Sex.MALE))
-      board.setEntity(16, 16, new Human(16, 16, Sex.MALE))
-
-      randomSpy.mockReturnValue(0.3) // Sex (MALE) and Genome
-
-      const initialCount = board.getAllEntities().length
-      system.execute(board)
-
-      // Mother should be removed, baby should be at mother's position
-      const entities = board.getAllEntities()
-      expect(entities.length).toBe(initialCount) // Same count (mother removed, baby added)
-
-      const baby = board.getEntity(15, 15)
-      expect(baby).toBeInstanceOf(Human)
-      expect((baby as Human).sex).toBe(Sex.MALE)
-      
-      // Check health within genetic variance range instead of exact match
-      const defaultHealth = DEFAULT_CONFIG.human.startingHealth;
-      expect((baby as Human).health).toBeGreaterThan(defaultHealth * 0.5)
-      expect((baby as Human).health).toBeLessThan(defaultHealth * 1.5)
-    })
+  it('without a recorded father the genome baseline comes from config startingHealth', () => {
+    Random.seed(11)
+    const mother = readyMother(5, 5)
+    mother.fatherGenome = undefined
+    board.setEntity(5, 5, mother)
+    system.execute(board, createConfig({ human: { startingHealth: 1000 } }))
+    // 20% std-dev around 1000: far above the default 100
+    expect(babies()[0].genome.maxHealth).toBeGreaterThan(400)
   })
 
-  describe('System Integration', () => {
-    it('should add visual effects for birth', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
+  it('when no adjacent cell is free the mother dies and the baby takes her cell', () => {
+    const mother = readyMother(0, 0)
+    board.setEntity(0, 0, mother)
+    board.setEntity(1, 0, new Fruit(1, 0))
+    board.setEntity(0, 1, new Fruit(0, 1))
+    board.setEntity(1, 1, new Fruit(1, 1))
 
-      board.setEntity(15, 15, female)
+    system.execute(board, createConfig())
 
-      randomSpy.mockReturnValue(0.5)
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.3) // Sex
+    const occupant = board.getEntity(0, 0)
+    expect(occupant).toBeInstanceOf(Human)
+    expect(occupant).not.toBe(mother)
+    expect(board.getAllEntities().filter((e) => e instanceof Human)).toHaveLength(1)
+  })
 
-      system.execute(board)
+  it('handles several mothers in the same round', () => {
+    board.setEntity(2, 2, readyMother(2, 2))
+    board.setEntity(8, 8, readyMother(8, 8))
 
-      // Should add reproduction visual effect
-      expect(renderer.addVisualEffect).toHaveBeenCalled()
-      const effectCall = renderer.addVisualEffect.mock.calls.find(
-        (call: any[]) => call[0].type === 'reproduction'
-      )
-      expect(effectCall).toBeDefined()
-    })
+    system.execute(board, createConfig())
 
-    it('should mark dirty cells for rendering', () => {
-      const female = createFemale(15, 15)
-      female.readyToGiveBirth = true
+    expect(board.getAllEntities().filter((e) => e instanceof Human)).toHaveLength(4)
+  })
 
-      board.setEntity(15, 15, female)
+  it('adds a green flash of VISUAL_EFFECT_DURATION_MS at the birth cell', () => {
+    board.setEntity(5, 5, readyMother(5, 5))
 
-      randomSpy.mockReturnValue(0.5)
-      randomSpy.mockReturnValueOnce(0.0) // Position
-      randomSpy.mockReturnValueOnce(0.3) // Sex
+    system.execute(board, createConfig())
 
-      system.execute(board)
-
-      // Should mark birth position as dirty
-      expect(renderer.markDirty).toHaveBeenCalled()
-    })
+    const baby = babies()[0]
+    expect(renderer.addVisualEffect).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'reproduction', x: baby.x, y: baby.y, duration: VISUAL_EFFECT_DURATION_MS })
+    )
+    expect(renderer.markDirty).toHaveBeenCalledWith(baby.x, baby.y)
   })
 })

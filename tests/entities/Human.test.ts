@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Human } from '../../src/entities/Human'
 import { Sex } from '../../src/types'
+import { Random } from '../../src/utils/Random'
 import { createConfig, createFemale, createMale, getConfigByPath } from '../setup'
 import { DEFAULT_CONFIG } from '../../src/config'
 
@@ -205,5 +206,44 @@ describe('Human Entity', () => {
       female.reproductionCooldown = 3
       expect(female.reproductionCooldown).toBe(3)
     })
+  })
+})
+
+describe('Human (config-driven behaviour)', () => {
+  it('maxHealth mirrors the genome and caps starting health', () => {
+    const genome = { maxHealth: 80, strength: 1, metabolism: 0.1, greed: 0.5, caution: 0 }
+    const h = new Human(0, 0, Sex.MALE, 150, undefined, undefined, genome)
+    expect(h.maxHealth).toBe(80)
+    expect(h.health).toBe(80)
+  })
+
+  it('random genome baseline uses the given starting health and greed (seeded)', () => {
+    Random.seed(21)
+    let health = 0
+    let greed = 0
+    for (let i = 0; i < 500; i++) {
+      const h = new Human(0, 0, Sex.FEMALE, 400, undefined, undefined, undefined, 0.9)
+      health += h.genome.maxHealth
+      greed += h.genome.greed
+    }
+    expect(health / 500).toBeGreaterThan(370)
+    expect(health / 500).toBeLessThan(430)
+    expect(greed / 500).toBeGreaterThan(0.75)
+  })
+
+  it('startPregnancy uses the passed pregnancy period and advancePregnancy the passed cooldown', () => {
+    const f = new Human(0, 0, Sex.FEMALE)
+    f.startPregnancy(undefined, 6)
+    expect(f.pregnancyCounter).toBe(6)
+    for (let i = 0; i < 5; i++) expect(f.advancePregnancy(4)).toBe(false)
+    expect(f.advancePregnancy(4)).toBe(true)
+    expect(f.readyToGiveBirth).toBe(true)
+    expect(f.reproductionCooldown).toBe(4)
+  })
+
+  it('males cannot become pregnant', () => {
+    const m = new Human(0, 0, Sex.MALE)
+    m.startPregnancy(undefined, 3)
+    expect(m.isPregnant()).toBe(false)
   })
 })

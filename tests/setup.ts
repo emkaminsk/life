@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DEFAULT_CONFIG } from '../src/config'
 import type { GameConfig } from '../src/ui/ConfigPanel'
 import { Board } from '../src/core/Board'
+import type { Renderer } from '../src/core/Renderer'
 import { Human, Wolf, Dog, Fruit, Mushroom } from '../src/entities'
 import { EntityType, Sex } from '../src/types'
 
@@ -9,12 +10,14 @@ import { EntityType, Sex } from '../src/types'
  * Test utilities and factory functions for consistent test setup
  */
 
+export type ConfigOverrides = { [K in keyof GameConfig]?: Partial<GameConfig[K]> }
+
 /**
- * Create a shallow copy of config with optional parameter overrides
+ * Create a deep copy of DEFAULT_CONFIG with optional (per-section, partial) overrides
  * Useful for testing how parameter changes affect behavior
  */
-export function createConfig(overrides: Partial<GameConfig> = {}): GameConfig {
-  const config = structuredClone(DEFAULT_CONFIG)
+export function createConfig(overrides: ConfigOverrides = {}): GameConfig {
+  const { simulation: _simulation, ...config } = structuredClone(DEFAULT_CONFIG)
 
   // Apply overrides while preserving nested structure
   Object.entries(overrides).forEach(([key, value]) => {
@@ -225,19 +228,43 @@ export function getDistance(entity1: any, entity2: any): number {
   return Math.sqrt(dx * dx + dy * dy)
 }
 
+/** Mock functions of the Renderer methods used by Game and the systems. */
+export interface MockRendererFns {
+  render: ReturnType<typeof vi.fn>
+  renderFull: ReturnType<typeof vi.fn>
+  addVisualEffect: ReturnType<typeof vi.fn>
+  markDirty: ReturnType<typeof vi.fn>
+  markAllDirty: ReturnType<typeof vi.fn>
+  markAnimationPaths: ReturnType<typeof vi.fn>
+  renderAnimationFrame: ReturnType<typeof vi.fn>
+  setInjuredThreshold: ReturnType<typeof vi.fn>
+  resize: ReturnType<typeof vi.fn>
+  clearVisualEffects: ReturnType<typeof vi.fn>
+  getCellSize: ReturnType<typeof vi.fn>
+  fitToWidth: ReturnType<typeof vi.fn>
+}
+
 /**
- * Create a mock Renderer that does nothing (avoids canvas dependency in tests)
+ * Create a mock Renderer that does nothing (avoids canvas dependency in tests).
+ * Typed as Renderer for passing to Game/systems; cast to MockRendererFns (or use
+ * vi.mocked) to inspect calls.
  */
-export function createMockRenderer() {
-  return {
+export function createMockRenderer(): Renderer & MockRendererFns {
+  const mock: MockRendererFns = {
     render: vi.fn(),
+    renderFull: vi.fn(),
     addVisualEffect: vi.fn(),
     markDirty: vi.fn(),
     markAllDirty: vi.fn(),
     markAnimationPaths: vi.fn(),
-    getEntityEmoji: vi.fn((entity) => '🔲'),
-    getEmojiBitmap: vi.fn((emoji) => null),
+    renderAnimationFrame: vi.fn(),
+    setInjuredThreshold: vi.fn(),
+    resize: vi.fn(),
+    clearVisualEffects: vi.fn(),
+    getCellSize: vi.fn().mockReturnValue(20),
+    fitToWidth: vi.fn(),
   }
+  return mock as unknown as Renderer & MockRendererFns
 }
 
 /**
@@ -260,7 +287,7 @@ export function assertParameterPropagation<T extends Record<string, any>>(
  * Used in integration tests to confirm parameter → outcome mapping
  */
 export function getConfigByPath(config: GameConfig, path: string): any {
-  return path.split('.').reduce((obj, key) => obj?.[key], config)
+  return path.split('.').reduce((obj: any, key) => obj?.[key], config)
 }
 
 export { describe, it, expect, beforeEach, vi }

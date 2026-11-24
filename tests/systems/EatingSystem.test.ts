@@ -1,703 +1,219 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EatingSystem } from '../../src/systems/EatingSystem'
+import { SpawnSystem } from '../../src/systems/SpawnSystem'
 import { Board } from '../../src/core/Board'
-import { Human, Fruit, Mushroom } from '../../src/entities'
+import { Human, Wolf, Fruit, Mushroom } from '../../src/entities'
 import { Sex } from '../../src/types'
-import { createConfig, createMockRenderer, createMale, createFemale, createFruit, createMushroom } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
+import { VISUAL_EFFECT_DURATION_MS } from '../../src/config'
+import { createConfig, createMockRenderer } from '../setup'
 
 /**
- * EatingSystem Unit Tests
- *
- * Tests eating-related configuration parameters:
- * - fruit.energyHealed - HP gained from eating fruit
- * - mushroom.energyRemoved - HP lost from eating mushroom
- * - fruit.roundsToRipen - Ripening duration (integration)
- *
- * Verifies these config values are correctly applied in eating resolution
+ * EatingSystem behaviour tests (Phase 3).
+ * Humans get a fixed genome (maxHealth 100) so healing caps are deterministic.
  */
+
+function human(x: number, y: number, health = 50, sex: Sex = Sex.FEMALE): Human {
+  const h = new Human(x, y, sex)
+  h.genome = { maxHealth: 100, strength: 1, metabolism: 0, greed: 0, caution: 0 }
+  h.maxHealth = 100
+  h.health = health
+  return h
+}
+
+function ripeFruit(x: number, y: number, energy = 30): Fruit {
+  const f = new Fruit(x, y, energy, 0)
+  return f
+}
 
 describe('EatingSystem', () => {
   let board: Board
+  let renderer: ReturnType<typeof createMockRenderer>
   let system: EatingSystem
-  let renderer: any
+  const config = createConfig()
 
   beforeEach(() => {
-    board = new Board(30, 30)
+    board = new Board(12, 12)
     renderer = createMockRenderer()
     system = new EatingSystem(renderer)
   })
 
-  describe('Configuration: Fruit Energy Healed', () => {
-    it('should initialize with config fruit energy healed', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.fruit.energyHealed).toBeGreaterThan(0)
-      expect(config.fruit.energyHealed).toBe(30)
+  function place<T extends Human | Wolf | Fruit | Mushroom>(e: T): T {
+    board.setEntity(e.x, e.y, e)
+    return e
+  }
+
+  describe('fruit', () => {
+    it('an adjacent injured human eats a ripe fruit, healing its energy; the fruit is removed', () => {
+      const h = place(human(5, 5, 50))
+      place(ripeFruit(6, 5, 30))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(80)
+      expect(board.getEntity(6, 5)).toBeNull()
     })
 
-    it('should apply custom fruit energy healed from config', () => {
-      const customHealing = 50
-      const config = createConfig({
-        fruit: { energyHealed: customHealing }
-      })
+    it('healing is capped at the human max health', () => {
+      const h = place(human(5, 5, 90))
+      place(ripeFruit(6, 6, 30))
 
-      const human = createMale(15, 15, config)
-      human.health = 50 // Below max health
-      const fruit = new Fruit(16, 15, config.fruit.energyHealed)
-      fruit.ripeningCounter = 0 // Make ripe
+      system.execute(board, config)
 
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      // Human should be healed by custom amount, capped at genome maxHealth
-      const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + customHealing)
-      expect(human.health).toBe(expectedHealth)
-      // Fruit should be removed
-      expect(board.getEntity(16, 15)).toBeNull()
+      expect(h.health).toBe(100)
     })
 
-    it('should support various fruit energy healed values', () => {
-      const healingValues = [10, 20, 30, 50, 75, 100]
+    it('unripe fruit is not eaten', () => {
+      const h = place(human(5, 5, 50))
+      const fruit = place(new Fruit(6, 5, 30, 2))
 
-      healingValues.forEach(healing => {
-        const config = createConfig({
-          fruit: { energyHealed: healing }
-        })
+      system.execute(board, config)
 
-        const human = createMale(15, 15, config)
-        human.health = 50
-        const fruit = new Fruit(16, 15, config.fruit.energyHealed)
-        fruit.ripeningCounter = 0
-
-        board.setEntity(15, 15, human)
-        board.setEntity(16, 15, fruit)
-
-        const initialHealth = human.health
-        system.execute(board)
-
-        // Account for health cap at genome maxHealth
-        const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + healing)
-        expect(human.health).toBe(expectedHealth)
-        expect(board.getEntity(16, 15)).toBeNull()
-
-        // Reset board for next iteration
-        board = new Board(30, 30)
-      })
+      expect(h.health).toBe(50)
+      expect(board.getEntity(6, 5)).toBe(fruit)
     })
 
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        fruit: { energyHealed: 50 }
-      })
+    it('humans at full health do not eat fruit', () => {
+      place(human(5, 5, 100))
+      const fruit = place(ripeFruit(6, 5))
 
-      expect(customConfig.fruit.energyHealed).not.toBe(
-        defaultConfig.fruit.energyHealed
-      )
+      system.execute(board, config)
+
+      expect(board.getEntity(6, 5)).toBe(fruit)
     })
 
-    it('should cap healing at maximum health', () => {
-      const config = createConfig({
-        fruit: { energyHealed: 100 }
-      })
-
-      const human = createMale(15, 15, config)
-      // Set health to a value below maxHealth to ensure healing can occur
-      human.health = Math.max(1, human.genome.maxHealth - 10)
-      const fruit = new Fruit(16, 15, config.fruit.energyHealed)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Health should be capped at genome maxHealth
-      expect(human.health).toBe(human.genome.maxHealth)
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-  })
-
-  describe('Fruit Eating Mechanics', () => {
-    it('should heal human when eating ripe fruit', () => {
-      const human = createMale(15, 15)
-      human.health = 50
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0 // Ripe
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      expect(human.health).toBe(initialHealth + DEFAULT_CONFIG.fruit.energyHealed)
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-
-    it('should not eat unripe fruit', () => {
-      const human = createMale(15, 15)
-      human.health = 50
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 2 // Unripe
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      // Health should not change
-      expect(human.health).toBe(initialHealth)
-      // Fruit should still be on board
-      expect(board.getEntity(16, 15)).toBe(fruit)
-    })
-
-    it('should only allow humans with health below max to eat fruit', () => {
-      const healthyHuman = createMale(15, 15)
-      healthyHuman.health = healthyHuman.genome.maxHealth // Set to actual max for this genome
-      const injuredHuman = createMale(17, 15)
-      injuredHuman.health = 50 // Below max
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, healthyHuman)
-      board.setEntity(17, 15, injuredHuman)
-      board.setEntity(16, 15, fruit)
-
-      const healthyInitialHealth = healthyHuman.health
-      const injuredInitialHealth = injuredHuman.health
-
-      system.execute(board)
-
-      // Healthy human should not eat (health unchanged)
-      expect(healthyHuman.health).toBe(healthyInitialHealth)
-      // Injured human should eat and heal, capped at their maxHealth
-      const expectedInjuredHealth = Math.min(injuredHuman.genome.maxHealth, injuredInitialHealth + DEFAULT_CONFIG.fruit.energyHealed)
-      expect(injuredHuman.health).toBe(expectedInjuredHealth)
-      // Fruit should be removed
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-
-    it('should select random human when multiple eligible humans adjacent', () => {
-      const human1 = createMale(15, 15)
-      human1.health = 50
-      const human2 = createFemale(15, 16)
-      human2.health = 60
-      const human3 = createMale(16, 16)
-      human3.health = 40
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human1)
-      board.setEntity(15, 16, human2)
-      board.setEntity(16, 16, human3)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Only one human should eat the fruit
-      const fruitEaten = board.getEntity(16, 15) === null
-      expect(fruitEaten).toBe(true)
-
-      // Count how many humans were healed
-      let healedCount = 0
-      if (human1.health > 50) healedCount++
-      if (human2.health > 60) healedCount++
-      if (human3.health > 40) healedCount++
-
-      expect(healedCount).toBe(1)
-    })
-
-    it('should handle diagonal adjacency for fruit eating', () => {
-      const human = createMale(15, 15)
-      human.health = 50
-      const fruit = new Fruit(16, 16) // Diagonal
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 16, fruit)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      const expectedHealth = Math.min(human.genome.maxHealth, initialHealth + DEFAULT_CONFIG.fruit.energyHealed)
-      expect(human.health).toBe(expectedHealth)
-      expect(board.getEntity(16, 16)).toBeNull()
-    })
-
-    it('should not eat fruit when no eligible humans adjacent', () => {
-      const human = createMale(15, 15)
-      human.health = human.genome.maxHealth // Set to actual max health for this genome
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Fruit should remain (no eligible humans)
-      expect(board.getEntity(16, 15)).toBe(fruit)
-      expect(human.health).toBe(human.genome.maxHealth)
-    })
-
-    it('should process multiple fruits independently', () => {
-      const human1 = createMale(15, 15)
-      human1.health = 50
-      const human2 = createFemale(20, 20)
-      human2.health = 60
-      const fruit1 = new Fruit(16, 15)
-      fruit1.ripeningCounter = 0
-      const fruit2 = new Fruit(21, 20)
-      fruit2.ripeningCounter = 0
-
-      board.setEntity(15, 15, human1)
-      board.setEntity(20, 20, human2)
-      board.setEntity(16, 15, fruit1)
-      board.setEntity(21, 20, fruit2)
-
-      system.execute(board)
-
-      // Both fruits should be eaten
-      expect(board.getEntity(16, 15)).toBeNull()
-      expect(board.getEntity(21, 20)).toBeNull()
-      // Both humans should be healed, capped at their genome.maxHealth
-      expect(human1.health).toBe(Math.min(human1.genome.maxHealth, 50 + DEFAULT_CONFIG.fruit.energyHealed))
-      expect(human2.health).toBe(Math.min(human2.genome.maxHealth, 60 + DEFAULT_CONFIG.fruit.energyHealed))
-    })
-  })
-
-  describe('Configuration: Mushroom Energy Removed', () => {
-    it('should initialize with config mushroom energy removed', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.mushroom.energyRemoved).toBeGreaterThan(0)
-      expect(config.mushroom.energyRemoved).toBe(40)
-    })
-
-    it('should apply custom mushroom energy removed from config', () => {
-      const customDamage = 60
-      const config = createConfig({
-        mushroom: { energyRemoved: customDamage }
-      })
-
-      const human = createMale(15, 15, config)
-      human.health = 100
-      const mushroom = new Mushroom(16, 15, config.mushroom.energyRemoved)
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, mushroom)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      // Human should take custom damage
-      expect(human.health).toBe(initialHealth - customDamage)
-      // Mushroom should be removed
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-
-    it('should support various mushroom energy removed values', () => {
-      const damageValues = [10, 20, 40, 60, 80, 100]
-
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          mushroom: { energyRemoved: damage }
-        })
-
-        const human = createMale(15, 15, config)
-        human.health = 100
-        const mushroom = new Mushroom(16, 15, config.mushroom.energyRemoved)
-
-        board.setEntity(15, 15, human)
-        board.setEntity(16, 15, mushroom)
-
-        const initialHealth = human.health
-        system.execute(board)
-
-        expect(human.health).toBe(initialHealth - damage)
-        expect(board.getEntity(16, 15)).toBeNull()
-
-        // Reset board for next iteration
-        board = new Board(30, 30)
-      })
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        mushroom: { energyRemoved: 60 }
-      })
-
-      expect(customConfig.mushroom.energyRemoved).not.toBe(
-        defaultConfig.mushroom.energyRemoved
-      )
-    })
-
-    it('should not allow health to go below zero', () => {
-      const config = createConfig({
-        mushroom: { energyRemoved: 150 }
-      })
-
-      const human = createMale(15, 15, config)
-      human.health = 50 // Less than damage amount
-      const mushroom = new Mushroom(16, 15, config.mushroom.energyRemoved)
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, mushroom)
-
-      system.execute(board)
-
-      // Health should be capped at 0
-      expect(human.health).toBe(0)
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-  })
-
-  describe('Mushroom Eating Mechanics', () => {
-    it('should damage human when eating mushroom', () => {
-      const human = createMale(15, 15)
-      human.health = 100
-      const mushroom = new Mushroom(16, 15)
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, mushroom)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      expect(human.health).toBe(initialHealth - DEFAULT_CONFIG.mushroom.energyRemoved)
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-
-    it('should allow any adjacent human to eat mushroom (no health requirement)', () => {
-      const healthyHuman = createMale(15, 15)
-      healthyHuman.health = DEFAULT_CONFIG.human.startingHealth // Max health
-      const mushroom = new Mushroom(16, 15)
-
-      board.setEntity(15, 15, healthyHuman)
-      board.setEntity(16, 15, mushroom)
-
-      const initialHealth = healthyHuman.health
-      system.execute(board)
-
-      // Healthy human can still eat mushroom and take damage
-      expect(healthyHuman.health).toBe(initialHealth - DEFAULT_CONFIG.mushroom.energyRemoved)
-      expect(board.getEntity(16, 15)).toBeNull()
-    })
-
-    it('should select random human when multiple humans adjacent', () => {
-      const human1 = createMale(15, 15)
-      human1.health = 100
-      const human2 = createFemale(15, 16)
-      human2.health = 80
-      const human3 = createMale(16, 16)
-      human3.health = 90
-      const mushroom = new Mushroom(16, 15)
-
-      board.setEntity(15, 15, human1)
-      board.setEntity(15, 16, human2)
-      board.setEntity(16, 16, human3)
-      board.setEntity(16, 15, mushroom)
-
-      system.execute(board)
-
-      // Only one human should eat the mushroom
-      const mushroomEaten = board.getEntity(16, 15) === null
-      expect(mushroomEaten).toBe(true)
-
-      // Count how many humans took damage
-      let damagedCount = 0
-      if (human1.health < 100) damagedCount++
-      if (human2.health < 80) damagedCount++
-      if (human3.health < 90) damagedCount++
-
-      expect(damagedCount).toBe(1)
-    })
-
-    it('should handle diagonal adjacency for mushroom eating', () => {
-      const human = createMale(15, 15)
-      human.health = 100
-      const mushroom = new Mushroom(16, 16) // Diagonal
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 16, mushroom)
-
-      const initialHealth = human.health
-      system.execute(board)
-
-      expect(human.health).toBe(initialHealth - DEFAULT_CONFIG.mushroom.energyRemoved)
-      expect(board.getEntity(16, 16)).toBeNull()
-    })
-
-    it('should process multiple mushrooms independently', () => {
-      const human1 = createMale(15, 15)
-      human1.health = 100
-      const human2 = createFemale(20, 20)
-      human2.health = 80
-      const mushroom1 = new Mushroom(16, 15)
-      const mushroom2 = new Mushroom(21, 20)
-
-      board.setEntity(15, 15, human1)
-      board.setEntity(20, 20, human2)
-      board.setEntity(16, 15, mushroom1)
-      board.setEntity(21, 20, mushroom2)
-
-      const initialHealth1 = human1.health
-      const initialHealth2 = human2.health
-
-      system.execute(board)
-
-      // Both mushrooms should be eaten
-      expect(board.getEntity(16, 15)).toBeNull()
-      expect(board.getEntity(21, 20)).toBeNull()
-      // Both humans should take damage
-      expect(human1.health).toBe(initialHealth1 - DEFAULT_CONFIG.mushroom.energyRemoved)
-      expect(human2.health).toBe(initialHealth2 - DEFAULT_CONFIG.mushroom.energyRemoved)
-    })
-  })
-
-  describe('Fruit Ripening Integration', () => {
-    it('should not eat fruit before ripening period completes', () => {
-      const config = createConfig({
-        fruit: { roundsToRipen: 3 }
-      })
-
-      const human = createMale(15, 15, config)
-      human.health = 50
-      const fruit = new Fruit(16, 15, config.fruit.energyHealed, config.fruit.roundsToRipen)
-      // Fruit is unripe (ripeningCounter = 3)
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Fruit should not be eaten
-      expect(board.getEntity(16, 15)).toBe(fruit)
-      expect(human.health).toBe(50)
-    })
-
-    it('should eat fruit after ripening period completes', () => {
-      const config = createConfig({
-        fruit: { roundsToRipen: 2 }
-      })
-
-      const human = createMale(15, 15, config)
-      human.health = 50
-      const fruit = new Fruit(16, 15, config.fruit.energyHealed, config.fruit.roundsToRipen)
-      fruit.ripeningCounter = 0 // Ripe
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Fruit should be eaten
-      expect(board.getEntity(16, 15)).toBeNull()
-      expect(human.health).toBe(Math.min(human.genome.maxHealth, 50 + config.fruit.energyHealed))
-    })
-
-    it('should support various ripening periods', () => {
-      const ripeningPeriods = [1, 2, 3, 5, 10]
-
-      ripeningPeriods.forEach(period => {
-        const config = createConfig({
-          fruit: { roundsToRipen: period }
-        })
-
-        const fruit = new Fruit(15, 15, config.fruit.energyHealed, config.fruit.roundsToRipen)
-        expect(fruit.ripeningCounter).toBe(period)
-
-        // Advance ripening
-        for (let i = 0; i < period; i++) {
-          fruit.advanceRipening()
-        }
-
-        expect(fruit.isRipe()).toBe(true)
-
-        // Reset for next iteration
-        board = new Board(30, 30)
-      })
-    })
-  })
-
-  describe('System Integration', () => {
-    it('should process fruits and mushrooms in same round', () => {
-      const human1 = createMale(15, 15)
-      human1.health = 50
-      const human2 = createFemale(20, 20)
-      human2.health = 100
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-      const mushroom = new Mushroom(21, 20)
-
-      board.setEntity(15, 15, human1)
-      board.setEntity(20, 20, human2)
-      board.setEntity(16, 15, fruit)
-      board.setEntity(21, 20, mushroom)
-
-      system.execute(board)
-
-      // Both should be processed
-      expect(board.getEntity(16, 15)).toBeNull()
-      expect(board.getEntity(21, 20)).toBeNull()
-      expect(human1.health).toBe(50 + DEFAULT_CONFIG.fruit.energyHealed)
-      expect(human2.health).toBe(100 - DEFAULT_CONFIG.mushroom.energyRemoved)
-    })
-
-    it('should add visual effects for fruit eating', () => {
-      const human = createMale(15, 15)
-      human.health = 50
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Should add eating visual effect
-      expect(renderer.addVisualEffect).toHaveBeenCalled()
-      const effectCall = renderer.addVisualEffect.mock.calls.find(
-        (call: any[]) => call[0].type === 'eating'
-      )
-      expect(effectCall).toBeDefined()
-      expect(effectCall[0].x).toBe(16)
-      expect(effectCall[0].y).toBe(15)
-    })
-
-    it('should add visual effects for mushroom eating', () => {
-      const human = createMale(15, 15)
-      human.health = 100
-      const mushroom = new Mushroom(16, 15)
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, mushroom)
-
-      system.execute(board)
-
-      // Should add combat visual effect (red flash for poisoning)
-      expect(renderer.addVisualEffect).toHaveBeenCalled()
-      const effectCall = renderer.addVisualEffect.mock.calls.find(
-        (call: any[]) => call[0].type === 'combat'
-      )
-      expect(effectCall).toBeDefined()
-      expect(effectCall[0].x).toBe(16)
-      expect(effectCall[0].y).toBe(15)
-    })
-
-    it('should mark dirty cells for rendering', () => {
-      const human = createMale(15, 15)
-      human.health = 50
-      const fruit = new Fruit(16, 15)
-      fruit.ripeningCounter = 0
-
-      board.setEntity(15, 15, human)
-      board.setEntity(16, 15, fruit)
-
-      system.execute(board)
-
-      // Should mark fruit cell and human cell as dirty
-      expect(renderer.markDirty).toHaveBeenCalledWith(16, 15) // Fruit location
-      expect(renderer.markDirty).toHaveBeenCalledWith(15, 15) // Human location
-    })
-  })
-
-  describe('Differential Config Behavior Tests', () => {
-    it('should heal different amounts based on fruit config', () => {
-      // Test that different fruit.energyHealed values produce different outcomes
-      const lowHealConfig = createConfig({
-        fruit: { energyHealed: 10 },
-        human: { startingHealth: 100 }
-      })
-      const highHealConfig = createConfig({
-        fruit: { energyHealed: 50 },
-        human: { startingHealth: 100 }
-      })
-
-      // Low heal test
-      let board1 = new Board(30, 30)
-      let system1 = new EatingSystem(renderer)
-      const human1 = createMale(15, 15, lowHealConfig)
-      // Set to low health to avoid hitting maxHealth cap for both tests
-      human1.health = 20
-      const initialHealth1 = human1.health
-      const fruit1 = new Fruit(16, 15, lowHealConfig.fruit.energyHealed)
-      fruit1.ripeningCounter = 0 // Make fruit ripe immediately
-      board1.setEntity(15, 15, human1)
-      board1.setEntity(16, 15, fruit1)
-      system1.execute(board1)
-
-      const healthAfterLowHeal = human1.health
-
-      // High heal test
-      let board2 = new Board(30, 30)
-      let system2 = new EatingSystem(renderer)
-      const human2 = createMale(15, 15, highHealConfig)
-      // Set to same low health to avoid hitting maxHealth cap for both tests
-      human2.health = 20
-      const initialHealth2 = human2.health
-      const fruit2 = new Fruit(16, 15, highHealConfig.fruit.energyHealed)
-      fruit2.ripeningCounter = 0 // Make fruit ripe immediately
-      board2.setEntity(15, 15, human2)
-      board2.setEntity(16, 15, fruit2)
-      system2.execute(board2)
-
-      const healthAfterHighHeal = human2.health
-
-      // Verify that config change produces measurable behavioral difference
-      // Higher config should result in more healing (unless capped by maxHealth)
-      // Since we start at 20 and heal by 10 vs 50, and genomes have ~80-120 maxHealth,
-      // both should reach their intended values: 30 vs 70
-      expect(healthAfterLowHeal).toBe(Math.min(human1.genome.maxHealth, initialHealth1 + 10))
-      expect(healthAfterHighHeal).toBe(Math.min(human2.genome.maxHealth, initialHealth2 + 50))
-      // The high heal should result in more health (unless both capped, which is unlikely at low starting health)
-      if (human2.genome.maxHealth >= 70 && human1.genome.maxHealth >= 30) {
-        expect(healthAfterHighHeal).toBeGreaterThan(healthAfterLowHeal)
+    it('exactly one of several eligible humans eats (random choice, both reachable)', () => {
+      const eaters = new Set<string>()
+      for (const r of [0, 0.99]) {
+        board = new Board(12, 12)
+        vi.spyOn(Math, 'random').mockReturnValue(r)
+        const a = place(human(4, 5, 50))
+        const b = place(human(6, 5, 50))
+        place(ripeFruit(5, 5, 30))
+        system.execute(board, config)
+        const healed = [a, b].filter((h) => h.health === 80)
+        expect(healed).toHaveLength(1)
+        eaters.add(healed[0] === a ? 'a' : 'b')
       }
+      expect(eaters).toEqual(new Set(['a', 'b']))
     })
 
-    it('should damage different amounts based on mushroom config', () => {
-      // Test that different mushroom.energyRemoved values produce different outcomes
-      const lowDamageConfig = createConfig({
-        mushroom: { energyRemoved: 10 },
-        human: { startingHealth: 100 }
-      })
-      const highDamageConfig = createConfig({
-        mushroom: { energyRemoved: 60 },
-        human: { startingHealth: 100 }
-      })
+    it('fruit is not eaten by a wolf or by a distant human', () => {
+      place(new Wolf(5, 5))
+      place(human(8, 5, 10))
+      const fruit = place(ripeFruit(6, 5))
 
-      // Low damage test
-      let board1 = new Board(30, 30)
-      let system1 = new EatingSystem(renderer)
-      const human1 = createMale(15, 15, lowDamageConfig)
-      const mushroom1 = new Mushroom(16, 15, lowDamageConfig.mushroom.energyRemoved)
-      board1.setEntity(15, 15, human1)
-      board1.setEntity(16, 15, mushroom1)
-      system1.execute(board1)
+      system.execute(board, config)
 
-      const healthAfterLowDamage = human1.health
+      expect(board.getEntity(6, 5)).toBe(fruit)
+    })
 
-      // High damage test
-      let board2 = new Board(30, 30)
-      let system2 = new EatingSystem(renderer)
-      const human2 = createMale(15, 15, highDamageConfig)
-      const mushroom2 = new Mushroom(16, 15, highDamageConfig.mushroom.energyRemoved)
-      board2.setEntity(15, 15, human2)
-      board2.setEntity(16, 15, mushroom2)
-      system2.execute(board2)
+    it('heal amount comes from the fruit, which SpawnSystem sets from config', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0) // every empty cell spawns a fruit
+      const spawnBoard = new Board(1, 1)
+      new SpawnSystem(renderer).execute(spawnBoard, createConfig({ fruit: { energyHealed: 7, roundsToRipen: 0 } }))
+      const spawned = spawnBoard.getEntity(0, 0) as Fruit
+      vi.restoreAllMocks()
 
-      const healthAfterHighDamage = human2.health
+      spawned.x = 6
+      spawned.y = 5
+      place(spawned)
+      const h = place(human(5, 5, 50))
 
-      // Verify that config change produces measurable behavioral difference
-      // Lower config should result in less damage, so higher final health
-      expect(healthAfterLowDamage).toBeGreaterThan(healthAfterHighDamage)
+      system.execute(board, config)
+
+      expect(h.health).toBe(57)
+    })
+
+    it('a dead human (0 health, e.g. killed in combat) does not eat', () => {
+      const h = place(human(5, 5, 0))
+      const fruit = place(ripeFruit(6, 5))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(0)
+      expect(board.getEntity(6, 5)).toBe(fruit)
+    })
+
+    it('a human healed to full by one fruit does not also eat the next', () => {
+      const h = place(human(5, 5, 90))
+      place(ripeFruit(4, 5, 30))
+      const second = place(ripeFruit(6, 5, 30))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(100)
+      expect(board.getEntity(6, 5)).toBe(second)
+    })
+  })
+
+  describe('mushrooms', () => {
+    it('an adjacent human eats a mushroom and loses its energy; the mushroom is removed', () => {
+      const h = place(human(5, 5, 100))
+      place(new Mushroom(4, 4, 40))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(60)
+      expect(board.getEntity(4, 4)).toBeNull()
+    })
+
+    it('health does not go below zero', () => {
+      const h = place(human(5, 5, 10))
+      place(new Mushroom(5, 6, 40))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(0)
+    })
+
+    it('dead humans do not eat mushrooms', () => {
+      place(human(5, 5, 0))
+      const mushroom = place(new Mushroom(5, 6, 40))
+
+      system.execute(board, config)
+
+      expect(board.getEntity(5, 6)).toBe(mushroom)
+    })
+
+    it('a human killed by one mushroom does not eat a second one', () => {
+      place(human(5, 5, 30))
+      place(new Mushroom(4, 5, 40))
+      const second = place(new Mushroom(6, 5, 40))
+
+      system.execute(board, config)
+
+      expect(board.getEntity(6, 5)).toBe(second)
+    })
+  })
+
+  describe('same round and feedback', () => {
+    it('processes fruits before mushrooms in the same round (deterministic genome)', () => {
+      const h = place(human(5, 5, 50))
+      place(ripeFruit(4, 5, 30))
+      place(new Mushroom(6, 5, 40))
+
+      system.execute(board, config)
+
+      expect(h.health).toBe(40) // 50 + 30 - 40
+      expect(board.getEntity(4, 5)).toBeNull()
+      expect(board.getEntity(6, 5)).toBeNull()
+    })
+
+    it('flashes yellow for fruit and red for mushrooms, each lasting VISUAL_EFFECT_DURATION_MS', () => {
+      const h = place(human(5, 5, 50))
+      place(ripeFruit(4, 5))
+      place(new Mushroom(6, 5))
+
+      system.execute(board, config)
+
+      const effects = renderer.addVisualEffect.mock.calls.map((c) => c[0])
+      expect(effects).toEqual([
+        expect.objectContaining({ type: 'eating', x: 4, y: 5, duration: VISUAL_EFFECT_DURATION_MS }),
+        expect.objectContaining({ type: 'combat', x: 6, y: 5, duration: VISUAL_EFFECT_DURATION_MS }),
+      ])
+      expect(renderer.markDirty).toHaveBeenCalledWith(4, 5)
+      expect(renderer.markDirty).toHaveBeenCalledWith(6, 5)
+      expect(renderer.markDirty).toHaveBeenCalledWith(h.x, h.y)
     })
   })
 })
-

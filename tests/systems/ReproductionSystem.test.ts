@@ -1,515 +1,207 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ReproductionSystem } from '../../src/systems/ReproductionSystem'
+import { BirthSystem } from '../../src/systems/BirthSystem'
 import { Board } from '../../src/core/Board'
 import { Human } from '../../src/entities/Human'
 import { Sex } from '../../src/types'
-import { createConfig, createMockRenderer, createMale, createFemale } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
+import { VISUAL_EFFECT_DURATION_MS } from '../../src/config'
+import { createConfig, createMockRenderer } from '../setup'
 
 /**
- * ReproductionSystem Unit Tests
- *
- * Tests reproduction-related configuration parameters:
- * - human.reproductionProbability - Conception rate
- * - human.pregnancyPeriod - Pregnancy duration (integration)
- * - human.cooldownPeriod - Cooldown duration (integration)
- *
- * Verifies these config values are correctly applied in reproduction resolution
+ * ReproductionSystem behaviour tests (Phase 4), incl. exact pregnancy timing with
+ * the BirthSystem (Phase 6).
  */
+
+function human(x: number, y: number, sex: Sex, health = 100): Human {
+  const h = new Human(x, y, sex)
+  h.health = Math.min(health, h.maxHealth)
+  return h
+}
 
 describe('ReproductionSystem', () => {
   let board: Board
+  let renderer: ReturnType<typeof createMockRenderer>
   let system: ReproductionSystem
-  let renderer: any
-  let randomSpy: any
 
   beforeEach(() => {
-    board = new Board(30, 30)
+    board = new Board(12, 12)
     renderer = createMockRenderer()
     system = new ReproductionSystem(renderer)
-    // Reset Math.random mock before each test
-    randomSpy = vi.spyOn(Math, 'random')
   })
 
-  afterEach(() => {
-    randomSpy.mockRestore()
-  })
+  function place(h: Human): Human {
+    board.setEntity(h.x, h.y, h)
+    return h
+  }
 
-  describe('Configuration: Reproduction Probability', () => {
-    it('should initialize with config reproduction probability', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.human.reproductionProbability).toBeGreaterThan(0)
-      expect(config.human.reproductionProbability).toBeLessThanOrEqual(1)
-      expect(config.human.reproductionProbability).toBe(0.3)
-    })
+  describe('conception', () => {
+    it('a female adjacent to a male becomes pregnant for exactly pregnancyPeriod rounds (probability 1)', () => {
+      const female = place(human(5, 5, Sex.FEMALE))
+      const male = place(human(6, 5, Sex.MALE))
 
-    it('should apply custom reproduction probability from config', () => {
-      const customProbability = 0.5
-      const config = createConfig({
-        human: { reproductionProbability: customProbability }
-      })
-
-      expect(config.human.reproductionProbability).toBe(customProbability)
-    })
-
-    it('should support various reproduction probability values', () => {
-      const probabilities = [0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
-
-      probabilities.forEach(prob => {
-        const config = createConfig({
-          human: { reproductionProbability: prob }
-        })
-
-        expect(config.human.reproductionProbability).toBe(prob)
-      })
-    })
-
-    it('should differ from default when config overridden', () => {
-      const defaultConfig = DEFAULT_CONFIG
-      const customConfig = createConfig({
-        human: { reproductionProbability: 0.8 }
-      })
-
-      expect(customConfig.human.reproductionProbability).not.toBe(
-        defaultConfig.human.reproductionProbability
-      )
-    })
-
-    it('should have probability between 0 and 1', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.human.reproductionProbability).toBeGreaterThanOrEqual(0)
-      expect(config.human.reproductionProbability).toBeLessThanOrEqual(1)
-    })
-  })
-
-  describe('Reproduction Mechanics: Probability-Based Conception', () => {
-    it('should initiate pregnancy when probability check succeeds', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      // Mock Math.random to return value below probability (success)
-      randomSpy.mockReturnValue(0.2) // 0.2 < 0.3 (default probability)
-
-      system.execute(board)
+      system.execute(board, createConfig({ human: { reproductionProbability: 1, pregnancyPeriod: 4 } }))
 
       expect(female.isPregnant()).toBe(true)
-      // Pregnancy counter is decremented by advancePregnancy() at end of execute()
-      // So it should be pregnancyPeriod - 1
-      expect(female.pregnancyCounter).toBe(DEFAULT_CONFIG.human.pregnancyPeriod - 1)
+      // Not advanced in the conception round
+      expect(female.pregnancyCounter).toBe(4)
+      expect(female.fatherGenome).toBe(male.genome)
     })
 
-    it('should not initiate pregnancy when probability check fails', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
+    it('diagonal adjacency counts', () => {
+      const female = place(human(5, 5, Sex.FEMALE))
+      place(human(4, 6, Sex.MALE))
 
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      // Mock Math.random to return value above probability (failure)
-      randomSpy.mockReturnValue(0.5) // 0.5 >= 0.3 (default probability)
-
-      system.execute(board)
-
-      expect(female.isPregnant()).toBe(false)
-      expect(female.pregnancyCounter).toBe(0)
-    })
-
-    it('should use configured reproduction probability', () => {
-      // Note: Currently ReproductionSystem uses DEFAULT_CONFIG directly
-      // This test verifies the default probability is used
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      const defaultProb = DEFAULT_CONFIG.human.reproductionProbability
-
-      // Test with value just below probability (should succeed)
-      randomSpy.mockReturnValue(defaultProb - 0.01)
-      system.execute(board)
-      expect(female.isPregnant()).toBe(true)
-
-      // Reset
-      board = new Board(30, 30)
-      female.pregnancyCounter = 0
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      // Test with value at or above probability (should fail)
-      randomSpy.mockReturnValue(defaultProb)
-      system.execute(board)
-      expect(female.isPregnant()).toBe(false)
-    })
-
-    it('should handle probability of 1.0 (always succeeds)', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      // Even with high random value, probability 1.0 should succeed
-      randomSpy.mockReturnValue(0.99)
-
-      // Note: System uses DEFAULT_CONFIG, but we can verify behavior
-      // For probability 1.0, any value < 1.0 should succeed
-      const prob = 1.0
-      randomSpy.mockReturnValue(0.99) // 0.99 < 1.0
-
-      // Manually test the probability logic
-      const shouldSucceed = 0.99 < prob
-      expect(shouldSucceed).toBe(true)
-    })
-
-    it('should handle probability of 0.0 (never succeeds)', () => {
-      // For probability 0.0, no value should succeed
-      const prob = 0.0
-      randomSpy.mockReturnValue(0.0)
-
-      // Manually test the probability logic
-      const shouldSucceed = 0.0 < prob
-      expect(shouldSucceed).toBe(false)
-    })
-  })
-
-  describe('Reproduction Mechanics: Adjacency Detection', () => {
-    it('should require adjacent male for reproduction', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15) // Adjacent horizontally
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
 
       expect(female.isPregnant()).toBe(true)
     })
 
-    it('should handle diagonal adjacency', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 16) // Diagonal
+    it('probability 0 never conceives', () => {
+      const female = place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE))
 
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 16, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      expect(female.isPregnant()).toBe(true)
-    })
-
-    it('should not reproduce when male is not adjacent', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(17, 15) // Not adjacent (2 cells away)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(17, 15, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      // Should not get pregnant (no adjacent male)
-      expect(female.isPregnant()).toBe(false)
-    })
-
-    it('should not reproduce when no male present', () => {
-      const female = createFemale(15, 15)
-
-      board.setEntity(15, 15, female)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
+      for (let i = 0; i < 20; i++) system.execute(board, createConfig({ human: { reproductionProbability: 0 } }))
 
       expect(female.isPregnant()).toBe(false)
     })
 
-    it('should handle multiple adjacent males (first found triggers check)', () => {
-      const female = createFemale(15, 15)
-      const male1 = createMale(16, 15)
-      const male2 = createMale(15, 16)
+    it('uses the configured reproductionProbability (roll 0.4: 0.5 succeeds, 0.3 fails)', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.4)
+      const f1 = place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE))
+      system.execute(board, createConfig({ human: { reproductionProbability: 0.3 } }))
+      expect(f1.isPregnant()).toBe(false)
+      system.execute(board, createConfig({ human: { reproductionProbability: 0.5 } }))
+      expect(f1.isPregnant()).toBe(true)
+    })
 
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male1)
-      board.setEntity(15, 16, male2)
+    it('requires a male within one cell', () => {
+      const female = place(human(5, 5, Sex.FEMALE))
+      place(human(7, 5, Sex.MALE))
+      place(human(4, 5, Sex.FEMALE))
 
-      randomSpy.mockReturnValue(0.2) // Success probability
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
 
-      system.execute(board)
+      expect(female.isPregnant()).toBe(false)
+    })
 
-      // Should get pregnant (adjacent male found)
-      expect(female.isPregnant()).toBe(true)
+    it('a dead male cannot father and a dead female cannot conceive', () => {
+      const female = place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE, 0))
+      const deadFemale = place(human(1, 1, Sex.FEMALE, 0))
+      place(human(2, 1, Sex.MALE))
+
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
+
+      expect(female.isPregnant()).toBe(false)
+      expect(deadFemale.isPregnant()).toBe(false)
+    })
+
+    it('several females next to one male can each conceive in the same round', () => {
+      place(human(5, 5, Sex.MALE))
+      const females = [place(human(4, 5, Sex.FEMALE)), place(human(6, 5, Sex.FEMALE)), place(human(5, 6, Sex.FEMALE))]
+
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
+
+      expect(females.every((f) => f.isPregnant())).toBe(true)
+    })
+
+    it('pregnant females and females in cooldown do not conceive; cooldown counts down', () => {
+      const pregnant = place(human(5, 5, Sex.FEMALE))
+      pregnant.pregnancyCounter = 3
+      const resting = place(human(6, 6, Sex.FEMALE))
+      resting.reproductionCooldown = 2
+      place(human(6, 5, Sex.MALE))
+
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
+
+      expect(pregnant.pregnancyCounter).toBe(2) // advanced, not restarted
+      expect(resting.isPregnant()).toBe(false)
+      expect(resting.reproductionCooldown).toBe(1)
     })
   })
 
-  describe('Reproduction Mechanics: Pregnancy State', () => {
-    it('should not reproduce when female already pregnant', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
+  describe('pregnancy timing (M2)', () => {
+    /** Returns the round (after conception in round 0) in which the baby is born. */
+    function birthRound(pregnancyPeriod: number): number {
+      board = new Board(12, 12)
+      const config = createConfig({ human: { reproductionProbability: 1, pregnancyPeriod, cooldownPeriod: 2 } })
+      const female = place(human(5, 5, Sex.FEMALE))
+      const male = place(human(6, 5, Sex.MALE))
+      const births = new BirthSystem(renderer)
 
-      // Set female as already pregnant
-      female.pregnancyCounter = 2
+      system.execute(board, config) // round 0: conception
+      births.execute(board, config)
+      expect(female.isPregnant()).toBe(true)
+      board.removeEntity(male.x, male.y)
 
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
+      for (let round = 1; round <= 20; round++) {
+        const before = board.getAllEntities().length
+        system.execute(board, config)
+        births.execute(board, config)
+        if (board.getAllEntities().length > before) return round
+      }
+      return -1
+    }
 
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      const initialCounter = female.pregnancyCounter
-      system.execute(board)
-
-      // Should not start new pregnancy
-      expect(female.pregnancyCounter).toBe(initialCounter - 1) // Advanced by advancePregnancy()
-      expect(female.pregnancyCounter).toBeGreaterThan(0) // Still pregnant
-    })
-
-    it('should not reproduce when female in cooldown', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      // Set female in cooldown
-      female.reproductionCooldown = 2
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      // Should not get pregnant (in cooldown)
-      expect(female.isPregnant()).toBe(false)
-      // Cooldown should be decremented
-      expect(female.reproductionCooldown).toBe(1)
-    })
-
-    it('should allow reproduction after cooldown expires', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      // Set female with cooldown of 1 (will expire this round)
-      female.reproductionCooldown = 1
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      // Cooldown decremented to 0, should be able to reproduce
-      expect(female.reproductionCooldown).toBe(0)
-      // But reproduction check happens before cooldown decrement in current implementation
-      // So this test verifies cooldown prevents reproduction
-      expect(female.isPregnant()).toBe(false)
+    it.each([1, 2, 3, 5])('pregnancyPeriod %i ⇒ birth exactly that many rounds after conception', (period) => {
+      expect(birthRound(period)).toBe(period)
     })
   })
 
-  describe('Pregnancy Advancement Integration', () => {
-    it('should advance existing pregnancies each round', () => {
-      const female = createFemale(15, 15)
-      female.pregnancyCounter = 3
-
-      board.setEntity(15, 15, female)
-
-      system.execute(board)
-
-      expect(female.pregnancyCounter).toBe(2)
-    })
-
-    it('should complete pregnancy after configured period', () => {
-      const config = DEFAULT_CONFIG
-      const female = createFemale(15, 15)
-      female.pregnancyCounter = config.human.pregnancyPeriod
-
-      board.setEntity(15, 15, female)
-
-      // Advance pregnancy for each round
-      for (let i = 0; i < config.human.pregnancyPeriod; i++) {
-        system.execute(board)
+  describe('cooldown after birth', () => {
+    it('blocks conception for exactly cooldownPeriod rounds after the birth round', () => {
+      const config = createConfig({ human: { reproductionProbability: 1, pregnancyPeriod: 1, cooldownPeriod: 3 } })
+      const female = place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE))
+      const births = new BirthSystem(renderer)
+      // Remove babies so only the parents remain
+      const clearBabies = () => {
+        for (const e of board.getAllEntities()) {
+          if (e !== female && !(e.x === 6 && e.y === 5)) board.removeEntity(e.x, e.y)
+        }
       }
 
-      expect(female.pregnancyCounter).toBe(0)
+      system.execute(board, config) // round 0: conceive
+      births.execute(board, config)
+      system.execute(board, config) // round 1: pregnancy completes
       expect(female.readyToGiveBirth).toBe(true)
-      expect(female.reproductionCooldown).toBe(config.human.cooldownPeriod)
-    })
+      expect(female.reproductionCooldown).toBe(3)
+      births.execute(board, config)
+      clearBabies()
 
-    it('should support custom pregnancy periods', () => {
-      const customPeriod = 5
-      const config = createConfig({
-        human: { pregnancyPeriod: customPeriod }
-      })
-
-      const female = createFemale(15, 15, config)
-      female.pregnancyCounter = config.human.pregnancyPeriod
-
-      board.setEntity(15, 15, female)
-
-      // Advance pregnancy for each round
-      for (let i = 0; i < customPeriod; i++) {
-        system.execute(board)
+      const pregnantInRound: boolean[] = []
+      for (let round = 2; round <= 5; round++) {
+        system.execute(board, config)
+        births.execute(board, config)
+        clearBabies()
+        pregnantInRound.push(female.isPregnant())
       }
-
-      expect(female.pregnancyCounter).toBe(0)
-      expect(female.readyToGiveBirth).toBe(true)
+      // rounds 2,3,4 blocked (cooldown 3), round 5 conceives
+      expect(pregnantInRound).toEqual([false, false, false, true])
     })
   })
 
-  describe('Cooldown Integration', () => {
-    it('should decrement cooldown each round', () => {
-      const female = createFemale(15, 15)
-      female.reproductionCooldown = 3
+  describe('visual feedback', () => {
+    it('adds a green flash on conception', () => {
+      place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE))
 
-      board.setEntity(15, 15, female)
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))
 
-      system.execute(board)
-      expect(female.reproductionCooldown).toBe(2)
-
-      system.execute(board)
-      expect(female.reproductionCooldown).toBe(1)
-
-      system.execute(board)
-      expect(female.reproductionCooldown).toBe(0)
-    })
-
-    it('should apply cooldown after pregnancy completes', () => {
-      const config = DEFAULT_CONFIG
-      const female = createFemale(15, 15)
-      female.pregnancyCounter = 1 // About to complete
-
-      board.setEntity(15, 15, female)
-
-      system.execute(board)
-
-      expect(female.pregnancyCounter).toBe(0)
-      expect(female.reproductionCooldown).toBe(config.human.cooldownPeriod)
-    })
-
-    it('should support custom cooldown periods', () => {
-      const customCooldown = 5
-      const config = createConfig({
-        human: { cooldownPeriod: customCooldown }
-      })
-
-      const female = createFemale(15, 15, config)
-      female.pregnancyCounter = 1
-
-      board.setEntity(15, 15, female)
-
-      system.execute(board)
-
-      // Note: Human.startPregnancy() and advancePregnancy() use DEFAULT_CONFIG directly
-      // So cooldown will be DEFAULT_CONFIG.human.cooldownPeriod, not customCooldown
-      // This test verifies the system works, even if it uses default config
-      expect(female.reproductionCooldown).toBe(DEFAULT_CONFIG.human.cooldownPeriod)
-    })
-  })
-
-  describe('Multiple Females', () => {
-    it('should process multiple females independently', () => {
-      const female1 = createFemale(15, 15)
-      const female2 = createFemale(20, 20)
-      const male1 = createMale(16, 15)
-      const male2 = createMale(21, 20)
-
-      board.setEntity(15, 15, female1)
-      board.setEntity(20, 20, female2)
-      board.setEntity(16, 15, male1)
-      board.setEntity(21, 20, male2)
-
-      // Mock random to succeed for both
-      randomSpy.mockReturnValue(0.2)
-
-      system.execute(board)
-
-      expect(female1.isPregnant()).toBe(true)
-      expect(female2.isPregnant()).toBe(true)
-    })
-
-    it('should handle mixed states (pregnant and not pregnant)', () => {
-      const female1 = createFemale(15, 15)
-      const female2 = createFemale(20, 20)
-      female2.pregnancyCounter = 2 // Already pregnant
-      const male1 = createMale(16, 15)
-      const male2 = createMale(21, 20)
-
-      board.setEntity(15, 15, female1)
-      board.setEntity(20, 20, female2)
-      board.setEntity(16, 15, male1)
-      board.setEntity(21, 20, male2)
-
-      randomSpy.mockReturnValue(0.2)
-
-      system.execute(board)
-
-      expect(female1.isPregnant()).toBe(true) // New pregnancy
-      expect(female2.pregnancyCounter).toBe(1) // Advanced existing pregnancy
-    })
-  })
-
-  describe('System Integration', () => {
-    it('should add visual effects for reproduction', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      // Should add reproduction visual effect
-      expect(renderer.addVisualEffect).toHaveBeenCalled()
-      const effectCall = renderer.addVisualEffect.mock.calls.find(
-        (call: any[]) => call[0].type === 'reproduction'
+      expect(renderer.addVisualEffect).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'reproduction', x: 5, y: 5, duration: VISUAL_EFFECT_DURATION_MS })
       )
-      expect(effectCall).toBeDefined()
-      expect(effectCall[0].x).toBe(15)
-      expect(effectCall[0].y).toBe(15)
+      expect(renderer.markDirty).toHaveBeenCalledWith(5, 5)
     })
 
-    it('should mark dirty cells for rendering', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
+    it('adds no flash when conception fails', () => {
+      place(human(5, 5, Sex.FEMALE))
+      place(human(6, 5, Sex.MALE))
 
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
+      system.execute(board, createConfig({ human: { reproductionProbability: 0 } }))
 
-      randomSpy.mockReturnValue(0.2) // Success probability
-
-      system.execute(board)
-
-      // Should mark female cell as dirty
-      expect(renderer.markDirty).toHaveBeenCalledWith(15, 15)
-    })
-
-    it('should not add visual effects when reproduction fails', () => {
-      const female = createFemale(15, 15)
-      const male = createMale(16, 15)
-
-      board.setEntity(15, 15, female)
-      board.setEntity(16, 15, male)
-
-      randomSpy.mockReturnValue(0.5) // Failure probability
-
-      renderer.addVisualEffect.mockClear()
-      system.execute(board)
-
-      // Should not add visual effect when reproduction fails
-      const reproductionEffects = renderer.addVisualEffect.mock.calls.filter(
-        (call: any[]) => call[0].type === 'reproduction'
-      )
-      expect(reproductionEffects.length).toBe(0)
+      expect(renderer.addVisualEffect).not.toHaveBeenCalled()
     })
   })
 })
-

@@ -6,17 +6,28 @@ export abstract class Entity {
   visualX: number; // Visual position (for rendering during animations)
   visualY: number; // Visual position (for rendering during animations)
   health: number;
+  /** Maximum health this entity can have (used for healing caps and the injured % indicator). */
+  maxHealth: number;
   age: number;
   type: EntityType;
   gompertzA: number;
   gompertzB: number;
 
-  constructor(x: number, y: number, health: number, type: EntityType, gompertzA: number = 0.0001, gompertzB: number = 0.1) {
+  constructor(
+    x: number,
+    y: number,
+    health: number,
+    type: EntityType,
+    gompertzA: number = 0.0001,
+    gompertzB: number = 0.1,
+    maxHealth: number = health
+  ) {
     this.x = x;
     this.y = y;
     this.visualX = x; // Initialize visual position to logical position
     this.visualY = y;
     this.health = health;
+    this.maxHealth = maxHealth;
     this.age = 0;
     this.type = type;
     this.gompertzA = gompertzA;
@@ -27,8 +38,12 @@ export abstract class Entity {
     return this.health <= 0;
   }
 
-  isInjured(threshold: number): boolean {
-    return this.health < threshold;
+  /**
+   * True when health is below `thresholdPercent` % of max health.
+   */
+  isInjured(thresholdPercent: number): boolean {
+    if (this.maxHealth <= 0) return false;
+    return (this.health / this.maxHealth) * 100 < thresholdPercent;
   }
 
   incrementAge(): void {
@@ -39,7 +54,7 @@ export abstract class Entity {
     this.health = Math.max(0, this.health - amount);
   }
 
-  heal(amount: number, maxHealth: number): void {
+  heal(amount: number, maxHealth: number = this.maxHealth): void {
     this.health = Math.min(maxHealth, this.health + amount);
   }
 

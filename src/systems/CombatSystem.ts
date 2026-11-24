@@ -5,203 +5,174 @@ import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import type { Renderer } from '../core/Renderer';
 import type { GameConfig } from '../ui/ConfigPanel';
+import { VISUAL_EFFECT_DURATION_MS } from '../config';
 import { Random } from '../utils/Random';
+import { debugLog } from '../utils/debug';
 
+/**
+ * "Forward" half of the 8-neighbourhood. Checking only these offsets from every
+ * cell visits each unordered adjacent pair exactly once (O(n), no dedupe lookups).
+ */
+const FORWARD_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 1],
+  [0, 1],
+  [1, 1],
+];
+
+/**
+ * Phase 2: Combat. Damage is dealt here; removal happens in the death phase.
+ * - Male vs male: both take damage (strength-scaled) simultaneously.
+ * - Wolf vs human: human takes damage; males counter-attack (strength-scaled).
+ * - Dog vs wolf: wolf takes dog damage, dog takes wolf counter-damage.
+ * A creature knocked to 0 health by an earlier pair this round takes no part in
+ * later pairs.
+ */
 export class CombatSystem {
   private renderer: Renderer;
-  private config: GameConfig;
 
-  constructor(renderer: Renderer, config: GameConfig) {
+  constructor(renderer: Renderer) {
     this.renderer = renderer;
-    this.config = config;
   }
 
-  updateConfig(config: GameConfig): void {
-    this.config = config;
+  execute(board: Board, config: GameConfig): void {
+    const pairs = CombatSystem.findCombatPairs(board);
+    debugLog(`[Combat] Found ${pairs.length} combat pairs`);
+
+    for (const [entity1, entity2] of pairs) {
+      // Dead creatures don't keep fighting within the same round
+      if (entity1.isDead() || entity2.isDead()) continue;
+      this.resolveCombat(entity1, entity2, config);
+    }
   }
 
-  execute(board: Board): void {
-    const entities = board.getAllEntities();
-    const combatPairs: [Entity, Entity][] = [];
-
-    // Find all adjacent combat pairs
-    for (const entity of entities) {
-      const adjacentPositions = board.getAdjacentPositions(entity.x, entity.y);
-
-      for (const pos of adjacentPositions) {
-        const adjacent = board.getEntity(pos.x, pos.y);
-        if (!adjacent) continue;
-
-        // Avoid processing same pair twice
-        if (entities.indexOf(entity) > entities.indexOf(adjacent)) continue;
-
-        // Check for combat conditions
-        if (this.shouldFight(entity, adjacent)) {
-          combatPairs.push([entity, adjacent]);
+  /** All adjacent pairs that fight, each unordered pair exactly once, in row-major order. */
+  static findCombatPairs(board: Board): [Entity, Entity][] {
+    const pairs: [Entity, Entity][] = [];
+    const grid = board.grid;
+    for (let y = 0; y < board.height; y++) {
+      const row = grid[y];
+      for (let x = 0; x < board.width; x++) {
+        const entity = row[x];
+        if (!entity || !CombatSystem.isCombatant(entity)) continue;
+        for (const [dx, dy] of FORWARD_OFFSETS) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= board.width || ny >= board.height) continue;
+          const other = grid[ny][nx];
+          if (other && CombatSystem.shouldFight(entity, other)) {
+            pairs.push([entity, other]);
+          }
         }
       }
     }
-
-    console.log(`[Combat] Found ${combatPairs.length} combat pairs`);
-
-    // Execute combat for each pair
-    for (const [entity1, entity2] of combatPairs) {
-      this.resolveCombat(entity1, entity2);
-    }
+    return pairs;
   }
 
-  private shouldFight(entity1: Entity, entity2: Entity): boolean {
+  private static isCombatant(entity: Entity): boolean {
+    return entity instanceof Human || entity instanceof Wolf || entity instanceof Dog;
+  }
+
+  static shouldFight(entity1: Entity, entity2: Entity): boolean {
     // Male vs Male
-    if (entity1 instanceof Human && entity1.isMale() &&
-        entity2 instanceof Human && entity2.isMale()) {
+    if (entity1 instanceof Human && entity1.isMale() && entity2 instanceof Human && entity2.isMale()) {
       return true;
     }
-
     // Wolf vs Human (any sex)
-    if ((entity1 instanceof Wolf && entity2 instanceof Human) ||
-        (entity1 instanceof Human && entity2 instanceof Wolf)) {
+    if ((entity1 instanceof Wolf && entity2 instanceof Human) || (entity1 instanceof Human && entity2 instanceof Wolf)) {
       return true;
     }
-
     // Dog vs Wolf
-    if ((entity1 instanceof Dog && entity2 instanceof Wolf) ||
-        (entity1 instanceof Wolf && entity2 instanceof Dog)) {
+    if ((entity1 instanceof Dog && entity2 instanceof Wolf) || (entity1 instanceof Wolf && entity2 instanceof Dog)) {
       return true;
     }
-
     return false;
   }
 
-  private resolveCombat(entity1: Entity, entity2: Entity): void {
-    // Male vs Male combat
-    if (entity1 instanceof Human && entity1.isMale() &&
-        entity2 instanceof Human && entity2.isMale()) {
-      
-      // Calculate individual damage based on strength gene
-      const damage1 = this.config.human.maleVsMaleDamage * (entity1 as Human).genome.strength;
-      const damage2 = this.config.human.maleVsMaleDamage * (entity2 as Human).genome.strength;
-
-      // Store initial health before combat (for energy transfer)
-      const male1InitialHealth = entity1.health;
-      const male2InitialHealth = entity2.health;
-
-      // Both males take damage simultaneously
-      entity1.takeDamage(damage2); // Entity 1 takes damage from Entity 2
-      entity2.takeDamage(damage1); // Entity 2 takes damage from Entity 1
-
-      console.log(`[Combat] Male vs Male at (${entity1.x},${entity1.y}) and (${entity2.x},${entity2.y}): M1 takes ${damage2}, M2 takes ${damage1}`);
-
-      // Handle energy transfer if one or both males have health <= 0
-      const male1Dying = entity1.health <= 0;
-      const male2Dying = entity2.health <= 0;
-
-      if (male1Dying && male2Dying) {
-        // Both would die - only one dies, determined by health level
-        let survivor: Human;
-        let dyingMale: Human;
-        let dyingInitialHealth: number;
-
-        if (entity1.health < entity2.health) {
-          // entity1 has lower health, dies
-          survivor = entity2;
-          dyingMale = entity1;
-          dyingInitialHealth = male1InitialHealth;
-        } else if (entity2.health < entity1.health) {
-          // entity2 has lower health, dies
-          survivor = entity1;
-          dyingMale = entity2;
-          dyingInitialHealth = male2InitialHealth;
-        } else {
-          // Equal health - random selection
-          if (Random.chance(0.5)) {
-            survivor = entity1;
-            dyingMale = entity2;
-            dyingInitialHealth = male2InitialHealth;
-          } else {
-            survivor = entity2;
-            dyingMale = entity1;
-            dyingInitialHealth = male1InitialHealth;
-          }
-        }
-
-        // Survivor gains dying male's initial health
-        survivor.heal(dyingInitialHealth, survivor.genome.maxHealth);
-        console.log(`[Combat] Both males would die: ${dyingMale === entity1 ? 'Male1' : 'Male2'} dies, survivor gains ${dyingInitialHealth} health`);
-
-        // Set survivor's health to 1 to ensure they survive
-        if (survivor.health <= 0) {
-          survivor.health = 1;
-        }
-
-      } else if (male1Dying) {
-        // Only entity1 dies, entity2 gains energy
-        entity2.heal(male1InitialHealth, (entity2 as Human).genome.maxHealth);
-        console.log(`[Combat] Male at (${entity1.x},${entity1.y}) dies, survivor at (${entity2.x},${entity2.y}) gains ${male1InitialHealth} health`);
-
-      } else if (male2Dying) {
-        // Only entity2 dies, entity1 gains energy
-        entity1.heal(male2InitialHealth, (entity1 as Human).genome.maxHealth);
-        console.log(`[Combat] Male at (${entity2.x},${entity2.y}) dies, survivor at (${entity1.x},${entity1.y}) gains ${male2InitialHealth} health`);
-      }
-
-      this.addCombatEffect(entity1.x, entity1.y);
-      this.addCombatEffect(entity2.x, entity2.y);
+  private resolveCombat(entity1: Entity, entity2: Entity, config: GameConfig): void {
+    if (entity1 instanceof Human && entity2 instanceof Human) {
+      this.resolveMaleVsMale(entity1, entity2, config);
       return;
     }
 
-    // Dog vs Wolf combat
-    if ((entity1 instanceof Dog && entity2 instanceof Wolf) ||
-        (entity1 instanceof Wolf && entity2 instanceof Dog)) {
-      const dog = entity1 instanceof Dog ? entity1 : entity2;
-      const wolf = entity1 instanceof Wolf ? entity1 : entity2;
-
-      // Dog deals damage to wolf
-      const dogDamage = this.config.dog.damageToWolf;
-      wolf.takeDamage(dogDamage);
-
+    if (entity1 instanceof Dog || entity2 instanceof Dog) {
+      const dog = (entity1 instanceof Dog ? entity1 : entity2) as Dog;
+      const wolf = (entity1 instanceof Wolf ? entity1 : entity2) as Wolf;
+      wolf.takeDamage(config.dog.damageToWolf);
       // Wolf counter-attacks with configured damage (PRD US-019)
-      const wolfCounterDamage = this.config.wolf.damageToDog;
-      dog.takeDamage(wolfCounterDamage);
-
-      console.log(`[Combat] Dog at (${dog.x},${dog.y}) vs Wolf at (${wolf.x},${wolf.y}): Dog deals ${dogDamage}, Wolf deals ${wolfCounterDamage}`);
-
+      dog.takeDamage(config.wolf.damageToDog);
+      debugLog(`[Combat] Dog at (${dog.x},${dog.y}) vs Wolf at (${wolf.x},${wolf.y})`);
       this.addCombatEffect(wolf.x, wolf.y);
       this.addCombatEffect(dog.x, dog.y);
-
       return;
     }
 
-    // Wolf vs Human combat
-    let wolf: Wolf;
-    let human: Human;
-
-    if (entity1 instanceof Wolf && entity2 instanceof Human) {
-      wolf = entity1;
-      human = entity2;
-    } else if (entity1 instanceof Human && entity2 instanceof Wolf) {
-      human = entity1;
-      wolf = entity2;
-    } else {
-      return;
-    }
+    const wolf = (entity1 instanceof Wolf ? entity1 : entity2) as Wolf;
+    const human = (entity1 instanceof Human ? entity1 : entity2) as Human;
 
     // Wolf attacks human with differentiated damage
-    const wolfDamage = human.isMale() ? this.config.wolf.damageToMale : this.config.wolf.damageToFemale;
+    const wolfDamage = human.isMale() ? config.wolf.damageToMale : config.wolf.damageToFemale;
     human.takeDamage(wolfDamage);
-
-    console.log(`[Combat] Wolf at (${wolf.x},${wolf.y}) attacks ${human.sex} at (${human.x},${human.y}): ${wolfDamage} damage`);
-
     this.addCombatEffect(human.x, human.y);
+    debugLog(`[Combat] Wolf at (${wolf.x},${wolf.y}) attacks ${human.sex} at (${human.x},${human.y}): ${wolfDamage}`);
 
     // Male human counter-attacks using strength gene
     if (human.isMale()) {
-      const counterDamage = this.config.human.maleVsWolfDamage * human.genome.strength;
-      wolf.takeDamage(counterDamage);
-
-      console.log(`[Combat] Male counter-attacks wolf: ${counterDamage} damage`);
-
+      wolf.takeDamage(config.human.maleVsWolfDamage * human.genome.strength);
       this.addCombatEffect(wolf.x, wolf.y);
     }
+  }
+
+  /**
+   * Both males take damage simultaneously. If exactly one ends at ≤ 0 he dies and the
+   * other gains the loser's health from before the fight. If both would end at ≤ 0,
+   * only the one with the lower (unclamped) resulting health dies — random on a tie —
+   * and the survivor gains the loser's pre-fight health (and keeps at least 1).
+   */
+  private resolveMaleVsMale(male1: Human, male2: Human, config: GameConfig): void {
+    const damage1 = config.human.maleVsMaleDamage * male1.genome.strength; // dealt by male1
+    const damage2 = config.human.maleVsMaleDamage * male2.genome.strength; // dealt by male2
+
+    const initial1 = male1.health;
+    const initial2 = male2.health;
+    const final1 = initial1 - damage2; // unclamped, so "lower health" is meaningful
+    const final2 = initial2 - damage1;
+
+    male1.takeDamage(damage2);
+    male2.takeDamage(damage1);
+
+    const male1Dying = final1 <= 0;
+    const male2Dying = final2 <= 0;
+
+    if (male1Dying && male2Dying) {
+      let survivor: Human;
+      let loser: Human;
+      if (final1 < final2) {
+        survivor = male2;
+        loser = male1;
+      } else if (final2 < final1) {
+        survivor = male1;
+        loser = male2;
+      } else if (Random.chance(0.5)) {
+        survivor = male1;
+        loser = male2;
+      } else {
+        survivor = male2;
+        loser = male1;
+      }
+      const loserInitial = loser === male1 ? initial1 : initial2;
+      loser.health = 0;
+      survivor.heal(loserInitial, survivor.maxHealth);
+      if (survivor.health <= 0) survivor.health = 1;
+    } else if (male1Dying) {
+      male2.heal(initial1, male2.maxHealth);
+    } else if (male2Dying) {
+      male1.heal(initial2, male1.maxHealth);
+    }
+
+    debugLog(`[Combat] Male vs Male at (${male1.x},${male1.y}) and (${male2.x},${male2.y})`);
+    this.addCombatEffect(male1.x, male1.y);
+    this.addCombatEffect(male2.x, male2.y);
   }
 
   private addCombatEffect(x: number, y: number): void {
@@ -210,7 +181,7 @@ export class CombatSystem {
       x,
       y,
       startTime: Date.now(),
-      duration: 300 // 300ms flash
+      duration: VISUAL_EFFECT_DURATION_MS,
     });
     this.renderer.markDirty(x, y);
   }

@@ -5,7 +5,7 @@ import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
 import { Mushroom } from '../entities/Mushroom';
-import { Sex, EntityType } from '../types';
+import { Sex } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { MovementSystem } from '../systems/MovementSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -16,9 +16,35 @@ import { BirthSystem } from '../systems/BirthSystem';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { AnimationSystem, type MovementRecord } from './AnimationSystem';
 import { Random } from '../utils/Random';
+import { debugLog } from '../utils/debug';
 
 import type { GameConfig } from '../ui/ConfigPanel';
 
+/** Recursively freeze an object graph (plain data only). */
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value as object)) {
+      deepFreeze((value as Record<string, unknown>)[key]);
+    }
+  }
+  return value;
+}
+
+/** Default GameConfig derived from DEFAULT_CONFIG (without UI-only sections). */
+function createDefaultConfig(): GameConfig {
+  const { simulation: _simulation, ...config } = structuredClone(DEFAULT_CONFIG);
+  return config;
+}
+
+export const CONFIG_LOCKED_MESSAGE = 'Configuration is locked while a game is in progress';
+
+/**
+ * Orchestrates the seven-phase round:
+ * 1 Movement → 2 Combat → 3 Eating → 4 Reproduction → 5 Death → 6 Birth → 7 Spawn.
+ * Movement is animated; the remaining phases run once the animation has finished
+ * (or immediately when paused mid-animation, so a round is never half-done).
+ */
 export class Game {
   private board: Board;
   private renderer: Renderer;
@@ -31,22 +57,29 @@ export class Game {
   private spawnSystem: SpawnSystem;
   private animationSystem: AnimationSystem;
   private isRunning: boolean;
-  private nextRoundTimeoutId: number | null; // Track next round timeout
-  private populationHistory: number[]; // Track human population over time
-  private currentSpeed: number; // Current simulation speed in ms
-  private animationDuration: number; // Animation duration in ms
-  private isAnimating: boolean; // Track if animations are currently running
-  private isStepping: boolean; // Track if we're executing a step (allows animations during step mode)
-  private animationFrameId: number | null; // Track animation frame request ID
-  private currentConfig: GameConfig;
-  public onStepComplete?: () => void; // Callback for when step completes (for UI updates)
+  private nextRoundTimeoutId: number | null; // Next scheduled round (continuous or stepped)
+  private populationHistory: number[]; // Human population after each round
+  private currentSpeed: number; // ms per round
+  private animationDuration: number; // ms per movement animation
+  private isAnimating: boolean; // Movement animation of the current round in progress
+  private animationFrameId: number | null;
+  private currentMovements: MovementRecord[] | null; // Movements of the round being animated
+  private pendingSteps: number; // Rounds left in the current step()/stepRounds() sequence
+  private config: Readonly<GameConfig>;
+  private configLocked: boolean;
+
+  /** Fired after every completed round (continuous or stepped). */
+  public onRoundComplete?: () => void;
+  /** Fired when a step()/stepRounds() sequence has fully finished (never during continuous run). */
+  public onStepComplete?: () => void;
 
   constructor(board: Board, renderer: Renderer) {
     this.board = board;
     this.renderer = renderer;
-    this.currentConfig = this.createDefaultConfig();
+    this.config = deepFreeze(createDefaultConfig());
+    this.configLocked = false;
     this.movementSystem = new MovementSystem(renderer);
-    this.combatSystem = new CombatSystem(renderer, this.currentConfig);
+    this.combatSystem = new CombatSystem(renderer);
     this.eatingSystem = new EatingSystem(renderer);
     this.reproductionSystem = new ReproductionSystem(renderer);
     this.deathSystem = new DeathSystem(renderer);
@@ -59,133 +92,92 @@ export class Game {
     this.currentSpeed = DEFAULT_CONFIG.simulation.defaultSpeed;
     this.animationDuration = this.currentSpeed; // Sync initial duration with speed for fluidity
     this.isAnimating = false;
-    this.isStepping = false;
     this.animationFrameId = null;
+    this.currentMovements = null;
+    this.pendingSteps = 0;
   }
 
-  private createDefaultConfig(): GameConfig {
-    return {
-      board: {
-        width: DEFAULT_CONFIG.board.width,
-        height: DEFAULT_CONFIG.board.height,
-        injuredThreshold: DEFAULT_CONFIG.board.injuredThreshold,
-      },
-      spawn: {
-        maleHumanProbability: DEFAULT_CONFIG.spawn.maleHumanProbability,
-        femaleHumanProbability: DEFAULT_CONFIG.spawn.femaleHumanProbability,
-        wolfProbability: DEFAULT_CONFIG.spawn.wolfProbability,
-        dogProbability: DEFAULT_CONFIG.spawn.dogProbability,
-        fruitProbability: DEFAULT_CONFIG.spawn.fruitProbability,
-        mushroomProbability: DEFAULT_CONFIG.spawn.mushroomProbability,
-      },
-      human: {
-        startingHealth: DEFAULT_CONFIG.human.startingHealth,
-        maleVsMaleDamage: DEFAULT_CONFIG.human.maleVsMaleDamage,
-        maleVsWolfDamage: DEFAULT_CONFIG.human.maleVsWolfDamage,
-        reproductionProbability: DEFAULT_CONFIG.human.reproductionProbability,
-        pregnancyPeriod: DEFAULT_CONFIG.human.pregnancyPeriod,
-        cooldownPeriod: DEFAULT_CONFIG.human.cooldownPeriod,
-        perceptionRange: DEFAULT_CONFIG.human.perceptionRange,
-        moveTowardFruitProbability: DEFAULT_CONFIG.human.moveTowardFruitProbability,
-        gompertzA: DEFAULT_CONFIG.human.gompertzA,
-        gompertzB: DEFAULT_CONFIG.human.gompertzB,
-      },
-      wolf: {
-        startingHealth: DEFAULT_CONFIG.wolf.startingHealth,
-        damageToMale: DEFAULT_CONFIG.wolf.damageToMale,
-        damageToFemale: DEFAULT_CONFIG.wolf.damageToFemale,
-        damageToDog: DEFAULT_CONFIG.wolf.damageToDog,
-        perceptionRange: DEFAULT_CONFIG.wolf.perceptionRange,
-        moveTowardHumanProbability: DEFAULT_CONFIG.wolf.moveTowardHumanProbability,
-        spawnProbability: DEFAULT_CONFIG.wolf.spawnProbability,
-        gompertzA: DEFAULT_CONFIG.wolf.gompertzA,
-        gompertzB: DEFAULT_CONFIG.wolf.gompertzB,
-      },
-      dog: {
-        startingHealth: DEFAULT_CONFIG.dog.startingHealth,
-        damageToWolf: DEFAULT_CONFIG.dog.damageToWolf,
-        perceptionRange: DEFAULT_CONFIG.dog.perceptionRange,
-        moveTowardWolfProbability: DEFAULT_CONFIG.dog.moveTowardWolfProbability,
-        spawnProbability: DEFAULT_CONFIG.dog.spawnProbability,
-        gompertzA: DEFAULT_CONFIG.dog.gompertzA,
-        gompertzB: DEFAULT_CONFIG.dog.gompertzB,
-      },
-      fruit: {
-        energyHealed: DEFAULT_CONFIG.fruit.energyHealed,
-        spawnProbability: DEFAULT_CONFIG.fruit.spawnProbability,
-        roundsToRipen: DEFAULT_CONFIG.fruit.roundsToRipen,
-      },
-      mushroom: {
-        energyRemoved: DEFAULT_CONFIG.mushroom.energyRemoved,
-        spawnProbability: DEFAULT_CONFIG.mushroom.spawnProbability,
-      },
-      overcrowding: {
-        humanThreshold: DEFAULT_CONFIG.overcrowding.humanThreshold,
-        humanMultiplier: DEFAULT_CONFIG.overcrowding.humanMultiplier,
-        animalThreshold: DEFAULT_CONFIG.overcrowding.animalThreshold,
-        animalMultiplier: DEFAULT_CONFIG.overcrowding.animalMultiplier,
-      },
-    };
-  }
-
-  updateConfig(config: GameConfig): void {
-    this.currentConfig = config;
-    // Update CombatSystem which stores config internally
-    this.combatSystem.updateConfig(config);
-    // Other systems receive config as parameter to their execute methods
-    // (DeathSystem, SpawnSystem, etc.), so no need to update them here
-    console.log('[Game] Configuration updated:', config);
-  }
+  // ---------------------------------------------------------------------------
+  // Configuration
+  // ---------------------------------------------------------------------------
 
   /**
-   * Initialize board with random entities using provided config
+   * Replace the configuration. Stores a deep-frozen copy.
+   * @throws Error when a game is in progress (between initializeBoard() and reset())
+   */
+  updateConfig(config: GameConfig): void {
+    if (this.configLocked) {
+      throw new Error(CONFIG_LOCKED_MESSAGE);
+    }
+    this.applyConfig(config);
+    debugLog('[Game] Configuration updated:', this.config);
+  }
+
+  getConfig(): Readonly<GameConfig> {
+    return this.config;
+  }
+
+  isConfigLocked(): boolean {
+    return this.configLocked;
+  }
+
+  private applyConfig(config: GameConfig): void {
+    if (config !== this.config) {
+      this.config = deepFreeze(structuredClone(config));
+    }
+    this.renderer.setInjuredThreshold(this.config.board.injuredThreshold);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Setup
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Start a new game: clear the board, populate it randomly using the given (or
+   * current) configuration and lock the configuration until reset().
    */
   initializeBoard(config?: GameConfig): void {
-    const gameConfig = config || this.currentConfig;
-    console.log('[Game] Initializing board with entities...');
+    this.halt();
+    if (config) this.applyConfig(config);
+    this.configLocked = true;
+    const gameConfig = this.config;
 
-    let maleCount = 0;
-    let femaleCount = 0;
-    let wolfCount = 0;
-    let dogCount = 0;
-    let fruitCount = 0;
-    let mushroomCount = 0;
+    this.board.reset();
+    this.populationHistory = [];
+    this.renderer.clearVisualEffects();
+    debugLog('[Game] Initializing board with entities...');
+
+    const { spawn, human, wolf, dog, fruit, mushroom } = gameConfig;
+    const cumulativeMale = spawn.maleHumanProbability;
+    const cumulativeFemale = cumulativeMale + spawn.femaleHumanProbability;
+    const cumulativeWolf = cumulativeFemale + spawn.wolfProbability;
+    const cumulativeDog = cumulativeWolf + spawn.dogProbability;
+    const cumulativeFruit = cumulativeDog + spawn.fruitProbability;
+    const cumulativeMushroom = cumulativeFruit + spawn.mushroomProbability;
 
     for (let y = 0; y < this.board.height; y++) {
       for (let x = 0; x < this.board.width; x++) {
         // Weighted random selection using cumulative probabilities
         const rand = Random.next();
-        const cumulativeMale = gameConfig.spawn.maleHumanProbability;
-        const cumulativeFemale = cumulativeMale + gameConfig.spawn.femaleHumanProbability;
-        const cumulativeWolf = cumulativeFemale + gameConfig.spawn.wolfProbability;
-        const cumulativeDog = cumulativeWolf + gameConfig.spawn.dogProbability;
-        const cumulativeFruit = cumulativeDog + gameConfig.spawn.fruitProbability;
-        const cumulativeMushroom = cumulativeFruit + gameConfig.spawn.mushroomProbability;
-
-        if (rand < cumulativeMale) {
-          this.board.setEntity(x, y, new Human(x, y, Sex.MALE, gameConfig.human.startingHealth, gameConfig.human.gompertzA, gameConfig.human.gompertzB));
-          maleCount++;
-        } else if (rand < cumulativeFemale) {
-          this.board.setEntity(x, y, new Human(x, y, Sex.FEMALE, gameConfig.human.startingHealth, gameConfig.human.gompertzA, gameConfig.human.gompertzB));
-          femaleCount++;
+        if (rand < cumulativeFemale) {
+          const sex = rand < cumulativeMale ? Sex.MALE : Sex.FEMALE;
+          this.board.setEntity(
+            x,
+            y,
+            new Human(x, y, sex, human.startingHealth, human.gompertzA, human.gompertzB, undefined, human.moveTowardFruitProbability)
+          );
         } else if (rand < cumulativeWolf) {
-          this.board.setEntity(x, y, new Wolf(x, y, gameConfig.wolf.startingHealth, gameConfig.wolf.gompertzA, gameConfig.wolf.gompertzB));
-          wolfCount++;
+          this.board.setEntity(x, y, new Wolf(x, y, wolf.startingHealth, wolf.gompertzA, wolf.gompertzB));
         } else if (rand < cumulativeDog) {
-          this.board.setEntity(x, y, new Dog(x, y, gameConfig.dog.startingHealth, gameConfig.dog.gompertzA, gameConfig.dog.gompertzB));
-          dogCount++;
+          this.board.setEntity(x, y, new Dog(x, y, dog.startingHealth, dog.gompertzA, dog.gompertzB));
         } else if (rand < cumulativeFruit) {
-          this.board.setEntity(x, y, new Fruit(x, y, gameConfig.fruit.energyHealed, gameConfig.fruit.roundsToRipen));
-          fruitCount++;
+          this.board.setEntity(x, y, new Fruit(x, y, fruit.energyHealed, fruit.roundsToRipen));
         } else if (rand < cumulativeMushroom) {
-          this.board.setEntity(x, y, new Mushroom(x, y, gameConfig.mushroom.energyRemoved));
-          mushroomCount++;
+          this.board.setEntity(x, y, new Mushroom(x, y, mushroom.energyRemoved));
         }
         // else: cell remains empty
       }
     }
-
-    console.log(`[Game] Spawned: ${maleCount} males, ${femaleCount} females, ${wolfCount} wolves, ${dogCount} dogs, ${fruitCount} fruits, ${mushroomCount} mushrooms`);
 
     // Record initial population
     this.recordPopulation();
@@ -195,343 +187,272 @@ export class Game {
     this.renderer.render(this.board);
   }
 
+  // ---------------------------------------------------------------------------
+  // Round execution
+  // ---------------------------------------------------------------------------
+
   /**
-   * Execute one complete round
+   * Execute one complete round. Movement happens immediately; if anything moved and
+   * animations are enabled, the remaining phases run when the animation finishes.
    */
   executeRound(): void {
-    // Prevent execution if not running or stepping
-    // Guard against re-entry if animations are running (should not happen with new loop, but safety check)
-    if (this.isAnimating) return;
+    if (this.isAnimating) return; // never start a round while one is mid-animation
 
-    console.log(`\n=== Round ${this.board.round + 1} ===`);
+    debugLog(`[Game] === Round ${this.board.round + 1} ===`);
 
     // Phase 1: Movement
-    const movements = this.movementSystem.execute(this.board);
+    const movements = this.movementSystem.execute(this.board, this.config);
 
-    // If there are movements, animate them before proceeding
-    if (movements.length > 0) {
-      this.isAnimating = true;
-      this.animateMovements(movements, () => {
-        // Animation complete callback
-        this.isAnimating = false;
-        this.isStepping = false; // Clear step flag when animations complete
-        this.continueRoundAfterAnimation(true); // true = was animated
-        
-        // Notify UI that step is complete (for re-enabling step button)
-        this.onStepComplete?.();
-      });
-      return; // Exit early, continueRoundAfterAnimation will be called when animations complete
+    if (movements.length > 0 && this.animationDuration > 0) {
+      this.animateMovements(movements);
+      return;
     }
 
-    // No movements, proceed directly to remaining phases
-    this.isStepping = false; // Clear step flag
-    this.continueRoundAfterAnimation(false); // false = not animated
-    
-    // Notify UI that step is complete
-    this.onStepComplete?.();
+    this.finishRound(false);
   }
 
   /**
-   * Animate movements and wait for completion
+   * Phases 2–7 in strict PRD order, then the round counter and population history.
    */
-  private animateMovements(movements: MovementRecord[], onComplete: () => void): void {
-    // Start animations
+  private runRemainingPhases(): void {
+    const config = this.config;
+    this.combatSystem.execute(this.board, config); // Phase 2
+    this.eatingSystem.execute(this.board, config); // Phase 3
+    this.reproductionSystem.execute(this.board, config); // Phase 4
+    this.deathSystem.execute(this.board, config); // Phase 5
+    this.birthSystem.execute(this.board, config); // Phase 6
+    this.spawnSystem.execute(this.board, config); // Phase 7
+
+    this.board.incrementRound();
+    this.recordPopulation();
+  }
+
+  /** Complete the current round (phases 2–7), notify, and schedule what comes next. */
+  private finishRound(wasAnimated: boolean): void {
+    this.runRemainingPhases();
+    this.renderer.render(this.board);
+    this.onRoundComplete?.();
+
+    if (this.isRunning) {
+      this.scheduleNextRound(wasAnimated);
+      return;
+    }
+
+    if (this.pendingSteps > 0) {
+      this.pendingSteps--;
+      if (this.pendingSteps > 0) {
+        this.scheduleNextRound(wasAnimated);
+      } else {
+        this.onStepComplete?.();
+      }
+    }
+  }
+
+  /**
+   * Animate movements, then finish the round.
+   */
+  private animateMovements(movements: MovementRecord[]): void {
+    this.isAnimating = true;
+    this.currentMovements = movements;
     this.animationSystem.startAnimations(movements, this.animationDuration);
 
     // Mark all animation paths as dirty once (optimization)
     this.renderer.markAnimationPaths(this.board, this.animationSystem);
 
-    // Enter animation loop using requestAnimationFrame
     const animationLoop = () => {
-      // Check if game was paused during animation (but allow animations during step mode)
-      if (!this.isRunning && !this.isStepping && this.isAnimating) {
-        // Game paused (not stepping) - stop animation loop and sync positions
-        this.stopAnimations(movements);
-        return;
-      }
-
-      // Update animation progress
+      if (!this.isAnimating) return; // completed synchronously (pause) or halted (reset)
       this.animationSystem.update();
-
-      // Render animation frame
       this.renderer.renderAnimationFrame(this.board, this.animationSystem);
 
-      // Continue animation loop if still animating
       if (this.animationSystem.isAnimating()) {
         this.animationFrameId = requestAnimationFrame(animationLoop);
       } else {
-        // All animations complete - sync visual positions to logical positions
-        this.completeAnimations(movements, onComplete);
+        this.animationFrameId = null;
+        this.endAnimation(false);
+        this.finishRound(true);
       }
     };
 
-    // Start animation loop
     this.animationFrameId = requestAnimationFrame(animationLoop);
   }
 
   /**
-   * Stop animations and sync visual positions to logical positions
+   * Stop the animation loop and snap every moved entity to its logical position.
+   * @param interrupted true when cut short (pause/reset): sprites may be mid-cell, so
+   *   the whole board is redrawn.
    */
-  private stopAnimations(movements?: MovementRecord[]): void {
+  private endAnimation(interrupted: boolean): void {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    
-    // Sync visual positions to logical positions for all animating entities
-    const animatingEntities = this.animationSystem.getAnimatingEntities();
-    if (movements) {
-      // Use provided movements array if available
-      movements.forEach(movement => {
+    if (this.currentMovements) {
+      for (const movement of this.currentMovements) {
         movement.entity.syncVisualPosition();
-      });
-    } else {
-      // Otherwise sync all currently animating entities
-      animatingEntities.forEach(entity => {
-        entity.syncVisualPosition();
-      });
+      }
     }
-    
+    for (const entity of this.animationSystem.getAnimatingEntities()) {
+      entity.syncVisualPosition();
+    }
     this.animationSystem.stopAll();
-    // Final render to ensure entities are at logical positions
-    this.renderer.render(this.board);
+    this.currentMovements = null;
     this.isAnimating = false;
-    console.log('[Game] Animations stopped due to pause/reset');
+    if (interrupted) this.renderer.markAllDirty(this.board);
   }
 
   /**
-   * Complete animations and continue round
-   */
-  private completeAnimations(movements: MovementRecord[], onComplete: () => void): void {
-    // Sync visual positions to logical positions
-    movements.forEach(movement => {
-      movement.entity.syncVisualPosition();
-    });
-    // Final render to ensure entities are at logical positions
-    this.renderer.render(this.board);
-    this.isAnimating = false;
-    this.animationFrameId = null;
-    // Call completion callback
-    onComplete();
-  }
-
-  /**
-   * Continue round execution after movement animations complete
-   * @param wasAnimated Whether animations occurred (affects next round timing)
-   */
-  private continueRoundAfterAnimation(wasAnimated: boolean): void {
-    // Phase 2: Combat
-    this.combatSystem.execute(this.board);
-
-    // Phase 3: Eating
-    this.eatingSystem.execute(this.board);
-
-    // Phase 4: Reproduction
-    this.reproductionSystem.execute(this.board);
-
-    // Phase 5: Death
-    this.deathSystem.execute(this.board);
-
-    // Phase 6: Birth
-    this.birthSystem.execute(this.board);
-
-    // Phase 7: Spawn (plants and animals)
-    this.spawnSystem.execute(this.board, this.currentConfig);
-
-    // Increment round counter
-    this.board.incrementRound();
-
-    // Record population after round
-    this.recordPopulation();
-
-    // Render changes (if not already rendered by animation)
-    if (!this.animationSystem.isAnimating()) {
-      this.renderer.render(this.board);
-    }
-
-    // Schedule next round if running
-    if (this.isRunning) {
-      this.scheduleNextRound(wasAnimated);
-    }
-  }
-
-  /**
-   * Schedule the next round execution
+   * Schedule the next round. After an animated round the animation already used the
+   * round's time budget, so the next round starts immediately.
    */
   private scheduleNextRound(wasAnimated: boolean): void {
-    if (!this.isRunning) return;
-
-    // If we animated, we used up the time allocated for this round in the animation,
-    // so we can start the next round immediately.
-    // If we didn't animate (no movement), we need to wait the full speed duration.
+    this.clearScheduledRound();
     const delay = wasAnimated ? 0 : this.currentSpeed;
-
-    if (this.nextRoundTimeoutId !== null) {
-      clearTimeout(this.nextRoundTimeoutId);
-    }
-
     this.nextRoundTimeoutId = window.setTimeout(() => {
+      this.nextRoundTimeoutId = null;
       this.executeRound();
     }, delay);
   }
 
+  private clearScheduledRound(): void {
+    if (this.nextRoundTimeoutId !== null) {
+      clearTimeout(this.nextRoundTimeoutId);
+      this.nextRoundTimeoutId = null;
+    }
+  }
+
+  /** Stop everything without finishing the current round (used by reset/initialize). */
+  private halt(): void {
+    this.isRunning = false;
+    this.pendingSteps = 0;
+    this.clearScheduledRound();
+    if (this.isAnimating) {
+      this.endAnimation(true);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Controls
+  // ---------------------------------------------------------------------------
+
   /**
-   * Start continuous execution
+   * Start continuous execution. Takes over an in-progress step sequence.
    */
   start(): void {
     if (this.isRunning) return;
-
-    console.log('[Game] Starting continuous execution...');
+    debugLog('[Game] Starting continuous execution...');
     this.isRunning = true;
-    
-    // Clear any pending timeout
-    if (this.nextRoundTimeoutId !== null) {
-      clearTimeout(this.nextRoundTimeoutId);
-      this.nextRoundTimeoutId = null;
-    }
+    this.pendingSteps = 0;
 
-    // Execute immediately
+    // A round mid-animation will schedule the next one when it finishes
+    if (this.isAnimating) return;
+
+    this.clearScheduledRound();
     this.executeRound();
   }
 
   /**
-   * Pause execution
+   * Pause execution. If paused mid movement-animation, positions snap to their
+   * destinations and the rest of the round (combat…spawn) completes immediately.
    */
   pause(): void {
     if (!this.isRunning) return;
-
-    console.log('[Game] Pausing execution...');
+    debugLog('[Game] Pausing execution...');
     this.isRunning = false;
-    
-    if (this.nextRoundTimeoutId !== null) {
-      clearTimeout(this.nextRoundTimeoutId);
-      this.nextRoundTimeoutId = null;
+    this.clearScheduledRound();
+
+    if (this.isAnimating) {
+      this.endAnimation(true);
+      this.finishRound(true);
     }
-    // If animations are running, they will be stopped in the animation loop
-    // The stopAnimations() method will be called automatically
+  }
+
+  /** Execute a single round (ignored while running or while a step is in progress). */
+  step(): void {
+    this.stepRounds(1);
   }
 
   /**
-   * Execute single step
+   * Execute `n` rounds one after another (each fully animated), then fire
+   * onStepComplete once. Ignored while running or while a step is in progress.
    */
-  step(): void {
-    // Prevent stepping if animations are still running
-    if (this.isAnimating) {
-      console.log('[Game] Cannot step - animations still in progress');
+  stepRounds(n: number): void {
+    const rounds = Math.floor(n);
+    if (!(rounds >= 1)) return;
+    if (this.isRunning || this.isAnimating || this.pendingSteps > 0) {
+      debugLog('[Game] Cannot step - simulation busy');
       return;
     }
-    
-    // Set step flag to allow animations during step mode
-    this.isStepping = true;
+    this.pendingSteps = rounds;
     this.executeRound();
   }
 
-  /**
-   * Check if animations are currently running
-   */
+  /** True while a movement animation is in progress. */
   isAnimatingNow(): boolean {
     return this.isAnimating;
   }
 
-  /**
-   * Check if game is running
-   */
+  /** True while a step()/stepRounds() sequence is in progress. */
+  isStepping(): boolean {
+    return this.pendingSteps > 0;
+  }
+
   running(): boolean {
     return this.isRunning;
   }
 
-  /**
-   * Get current board
-   */
   getBoard(): Board {
     return this.board;
   }
 
   /**
-   * Reset the game to initial state
+   * Reset to an empty board and unlock the configuration.
    */
   reset(): void {
-    console.log('[Game] Resetting game...');
-
-    // Pause if running
-    if (this.isRunning) {
-      this.pause();
-    }
-
-    // Clear timeout just in case
-    if (this.nextRoundTimeoutId !== null) {
-      clearTimeout(this.nextRoundTimeoutId);
-      this.nextRoundTimeoutId = null;
-    }
-
-    // Stop any running animations
-    if (this.isAnimating) {
-      this.stopAnimations();
-    }
-
-    // Clear the board
+    debugLog('[Game] Resetting game...');
+    this.halt();
     this.board.reset();
-
-    // Clear population history
     this.populationHistory = [];
-
-    // Mark all cells dirty and render empty board
+    this.configLocked = false;
+    this.renderer.clearVisualEffects();
     this.renderer.markAllDirty(this.board);
     this.renderer.render(this.board);
-
-    console.log('[Game] Game reset complete');
   }
 
-  /**
-   * Record current human population
-   */
   private recordPopulation(): void {
-    const entities = this.board.getAllEntities();
-    const humanCount = entities.filter(
-      e => e.type === EntityType.MALE || e.type === EntityType.FEMALE
-    ).length;
+    let humanCount = 0;
+    for (const entity of this.board.getAllEntities()) {
+      if (entity instanceof Human) humanCount++;
+    }
     this.populationHistory.push(humanCount);
   }
 
-  /**
-   * Get population history for graphing
-   */
+  /** Human population after initialization and after each round. */
   getPopulationHistory(): number[] {
     return this.populationHistory;
   }
 
   /**
-   * Set simulation speed
+   * Set simulation speed (ms per round). Movement animations use the same duration.
    */
   setSpeed(speedMs: number): void {
     this.currentSpeed = speedMs;
-    // Update animation duration to match speed for fluid movement
     this.animationDuration = speedMs;
 
-    // If currently running and NOT animating (waiting for timeout), restart with new speed
-    if (this.isRunning && !this.isAnimating) {
-      this.pause();
-      this.start();
+    // Waiting for the next round: reschedule with the new delay
+    if (this.nextRoundTimeoutId !== null && !this.isAnimating) {
+      this.scheduleNextRound(false);
     }
   }
 
-  /**
-   * Get current speed
-   */
   getSpeed(): number {
     return this.currentSpeed;
   }
 
-  /**
-   * Set animation duration
-   */
+  /** Movement animation duration in ms (0 disables animation). */
   setAnimationDuration(durationMs: number): void {
     this.animationDuration = durationMs;
   }
 
-  /**
-   * Get animation duration
-   */
   getAnimationDuration(): number {
     return this.animationDuration;
   }

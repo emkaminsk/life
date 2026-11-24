@@ -1,9 +1,20 @@
 import type { Board } from '../core/Board';
 import { Human } from '../entities/Human';
 import type { Renderer } from '../core/Renderer';
+import type { GameConfig } from '../ui/ConfigPanel';
+import { VISUAL_EFFECT_DURATION_MS } from '../config';
 import { Random } from '../utils/Random';
-import { DEFAULT_CONFIG } from '../config';
+import { debugLog } from '../utils/debug';
 
+/**
+ * Phase 4: Reproduction.
+ *
+ * Every living female that can reproduce (not pregnant, no cooldown) and is adjacent
+ * (incl. diagonals) to a living male becomes pregnant with
+ * `config.human.reproductionProbability`. Pregnancies already under way advance by
+ * one round; a pregnancy started this round does not advance until next round, so a
+ * pregnancy period of N means birth exactly N rounds after conception.
+ */
 export class ReproductionSystem {
   private renderer: Renderer;
 
@@ -11,60 +22,62 @@ export class ReproductionSystem {
     this.renderer = renderer;
   }
 
-  execute(board: Board): void {
+  execute(board: Board, config: GameConfig): void {
     const entities = board.getAllEntities();
-    const females = entities.filter(e => e instanceof Human && e.isFemale()) as Human[];
-    let pregnancyCount = 0;
+    const females: Human[] = [];
+    for (const e of entities) {
+      if (e instanceof Human && e.isFemale()) females.push(e);
+    }
+    const conceivedThisRound = new Set<Human>();
 
     for (const female of females) {
+      if (female.isDead()) continue;
+
       // Skip if already pregnant or in cooldown
       if (!female.canReproduce()) {
-        // Decrement cooldown if applicable
         female.decrementCooldown();
         continue;
       }
 
-      // Find adjacent males
-      const adjacentPositions = board.getAdjacentPositions(female.x, female.y);
-      let foundMale: Human | null = null;
+      const father = this.findAdjacentMale(board, female);
+      if (father && Random.chance(config.human.reproductionProbability)) {
+        female.startPregnancy(father.genome, config.human.pregnancyPeriod);
+        conceivedThisRound.add(female);
 
-      for (const pos of adjacentPositions) {
-        const adjacent = board.getEntity(pos.x, pos.y);
-        if (adjacent instanceof Human && adjacent.isMale()) {
-          foundMale = adjacent;
-          break;
-        }
-      }
-
-      // If adjacent to male, chance of pregnancy
-      if (foundMale && Random.chance(DEFAULT_CONFIG.human.reproductionProbability)) {
-        // Start pregnancy passing father's genome
-        female.startPregnancy(foundMale.genome);
-        pregnancyCount++;
-
-        // Add reproduction visual effect
         this.renderer.addVisualEffect({
           type: 'reproduction',
           x: female.x,
           y: female.y,
           startTime: Date.now(),
-          duration: 400 // 400ms green flash
+          duration: VISUAL_EFFECT_DURATION_MS,
         });
         this.renderer.markDirty(female.x, female.y);
-
-        console.log(`[Reproduction] Pregnancy initiated at (${female.x},${female.y})`);
+        debugLog(`[Reproduction] Pregnancy initiated at (${female.x},${female.y})`);
       }
     }
 
-    if (pregnancyCount > 0) {
-      console.log(`[Reproduction] ${pregnancyCount} new pregnancies`);
+    if (conceivedThisRound.size > 0) {
+      debugLog(`[Reproduction] ${conceivedThisRound.size} new pregnancies`);
     }
 
-    // Advance all existing pregnancies
+    // Advance pregnancies that started in earlier rounds
     for (const female of females) {
-      if (female.isPregnant()) {
-        female.advancePregnancy();
+      if (female.isPregnant() && !conceivedThisRound.has(female)) {
+        if (female.advancePregnancy(config.human.cooldownPeriod)) {
+          this.renderer.markDirty(female.x, female.y); // 🤰 → 👩 after birth
+        }
       }
     }
+  }
+
+  private findAdjacentMale(board: Board, female: Human): Human | null {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const e = board.getEntity(female.x + dx, female.y + dy);
+        if (e instanceof Human && e.isMale() && !e.isDead()) return e;
+      }
+    }
+    return null;
   }
 }

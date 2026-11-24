@@ -1,8 +1,14 @@
+/**
+ * Duration of every visual flash (combat/poison = red, reproduction/birth =
+ * green, fruit = yellow). The spec asks for roughly one second.
+ */
+export const VISUAL_EFFECT_DURATION_MS = 1000;
+
 export const DEFAULT_CONFIG = {
   board: {
     width: 30,
     height: 30,
-    injuredThreshold: 50, // Health % for red border
+    injuredThreshold: 50, // % of max health below which the 💔 indicator shows
   },
 
   spawn: {

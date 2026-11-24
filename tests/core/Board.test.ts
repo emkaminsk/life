@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { Board } from '../../src/core/Board'
+import { Wolf } from '../../src/entities'
 import { createHuman, createWolf, createBoard, placeEntity } from '../setup'
 
 /**
@@ -261,5 +262,61 @@ describe('Board', () => {
         expect(board.getEntity(10 + i, 10)).toBeNull()
       }
     })
+  })
+})
+
+describe('Board (guards and geometry)', () => {
+  it('resize changes dimensions, clears entities and resets the round', () => {
+    const board = new Board(5, 5)
+    board.setEntity(1, 1, new Wolf(1, 1))
+    board.incrementRound()
+    board.resize(8, 3)
+    expect([board.width, board.height, board.round]).toEqual([8, 3, 0])
+    expect(board.getAllEntities()).toHaveLength(0)
+    expect(board.isInBounds(7, 2)).toBe(true)
+    expect(board.isInBounds(7, 3)).toBe(false)
+    board.setEntity(7, 2, new Wolf(7, 2))
+    expect(board.getEntity(7, 2)).toBeInstanceOf(Wolf)
+  })
+
+  it('moveEntity refuses out-of-bounds, empty-source and occupied-target moves', () => {
+    const board = new Board(3, 3)
+    const a = new Wolf(0, 0)
+    const b = new Wolf(1, 0)
+    board.setEntity(0, 0, a)
+    board.setEntity(1, 0, b)
+    expect(board.moveEntity(0, 0, -1, 0)).toBe(false)
+    expect(board.moveEntity(0, 0, 1, 0)).toBe(false)
+    expect(board.moveEntity(2, 2, 2, 1)).toBe(false)
+    expect(board.getEntity(0, 0)).toBe(a)
+    expect(board.moveEntity(0, 0, 0, 1)).toBe(true)
+    expect(board.getEntity(0, 0)).toBeNull()
+    expect(board.getEntity(0, 1)).toBe(a)
+    expect([a.x, a.y]).toEqual([0, 1])
+  })
+
+  it('setEntity outside the board is ignored and syncs entity coordinates inside', () => {
+    const board = new Board(3, 3)
+    const w = new Wolf(9, 9)
+    board.setEntity(5, 5, w)
+    expect(board.getAllEntities()).toHaveLength(0)
+    board.setEntity(2, 1, w)
+    expect([w.x, w.y]).toEqual([2, 1])
+  })
+
+  it('adjacency has 3 neighbours in corners, 5 on edges, 8 inside', () => {
+    const board = new Board(4, 4)
+    expect(board.getAdjacentPositions(0, 0)).toHaveLength(3)
+    expect(board.getAdjacentPositions(3, 3)).toHaveLength(3)
+    expect(board.getAdjacentPositions(0, 2)).toHaveLength(5)
+    expect(board.getAdjacentPositions(2, 0)).toHaveLength(5)
+    expect(board.getAdjacentPositions(1, 1)).toHaveLength(8)
+  })
+
+  it('getEmptyAdjacentPositions excludes occupied cells', () => {
+    const board = new Board(3, 3)
+    board.setEntity(1, 0, new Wolf(1, 0))
+    const empty = board.getEmptyAdjacentPositions(0, 0)
+    expect(empty).toEqual([{ x: 0, y: 1 }, { x: 1, y: 1 }])
   })
 })

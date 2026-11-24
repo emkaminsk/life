@@ -1,275 +1,120 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SpawnSystem } from '../../src/systems/SpawnSystem'
 import { Board } from '../../src/core/Board'
 import { Fruit, Mushroom, Wolf, Dog } from '../../src/entities'
-import { EntityType } from '../../src/types'
+import { Random } from '../../src/utils/Random'
 import { createConfig, createMockRenderer } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
 
 /**
- * SpawnSystem Unit Tests
- *
- * Tests spawn-related configuration parameters:
- * - fruit.spawnProbability - Fruit spawn rate per empty cell
- * - mushroom.spawnProbability - Mushroom spawn rate per empty cell
- * - wolf.spawnProbability - Wolf spawn rate per empty cell
- * - dog.spawnProbability - Dog spawn rate per empty cell
- *
- * Verifies these config values are correctly applied in spawn resolution
+ * SpawnSystem behaviour tests (Phase 7). Single-cell boards make the sequence of
+ * random draws (fruit → mushroom → wolf → dog) explicit.
  */
 
 describe('SpawnSystem', () => {
-  let board: Board
+  let renderer: ReturnType<typeof createMockRenderer>
   let system: SpawnSystem
-  let renderer: any
-  let randomSpy: any
 
   beforeEach(() => {
-    board = new Board(30, 30)
     renderer = createMockRenderer()
     system = new SpawnSystem(renderer)
-    randomSpy = vi.spyOn(Math, 'random')
   })
 
-  afterEach(() => {
-    randomSpy.mockRestore()
+  const probs = createConfig({
+    fruit: { spawnProbability: 0.5, energyHealed: 11, roundsToRipen: 4 },
+    mushroom: { spawnProbability: 0.5, energyRemoved: 13 },
+    wolf: { spawnProbability: 0.5, startingHealth: 61, gompertzA: 0.003, gompertzB: 0.3 },
+    dog: { spawnProbability: 0.5, startingHealth: 51, gompertzA: 0.004, gompertzB: 0.4 },
   })
 
-  describe('Fruit Spawning', () => {
-    it('should spawn fruit when probability check succeeds', () => {
-      const config = DEFAULT_CONFIG
-      // Empty board
-      
-      // Mock random to succeed for fruit spawn
-      randomSpy.mockReturnValue(0.005) // 0.005 < 0.01 (fruit probability)
+  function spawnWithRolls(...rolls: number[]) {
+    const board = new Board(1, 1)
+    const spy = vi.spyOn(Math, 'random')
+    for (const r of rolls) spy.mockReturnValueOnce(r)
+    spy.mockReturnValue(0.99)
+    system.execute(board, probs)
+    return board.getEntity(0, 0)
+  }
 
-      system.execute(board, config)
-
-      const fruits = board.getAllEntities().filter(e => e instanceof Fruit)
-      expect(fruits.length).toBeGreaterThan(0)
+  describe('priority fruit → mushroom → wolf → dog, configured stats', () => {
+    it('fruit uses configured energyHealed and roundsToRipen', () => {
+      const e = spawnWithRolls(0.1)
+      expect(e).toBeInstanceOf(Fruit)
+      expect((e as Fruit).energyHealed).toBe(11)
+      expect((e as Fruit).ripeningCounter).toBe(4)
+      expect((e as Fruit).isRipe()).toBe(false)
     })
 
-    it('should not spawn fruit when probability check fails', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random to fail for fruit spawn
-      randomSpy.mockReturnValue(0.02) // 0.02 >= 0.01 (fruit probability)
-
-      system.execute(board, config)
-
-      const fruits = board.getAllEntities().filter(e => e instanceof Fruit)
-      expect(fruits.length).toBe(0)
-    })
-  })
-
-  describe('Mushroom Spawning', () => {
-    it('should spawn mushroom when fruit fails and mushroom succeeds', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random: fruit fails (0.02 >= 0.01), mushroom succeeds (0.003 < 0.005)
-      randomSpy.mockReturnValueOnce(0.02) // Fruit check fails
-      randomSpy.mockReturnValueOnce(0.003) // Mushroom check succeeds
-
-      system.execute(board, config)
-
-      const mushrooms = board.getAllEntities().filter(e => e instanceof Mushroom)
-      expect(mushrooms.length).toBeGreaterThan(0)
-    })
-  })
-
-  describe('Configuration: Wolf Spawn Probability', () => {
-    it('should initialize with config wolf spawn probability', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.wolf.spawnProbability).toBeGreaterThan(0)
-      expect(config.wolf.spawnProbability).toBeLessThanOrEqual(1)
-      expect(config.wolf.spawnProbability).toBe(0.002)
+    it('mushroom uses configured energyRemoved', () => {
+      const e = spawnWithRolls(0.9, 0.1)
+      expect(e).toBeInstanceOf(Mushroom)
+      expect((e as Mushroom).energyRemoved).toBe(13)
     })
 
-    it('should apply custom wolf spawn probability from config', () => {
-      const customProbability = 0.01
-      const config = createConfig({
-        wolf: { spawnProbability: customProbability }
-      })
-
-      expect(config.wolf.spawnProbability).toBe(customProbability)
+    it('wolf uses configured health and Gompertz', () => {
+      const e = spawnWithRolls(0.9, 0.9, 0.1) as Wolf
+      expect(e).toBeInstanceOf(Wolf)
+      expect([e.health, e.maxHealth, e.gompertzA, e.gompertzB]).toEqual([61, 61, 0.003, 0.3])
     })
 
-    it('should spawn wolf when fruit and mushroom fail and wolf succeeds', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random: fruit fails, mushroom fails, wolf succeeds
-      randomSpy.mockReturnValueOnce(0.02) // Fruit fails
-      randomSpy.mockReturnValueOnce(0.01) // Mushroom fails
-      randomSpy.mockReturnValueOnce(0.001) // Wolf succeeds (0.001 < 0.002)
+    it('dog uses configured health and Gompertz', () => {
+      const e = spawnWithRolls(0.9, 0.9, 0.9, 0.1) as Dog
+      expect(e).toBeInstanceOf(Dog)
+      expect([e.health, e.maxHealth, e.gompertzA, e.gompertzB]).toEqual([51, 51, 0.004, 0.4])
+    })
 
-      system.execute(board, config)
-
-      const wolves = board.getAllEntities().filter(e => e instanceof Wolf)
-      expect(wolves.length).toBeGreaterThan(0)
+    it('nothing spawns when every roll fails', () => {
+      expect(spawnWithRolls(0.9, 0.9, 0.9, 0.9)).toBeNull()
     })
   })
 
-  describe('Configuration: Dog Spawn Probability', () => {
-    it('should initialize with config dog spawn probability', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.dog.spawnProbability).toBeGreaterThan(0)
-      expect(config.dog.spawnProbability).toBeLessThanOrEqual(1)
-      expect(config.dog.spawnProbability).toBe(0.001)
-    })
+  it('only spawns on empty cells and never replaces an entity', () => {
+    const board = new Board(3, 3)
+    const wolf = new Wolf(1, 1)
+    board.setEntity(1, 1, wolf)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
 
-    it('should apply custom dog spawn probability from config', () => {
-      const customProbability = 0.005
-      const config = createConfig({
-        dog: { spawnProbability: customProbability }
-      })
+    system.execute(board, createConfig())
 
-      expect(config.dog.spawnProbability).toBe(customProbability)
-    })
-
-    it('should spawn dog when fruit, mushroom, and wolf fail and dog succeeds', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random: all previous fail, dog succeeds
-      randomSpy.mockReturnValueOnce(0.02) // Fruit fails
-      randomSpy.mockReturnValueOnce(0.01) // Mushroom fails
-      randomSpy.mockReturnValueOnce(0.01) // Wolf fails
-      randomSpy.mockReturnValueOnce(0.0005) // Dog succeeds (0.0005 < 0.001)
-
-      system.execute(board, config)
-
-      const dogs = board.getAllEntities().filter(e => e instanceof Dog)
-      expect(dogs.length).toBeGreaterThan(0)
-    })
+    expect(board.getEntity(1, 1)).toBe(wolf)
+    expect(board.getAllEntities().filter((e) => e instanceof Fruit)).toHaveLength(8)
+    expect(renderer.markDirty).toHaveBeenCalledTimes(8)
   })
 
-  describe('Spawn Priority Order', () => {
-    it('should prioritize fruit over other spawns', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random to succeed for fruit
-      randomSpy.mockReturnValue(0.005) // Fruit succeeds
-
-      system.execute(board, config)
-
-      const fruits = board.getAllEntities().filter(e => e instanceof Fruit)
-      const mushrooms = board.getAllEntities().filter(e => e instanceof Mushroom)
-      const wolves = board.getAllEntities().filter(e => e instanceof Wolf)
-      const dogs = board.getAllEntities().filter(e => e instanceof Dog)
-
-      expect(fruits.length).toBeGreaterThan(0)
-      // When fruit spawns, others should not spawn in same cell
-      expect(mushrooms.length).toBe(0)
-      expect(wolves.length).toBe(0)
-      expect(dogs.length).toBe(0)
-    })
-
-    it('should only spawn one entity per cell', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random to succeed for fruit (first check)
-      randomSpy.mockReturnValue(0.005) // Fruit succeeds
-
-      system.execute(board, config)
-
-      // Check that each cell has at most one entity
-      for (let x = 0; x < board.width; x++) {
-        for (let y = 0; y < board.height; y++) {
-          const entity = board.getEntity(x, y)
-          if (entity) {
-            // Should be only one entity type
-            const isFruit = entity instanceof Fruit
-            const isMushroom = entity instanceof Mushroom
-            const isWolf = entity instanceof Wolf
-            const isDog = entity instanceof Dog
-            const entityTypes = [isFruit, isMushroom, isWolf, isDog].filter(Boolean).length
-            expect(entityTypes).toBeLessThanOrEqual(1)
-          }
-        }
-      }
-    })
+  it('spawn rate follows the configured probability (seeded, wide bounds)', () => {
+    Random.seed(123)
+    const board = new Board(50, 50)
+    system.execute(
+      board,
+      createConfig({ fruit: { spawnProbability: 0.2 }, mushroom: { spawnProbability: 0 }, wolf: { spawnProbability: 0 }, dog: { spawnProbability: 0 } })
+    )
+    const count = board.getAllEntities().length
+    expect(count).toBeGreaterThan(2500 * 0.15)
+    expect(count).toBeLessThan(2500 * 0.25)
   })
 
-  describe('Fruit Ripening Advancement', () => {
-    it('should advance ripening for existing fruits', () => {
-      const config = DEFAULT_CONFIG
-      const fruit = new Fruit(15, 15)
-      fruit.ripeningCounter = 2
+  it('probability 0 everywhere spawns nothing', () => {
+    const board = new Board(10, 10)
+    system.execute(
+      board,
+      createConfig({ fruit: { spawnProbability: 0 }, mushroom: { spawnProbability: 0 }, wolf: { spawnProbability: 0 }, dog: { spawnProbability: 0 } })
+    )
+    expect(board.getAllEntities()).toHaveLength(0)
+  })
 
-      board.setEntity(15, 15, fruit)
-
-      randomSpy.mockReturnValue(1.0) // No new spawns
+  describe('ripening', () => {
+    it('existing fruits ripen one step per round and are marked dirty when they become ripe', () => {
+      const board = new Board(1, 1)
+      const fruit = new Fruit(0, 0, 30, 2)
+      board.setEntity(0, 0, fruit)
+      const config = createConfig()
 
       system.execute(board, config)
-
       expect(fruit.ripeningCounter).toBe(1)
-    })
-
-    it('should mark dirty when fruit ripens', () => {
-      const config = DEFAULT_CONFIG
-      const fruit = new Fruit(15, 15)
-      fruit.ripeningCounter = 1 // Will ripen this round
-
-      board.setEntity(15, 15, fruit)
-
-      randomSpy.mockReturnValue(1.0) // No new spawns
+      expect(renderer.markDirty).not.toHaveBeenCalled()
 
       system.execute(board, config)
-
       expect(fruit.isRipe()).toBe(true)
-      expect(renderer.markDirty).toHaveBeenCalledWith(15, 15)
-    })
-  })
-
-  describe('Empty Cell Requirement', () => {
-    it('should only spawn in empty cells', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Fill board with entities
-      for (let x = 0; x < board.width; x++) {
-        for (let y = 0; y < board.height; y++) {
-          board.setEntity(x, y, new Fruit(x, y))
-        }
-      }
-
-      const initialCount = board.getAllEntities().length
-
-      randomSpy.mockReturnValue(0.005) // Would spawn if empty
-
-      system.execute(board, config)
-
-      // Should not spawn anything (no empty cells)
-      expect(board.getAllEntities().length).toBe(initialCount)
-    })
-  })
-
-  describe('System Integration', () => {
-    it('should mark dirty cells for rendering', () => {
-      const config = DEFAULT_CONFIG
-      
-      randomSpy.mockReturnValue(0.005) // Fruit spawns
-
-      system.execute(board, config)
-
-      // Should mark spawned cells as dirty
-      expect(renderer.markDirty).toHaveBeenCalled()
-    })
-
-    it('should process multiple empty cells independently', () => {
-      const config = DEFAULT_CONFIG
-      
-      // Mock random to spawn fruit in some cells
-      let callCount = 0
-      randomSpy.mockImplementation(() => {
-        callCount++
-        // Spawn fruit in first 5 cells, then nothing
-        return callCount <= 5 ? 0.005 : 1.0
-      })
-
-      system.execute(board, config)
-
-      const fruits = board.getAllEntities().filter(e => e instanceof Fruit)
-      expect(fruits.length).toBeGreaterThan(0)
+      expect(renderer.markDirty).toHaveBeenCalledWith(0, 0)
     })
   })
 })
-

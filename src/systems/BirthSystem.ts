@@ -1,10 +1,21 @@
 import type { Board } from '../core/Board';
 import { Human } from '../entities/Human';
-import { Sex, Genome } from '../types';
+import { Sex, type Genome } from '../types';
 import type { Renderer } from '../core/Renderer';
+import type { GameConfig } from '../ui/ConfigPanel';
+import { VISUAL_EFFECT_DURATION_MS } from '../config';
 import { Random } from '../utils/Random';
 import { GenomeUtils } from '../utils/GenomeUtils';
+import { debugLog } from '../utils/debug';
 
+/**
+ * Phase 6: Birth.
+ *
+ * Each female whose pregnancy completed gives birth to a baby (50/50 sex) with a
+ * genome crossed over from both parents, placed on a random empty adjacent cell.
+ * If there is no room the mother dies and the baby takes her cell. Babies use the
+ * configured Gompertz parameters and start at their genome's max health.
+ */
 export class BirthSystem {
   private renderer: Renderer;
 
@@ -12,102 +23,58 @@ export class BirthSystem {
     this.renderer = renderer;
   }
 
-  execute(board: Board): void {
+  execute(board: Board, config: GameConfig): void {
     const entities = board.getAllEntities();
-    const females = entities.filter(e => e instanceof Human && e.isFemale()) as Human[];
     let birthCount = 0;
 
-    for (const female of females) {
-      // Check if ready to give birth
-      if (female.readyToGiveBirth) {
-        // Calculate baby genome (inheritance)
-        let babyGenome: Genome | undefined;
-        if (female.fatherGenome) {
-          babyGenome = GenomeUtils.crossover(female.genome, female.fatherGenome);
-        } else {
-          // Fallback if no father genome recorded (shouldn't happen in new system but safe fallback)
-          babyGenome = undefined; // Will trigger random generation in constructor
-        }
+    for (const entity of entities) {
+      if (!(entity instanceof Human) || !entity.isFemale() || !entity.readyToGiveBirth) continue;
+      const female = entity;
 
-        // Find empty adjacent cell for baby
-        const emptyPositions = board.getEmptyAdjacentPositions(female.x, female.y);
+      const babyGenome: Genome = female.fatherGenome
+        ? GenomeUtils.crossover(female.genome, female.fatherGenome)
+        : GenomeUtils.createRandomGenome(config.human.startingHealth, 1.0, config.human.moveTowardFruitProbability, 0);
 
-        if (emptyPositions.length > 0) {
-          // Choose random empty position
-          const birthPosition = Random.choice(emptyPositions);
+      const emptyPositions = board.getEmptyAdjacentPositions(female.x, female.y);
+      const birthPosition =
+        emptyPositions.length === 0 ? null : emptyPositions.length === 1 ? emptyPositions[0] : Random.choice(emptyPositions);
 
-          if (birthPosition) {
-            // 50% chance male, 50% chance female
-            const babySex = Random.chance(0.5) ? Sex.MALE : Sex.FEMALE;
-            // Create baby with inherited genome
-            const baby = new Human(
-              birthPosition.x, 
-              birthPosition.y, 
-              babySex, 
-              undefined, // default health (will be overridden by genome)
-              undefined, // default gompertz
-              undefined, // default gompertz
-              babyGenome // inherited genome
-            );
+      const babySex = Random.chance(0.5) ? Sex.MALE : Sex.FEMALE;
+      const x = birthPosition ? birthPosition.x : female.x;
+      const y = birthPosition ? birthPosition.y : female.y;
+      const baby = new Human(
+        x,
+        y,
+        babySex,
+        undefined, // starts at genome max health
+        config.human.gompertzA,
+        config.human.gompertzB,
+        babyGenome
+      );
 
-            board.setEntity(birthPosition.x, birthPosition.y, baby);
-            birthCount++;
-
-            // Add birth visual effect
-            this.renderer.addVisualEffect({
-              type: 'reproduction',
-              x: birthPosition.x,
-              y: birthPosition.y,
-              startTime: Date.now(),
-              duration: 500 // 500ms green flash
-            });
-            this.renderer.markDirty(birthPosition.x, birthPosition.y);
-
-            console.log(`[Birth] ${babySex} baby born at (${birthPosition.x},${birthPosition.y}) with genome:`, babyGenome);
-          }
-
-          // Clear birth flag and father genome
-          female.readyToGiveBirth = false;
-          female.fatherGenome = undefined;
-        } else {
-          // No space available - baby spawns at mother's position, mother dies
-          const babySex = Random.chance(0.5) ? Sex.MALE : Sex.FEMALE;
-          // Create baby with inherited genome
-          const baby = new Human(
-            female.x, 
-            female.y, 
-            babySex,
-            undefined, 
-            undefined,
-            undefined,
-            babyGenome
-          );
-
-          // Remove mother and place baby
-          board.removeEntity(female.x, female.y);
-          board.setEntity(female.x, female.y, baby);
-          birthCount++;
-
-          // Add birth visual effect
-          this.renderer.addVisualEffect({
-            type: 'reproduction',
-            x: female.x,
-            y: female.y,
-            startTime: Date.now(),
-            duration: 500 // 500ms green flash
-          });
-          this.renderer.markDirty(female.x, female.y);
-
-          console.log(`[Birth] Mother died giving birth, ${babySex} baby occupies her position at (${female.x},${female.y}) with genome:`, babyGenome);
-
-          // Clear birth flag (female no longer exists, but for consistency)
-          // Note: Mother is removed, so this won't persist, but shows intent
-        }
+      if (!birthPosition) {
+        // No space available - baby takes the mother's place, mother dies
+        board.removeEntity(female.x, female.y);
+        debugLog(`[Birth] Mother died giving birth at (${x},${y})`);
       }
+      board.setEntity(x, y, baby);
+      female.readyToGiveBirth = false;
+      female.fatherGenome = undefined;
+      birthCount++;
+
+      this.renderer.addVisualEffect({
+        type: 'reproduction',
+        x,
+        y,
+        startTime: Date.now(),
+        duration: VISUAL_EFFECT_DURATION_MS,
+      });
+      this.renderer.markDirty(x, y);
+      this.renderer.markDirty(female.x, female.y);
     }
 
     if (birthCount > 0) {
-      console.log(`[Birth] Total births this round: ${birthCount}`);
+      debugLog(`[Birth] Total births this round: ${birthCount}`);
     }
   }
 }

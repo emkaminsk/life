@@ -1,591 +1,247 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CombatSystem } from '../../src/systems/CombatSystem'
 import { Board } from '../../src/core/Board'
-import { Human, Wolf, Dog } from '../../src/entities'
+import { Human, Wolf, Dog, Fruit } from '../../src/entities'
 import { Sex } from '../../src/types'
+import { VISUAL_EFFECT_DURATION_MS } from '../../src/config'
 import { createConfig, createMockRenderer } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
-import { GenomeUtils } from '../../src/utils/GenomeUtils'
 
 /**
- * CombatSystem Unit Tests
- *
- * Tests combat-related configuration parameters:
- * - human.maleVsMaleDamage - Damage in male-to-male combat
- * - human.maleVsWolfDamage - Male counter-attack damage vs wolves
- * - wolf.damageToMale - Wolf damage to male humans
- * - wolf.damageToFemale - Wolf damage to female humans
- * - wolf.damageToDog - Wolf counter-damage to dogs
- * - dog.damageToWolf - Dog damage to wolves
- *
- * Verifies these config values are correctly applied in combat resolution
+ * CombatSystem behaviour tests (Phase 2).
  */
+
+function human(x: number, y: number, sex: Sex, health = 100, strength = 1): Human {
+  const h = new Human(x, y, sex)
+  h.genome = { maxHealth: 100, strength, metabolism: 0, greed: 0, caution: 0 }
+  h.maxHealth = 100
+  h.health = health
+  return h
+}
 
 describe('CombatSystem', () => {
   let board: Board
+  let renderer: ReturnType<typeof createMockRenderer>
   let system: CombatSystem
-  let renderer: any
 
   beforeEach(() => {
-    board = new Board(30, 30)
+    board = new Board(12, 12)
     renderer = createMockRenderer()
-    system = new CombatSystem(renderer, DEFAULT_CONFIG)
+    system = new CombatSystem(renderer)
   })
 
+  function place<T extends Human | Wolf | Dog | Fruit>(e: T): T {
+    board.setEntity(e.x, e.y, e)
+    return e
+  }
 
-  describe('Male vs Wolf Counter-attack', () => {
+  describe('male vs male', () => {
+    it('both take damage simultaneously, scaled by the opponent strength gene', () => {
+      const m1 = place(human(5, 5, Sex.MALE, 100, 1))
+      const m2 = place(human(6, 5, Sex.MALE, 100, 2))
 
-    it('should only apply to male humans in wolf combat', () => {
-      const config = DEFAULT_CONFIG
-      const male = new Human(15, 15, Sex.MALE)
-      const female = new Human(16, 15, Sex.FEMALE)
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }))
 
-      expect(male.isMale()).toBe(true)
-      expect(female.isMale()).toBe(false)
-    })
-  })
-
-  describe('Configuration: Wolf Damage to Male Humans', () => {
-    it('should initialize with config wolf damage to male', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.wolf.damageToMale).toBeGreaterThan(0)
+      expect(m1.health).toBe(60) // took 20 × 2
+      expect(m2.health).toBe(80) // took 20 × 1
     })
 
-    it('should apply custom wolf damage to male from config', () => {
-      const customDamage = 35
-      const config = createConfig({
-        wolf: { damageToMale: customDamage }
-      })
+    it('uses the config passed to execute', () => {
+      const m1 = place(human(5, 5, Sex.MALE))
+      const m2 = place(human(5, 6, Sex.MALE))
 
-      expect(config.wolf.damageToMale).toBe(customDamage)
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 7 } }))
+      expect([m1.health, m2.health]).toEqual([93, 93])
+
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 3 } }))
+      expect([m1.health, m2.health]).toEqual([90, 90])
     })
 
-    it('should support various wolf damage to male values', () => {
-      const damageValues = [20, 25, 30, 35, 45]
+    it('when one dies the survivor gains the loser pre-fight health (capped at max)', () => {
+      const m1 = place(human(5, 5, Sex.MALE, 50))
+      const m2 = place(human(6, 6, Sex.MALE, 15))
 
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          wolf: { damageToMale: damage }
-        })
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }))
 
-        expect(config.wolf.damageToMale).toBe(damage)
-      })
+      expect(m2.health).toBe(0)
+      expect(m1.health).toBe(45) // 50 - 20 + 15
+
+      const m3 = place(human(1, 1, Sex.MALE, 95))
+      const m4 = place(human(2, 1, Sex.MALE, 10))
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }))
+      expect(m4.health).toBe(0)
+      expect(m3.health).toBe(85) // 95 - 20 + 10, below cap
     })
 
-    it('should differ from wolf damage to female', () => {
-      const config = DEFAULT_CONFIG
+    it('when both would die, the one with lower UNCLAMPED health dies (independent of randomness)', () => {
+      for (const r of [0, 0.99]) {
+        board = new Board(12, 12)
+        vi.spyOn(Math, 'random').mockReturnValue(r)
+        // m1 deals 30, m2 deals 20
+        const m1 = place(human(5, 5, Sex.MALE, 10, 1.5))
+        const m2 = place(human(6, 5, Sex.MALE, 15, 1))
+        // final: m1 = 10 - 20 = -10, m2 = 15 - 30 = -15 → m2 is lower and dies
 
-      // Damage to females should be higher (no counter-attack)
-      expect(config.wolf.damageToFemale).toBeGreaterThan(
-        config.wolf.damageToMale
-      )
-    })
-  })
+        system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }))
 
-  describe('Configuration: Wolf Damage to Female Humans', () => {
-    it('should initialize with config wolf damage to female', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.wolf.damageToFemale).toBeGreaterThan(0)
-    })
-
-    it('should apply custom wolf damage to female from config', () => {
-      const customDamage = 45
-      const config = createConfig({
-        wolf: { damageToFemale: customDamage }
-      })
-
-      expect(config.wolf.damageToFemale).toBe(customDamage)
+        expect(m2.health).toBe(0)
+        expect(m1.health).toBe(15) // 0 + m2's initial 15
+      }
     })
 
-    it('should support various wolf damage to female values', () => {
-      const damageValues = [30, 35, 40, 45, 50]
-
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          wolf: { damageToFemale: damage }
-        })
-
-        expect(config.wolf.damageToFemale).toBe(damage)
-      })
+    it('when both would die with equal health, a random one dies and the survivor keeps ≥ 1', () => {
+      const survivors: string[] = []
+      for (const r of [0, 0.99]) {
+        board = new Board(12, 12)
+        vi.spyOn(Math, 'random').mockReturnValue(r)
+        const m1 = place(human(5, 5, Sex.MALE, 10))
+        const m2 = place(human(6, 5, Sex.MALE, 10))
+        system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }))
+        const alive = [m1, m2].filter((m) => m.health > 0)
+        expect(alive).toHaveLength(1)
+        expect(alive[0].health).toBe(10)
+        survivors.push(alive[0] === m1 ? 'm1' : 'm2')
+      }
+      expect(survivors.sort()).toEqual(['m1', 'm2'])
     })
 
-    it('should be higher than damage to male (no counter-attack)', () => {
-      const config = DEFAULT_CONFIG
+    it('males and females do not fight; females do not fight each other', () => {
+      const m = place(human(5, 5, Sex.MALE))
+      const f1 = place(human(6, 5, Sex.FEMALE))
+      const f2 = place(human(6, 6, Sex.FEMALE))
 
-      expect(config.wolf.damageToFemale).toBeGreaterThan(
-        config.wolf.damageToMale
-      )
-    })
-  })
+      system.execute(board, createConfig())
 
-  describe('Configuration: Wolf Damage to Dogs', () => {
-    it('should initialize with config wolf damage to dog', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.wolf.damageToDog).toBeGreaterThan(0)
-    })
-
-    it('should apply custom wolf damage to dog from config', () => {
-      const customDamage = 20
-      const config = createConfig({
-        wolf: { damageToDog: customDamage }
-      })
-
-      expect(config.wolf.damageToDog).toBe(customDamage)
-    })
-
-    it('should support various wolf damage to dog values', () => {
-      const damageValues = [10, 15, 20, 25, 30]
-
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          wolf: { damageToDog: damage }
-        })
-
-        expect(config.wolf.damageToDog).toBe(damage)
-      })
-    })
-
-    it('should typically be less than wolf damage to humans', () => {
-      const config = DEFAULT_CONFIG
-
-      // Dogs deal significant damage, so wolf counter should be moderate
-      expect(config.wolf.damageToDog).toBeLessThan(config.wolf.damageToMale)
+      expect([m.health, f1.health, f2.health]).toEqual([100, 100, 100])
+      expect(renderer.addVisualEffect).not.toHaveBeenCalled()
     })
   })
 
-  describe('Configuration: Dog Damage to Wolves', () => {
-    it('should initialize with config dog damage to wolf', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.dog.damageToWolf).toBeGreaterThan(0)
+  describe('wolf vs human', () => {
+    it('male takes damageToMale and counter-attacks with maleVsWolfDamage × strength', () => {
+      const wolf = place(new Wolf(5, 5, 80))
+      const male = place(human(6, 5, Sex.MALE, 100, 2))
+
+      system.execute(board, createConfig({ wolf: { damageToMale: 30 }, human: { maleVsWolfDamage: 10 } }))
+
+      expect(male.health).toBe(70)
+      expect(wolf.health).toBe(60)
     })
 
-    it('should apply custom dog damage to wolf from config', () => {
-      const customDamage = 40
-      const config = createConfig({
-        dog: { damageToWolf: customDamage }
-      })
+    it('female takes damageToFemale and does not fight back', () => {
+      const wolf = place(new Wolf(5, 5, 80))
+      const female = place(human(4, 4, Sex.FEMALE)) // diagonal
 
-      expect(config.dog.damageToWolf).toBe(customDamage)
+      system.execute(board, createConfig({ wolf: { damageToFemale: 45 } }))
+
+      expect(female.health).toBe(55)
+      expect(wolf.health).toBe(80)
     })
 
-    it('should support various dog damage to wolf values', () => {
-      const damageValues = [25, 30, 35, 40, 45]
+    it('no combat when the wolf is two cells away', () => {
+      const wolf = place(new Wolf(5, 5, 80))
+      const female = place(human(7, 5, Sex.FEMALE))
 
-      damageValues.forEach(damage => {
-        const config = createConfig({
-          dog: { damageToWolf: damage }
-        })
+      system.execute(board, createConfig())
 
-        expect(config.dog.damageToWolf).toBe(damage)
-      })
-    })
-
-    it('should be higher than wolf counter-damage', () => {
-      const config = DEFAULT_CONFIG
-
-      // Dogs are effective protectors
-      expect(config.dog.damageToWolf).toBeGreaterThan(config.wolf.damageToDog)
-    })
-
-    it('should enable dogs to protect humans', () => {
-      const config = DEFAULT_CONFIG
-      expect(config.dog.damageToWolf).toBeGreaterThan(0)
+      expect(female.health).toBe(100)
+      expect(wolf.health).toBe(80)
     })
   })
 
-  describe('Combat Pair Detection', () => {
-    it('should identify male vs male combat', () => {
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
+  describe('dog vs wolf', () => {
+    it('wolf takes damageToWolf and the dog takes damageToDog', () => {
+      const wolf = place(new Wolf(5, 5, 80))
+      const dog = place(new Dog(5, 4, 70))
 
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
+      system.execute(board, createConfig({ dog: { damageToWolf: 35 }, wolf: { damageToDog: 17 } }))
 
-      // System should identify these as combat pair
-      expect(() => system.execute(board)).not.toThrow()
+      expect(wolf.health).toBe(45)
+      expect(dog.health).toBe(53)
     })
 
-    it('should identify wolf vs human combat', () => {
-      const wolf = new Wolf(15, 15)
-      const human = new Human(16, 15, Sex.MALE)
+    it('dogs never attack humans', () => {
+      const dog = place(new Dog(5, 5, 70))
+      const male = place(human(6, 5, Sex.MALE))
 
-      board.setEntity(15, 15, wolf)
-      board.setEntity(16, 15, human)
+      system.execute(board, createConfig())
 
-      expect(() => system.execute(board)).not.toThrow()
-    })
-
-    it('should identify dog vs wolf combat', () => {
-      const dog = new Dog(15, 15)
-      const wolf = new Wolf(16, 15)
-
-      board.setEntity(15, 15, dog)
-      board.setEntity(16, 15, wolf)
-
-      expect(() => system.execute(board)).not.toThrow()
-    })
-
-    it('should not identify male vs female combat', () => {
-      const male = new Human(15, 15, Sex.MALE)
-      const female = new Human(16, 15, Sex.FEMALE)
-
-      board.setEntity(15, 15, male)
-      board.setEntity(16, 15, female)
-
-      // No combat should occur
-      const initialMaleHealth = male.health
-      const initialFemaleHealth = female.health
-
-      system.execute(board)
-
-      expect(male.health).toBe(initialMaleHealth)
-      expect(female.health).toBe(initialFemaleHealth)
+      expect(dog.health).toBe(70)
+      expect(male.health).toBe(100)
     })
   })
 
-  describe('Combat Resolution', () => {
-    it('should apply damage in male vs male combat', () => {
-      const config = DEFAULT_CONFIG
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
+  describe('pair detection', () => {
+    it('processes each adjacent pair exactly once', () => {
+      // 2×2 block of males: 6 adjacent pairs, each male is in 3 of them
+      const males = [place(human(3, 3, Sex.MALE)), place(human(4, 3, Sex.MALE)), place(human(3, 4, Sex.MALE)), place(human(4, 4, Sex.MALE))]
 
-      male1.health = config.human.startingHealth
-      male2.health = config.human.startingHealth
+      expect(CombatSystem.findCombatPairs(board)).toHaveLength(6)
 
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
-
-      // Verify entities are adjacent (adjacent positions include diagonals)
-      const adjacent = board.getAdjacentPositions(15, 15)
-      expect(adjacent.some(pos => pos.x === 16 && pos.y === 15)).toBe(true)
-
-      system.execute(board)
-
-      // Both should have reduced health
-      expect(male1.health).toBeLessThan(config.human.startingHealth)
-      expect(male2.health).toBeLessThan(config.human.startingHealth)
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 5 } }))
+      for (const m of males) expect(m.health).toBe(85) // 3 fights × 5
     })
 
-    it('should apply correct damage amount in male vs male combat', () => {
-      const config = DEFAULT_CONFIG
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
-      
-      // Enforce strength 1.0 for this test to match exact config damage
-      male1.genome.strength = 1.0;
-      male2.genome.strength = 1.0;
-
-      const initialHealth = 100
-      male1.health = initialHealth
-      male2.health = initialHealth
-
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
-
-      system.execute(board)
-
-      // Each should take the configured damage
-      const expectedHealth = initialHealth - config.human.maleVsMaleDamage
-      expect(male1.health).toBeCloseTo(expectedHealth)
-      expect(male2.health).toBeCloseTo(expectedHealth)
+    it('finds pairs across rows, including the down-left diagonal', () => {
+      place(new Wolf(5, 5))
+      place(human(4, 6, Sex.FEMALE))
+      const pairs = CombatSystem.findCombatPairs(board)
+      expect(pairs).toHaveLength(1)
     })
 
-    it('should handle simultaneous damage application', () => {
-      const config = DEFAULT_CONFIG
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
-
-      // Enforce strength 1.0
-      male1.genome.strength = 1.0;
-      male2.genome.strength = 1.0;
-
-      const initialHealth = config.human.maleVsMaleDamage + 10
-      male1.health = initialHealth
-      male2.health = initialHealth
-
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
-
-      system.execute(board)
-
-      // Both apply damage simultaneously
-      const expectedHealth = initialHealth - config.human.maleVsMaleDamage
-      expect(male1.health).toBeCloseTo(expectedHealth)
-      expect(male2.health).toBeCloseTo(expectedHealth)
+    it('ignores plants and non-fighting neighbours', () => {
+      place(new Fruit(5, 5))
+      place(new Wolf(6, 5))
+      place(new Wolf(7, 5))
+      place(new Dog(0, 0))
+      expect(CombatSystem.findCombatPairs(board)).toHaveLength(0)
     })
   })
 
-  describe('Wolf vs Human Combat Differentiation', () => {
-    it('should apply different damage to males vs females', () => {
-      const config = DEFAULT_CONFIG
-      const male = new Human(15, 15, Sex.MALE)
-      const female = new Human(20, 15, Sex.FEMALE)
-      const wolf1 = new Wolf(16, 15)
-      const wolf2 = new Wolf(21, 15)
+  describe('dead creatures do not keep fighting', () => {
+    it('a male killed by the first wolf does not fight the second wolf', () => {
+      const wolfA = place(new Wolf(4, 5, 80))
+      const male = place(human(5, 5, Sex.MALE, 10, 1))
+      const wolfB = place(new Wolf(6, 5, 80))
 
-      male.health = config.human.startingHealth
-      female.health = config.human.startingHealth
+      system.execute(board, createConfig({ wolf: { damageToMale: 30 }, human: { maleVsWolfDamage: 25 } }))
 
-      board.setEntity(15, 15, male)
-      board.setEntity(20, 15, female)
-      board.setEntity(16, 15, wolf1)
-      board.setEntity(21, 15, wolf2)
+      expect(male.health).toBe(0)
+      expect(wolfA.health).toBe(55) // counter-attacked in the first fight
+      expect(wolfB.health).toBe(80) // no second fight
+    })
 
-      system.execute(board)
+    it('creatures already at 0 health deal no damage', () => {
+      const wolf = place(new Wolf(5, 5, 80))
+      wolf.health = 0
+      const female = place(human(6, 5, Sex.FEMALE))
 
-      // Female should take more damage (no counter-attack)
-      const maleDamage = config.human.startingHealth - male.health
-      const femaleDamage = config.human.startingHealth - female.health
+      system.execute(board, createConfig())
 
-      expect(femaleDamage).toBeGreaterThanOrEqual(maleDamage)
+      expect(female.health).toBe(100)
     })
   })
 
-  describe('Dog vs Wolf Combat', () => {
-    it('should apply dog damage to wolf', () => {
-      const config = DEFAULT_CONFIG
-      const dog = new Dog(15, 15)
-      const wolf = new Wolf(16, 15)
+  describe('visual feedback', () => {
+    it('adds a red combat flash of VISUAL_EFFECT_DURATION_MS on both squares', () => {
+      place(new Wolf(5, 5))
+      place(new Dog(6, 5))
 
-      dog.health = config.dog.startingHealth
-      wolf.health = config.wolf.startingHealth
+      system.execute(board, createConfig())
 
-      board.setEntity(15, 15, dog)
-      board.setEntity(16, 15, wolf)
-
-      system.execute(board)
-
-      // Wolf should have taken dog damage
-      expect(wolf.health).toBeLessThan(config.wolf.startingHealth)
+      const effects = renderer.addVisualEffect.mock.calls.map((c) => c[0])
+      expect(effects).toHaveLength(2)
+      for (const e of effects) {
+        expect(e.type).toBe('combat')
+        expect(e.duration).toBe(VISUAL_EFFECT_DURATION_MS)
+      }
+      expect(effects.map((e) => `${e.x},${e.y}`).sort()).toEqual(['5,5', '6,5'])
+      expect(renderer.markDirty).toHaveBeenCalledWith(5, 5)
+      expect(renderer.markDirty).toHaveBeenCalledWith(6, 5)
     })
 
-    it('should apply wolf counter-damage to dog', () => {
-      const config = DEFAULT_CONFIG
-      const dog = new Dog(15, 15)
-      const wolf = new Wolf(16, 15)
-
-      dog.health = config.dog.startingHealth
-      wolf.health = config.wolf.startingHealth
-
-      board.setEntity(15, 15, dog)
-      board.setEntity(16, 15, wolf)
-
-      system.execute(board)
-
-      // Dog should have taken counter-damage
-      expect(dog.health).toBeLessThan(config.dog.startingHealth)
-    })
-
-    it('should apply correct damage amounts in dog vs wolf', () => {
-      const config = DEFAULT_CONFIG
-      const dog = new Dog(15, 15)
-      const wolf = new Wolf(16, 15)
-
-      const initialDogHealth = 100
-      const initialWolfHealth = 100
-
-      dog.health = initialDogHealth
-      wolf.health = initialWolfHealth
-
-      board.setEntity(15, 15, dog)
-      board.setEntity(16, 15, wolf)
-
-      const wolfBefore = wolf.health
-      const dogBefore = dog.health
-
-      system.execute(board)
-
-      // Verify damage was applied using the configured values
-      const wolfDamageDealt = wolfBefore - wolf.health
-      const dogDamageDealt = dogBefore - dog.health
-
-      expect(wolfDamageDealt).toBe(config.dog.damageToWolf)
-      expect(dogDamageDealt).toBe(config.wolf.damageToDog)
-    })
-  })
-
-  describe('CombatSystem Integration', () => {
-    it('should execute without errors on empty board', () => {
-      expect(() => system.execute(board)).not.toThrow()
-    })
-
-    it('should execute without errors with non-combatant entities', () => {
-      const human = new Human(15, 15, Sex.MALE)
-      board.setEntity(15, 15, human)
-
-      expect(() => system.execute(board)).not.toThrow()
-    })
-
-    it('should handle multiple combat pairs', () => {
-      const male1 = new Human(10, 10, Sex.MALE)
-      const male2 = new Human(11, 10, Sex.MALE)
-      const male3 = new Human(15, 15, Sex.MALE)
-      const male4 = new Human(16, 15, Sex.MALE)
-
-      board.setEntity(10, 10, male1)
-      board.setEntity(11, 10, male2)
-      board.setEntity(15, 15, male3)
-      board.setEntity(16, 15, male4)
-
-      expect(() => system.execute(board)).not.toThrow()
-    })
-
-    it('should respect configuration during combat execution', () => {
-      const customConfig = createConfig({
-        human: { maleVsMaleDamage: 50 }
-      })
-
-      system.updateConfig(customConfig)
-
-      const male1 = new Human(15, 15, Sex.MALE)
-      const male2 = new Human(16, 15, Sex.MALE)
-      
-      // Enforce strength 1.0 for deterministic test
-      male1.genome.strength = 1.0;
-      male2.genome.strength = 1.0;
-
-      const initialHealth = 100
-      male1.health = initialHealth
-      male2.health = initialHealth
-
-      board.setEntity(15, 15, male1)
-      board.setEntity(16, 15, male2)
-
-      const male1Before = male1.health
-      const male2Before = male2.health
-
-      system.execute(board)
-
-      const male1Damage = male1Before - male1.health
-      const male2Damage = male2Before - male2.health
-
-      expect(male1Damage).toBeCloseTo(customConfig.human.maleVsMaleDamage)
-      expect(male2Damage).toBeCloseTo(customConfig.human.maleVsMaleDamage)
-    })
-  })
-
-  describe('Configuration Parameter Consistency', () => {
-    it('should maintain damage values across multiple combats', () => {
-      const config = DEFAULT_CONFIG
-
-      const male1 = new Human(10, 10, Sex.MALE)
-      const male2 = new Human(11, 10, Sex.MALE)
-      const male3 = new Human(20, 20, Sex.MALE)
-      const male4 = new Human(21, 20, Sex.MALE)
-
-      // Enforce strength 1.0
-      male1.genome.strength = 1.0;
-      male2.genome.strength = 1.0;
-      male3.genome.strength = 1.0;
-      male4.genome.strength = 1.0;
-
-      male1.health = config.human.startingHealth
-      male2.health = config.human.startingHealth
-      male3.health = config.human.startingHealth
-      male4.health = config.human.startingHealth
-
-      board.setEntity(10, 10, male1)
-      board.setEntity(11, 10, male2)
-      board.setEntity(20, 20, male3)
-      board.setEntity(21, 20, male4)
-
-      system.execute(board)
-
-      // Both pairs should have same damage applied (same config value used)
-      const damage1 = config.human.startingHealth - male1.health
-      const damage3 = config.human.startingHealth - male3.health
-
-      // Both should receive the same configured damage
-      expect(damage1).toBeCloseTo(config.human.maleVsMaleDamage)
-      expect(damage3).toBeCloseTo(config.human.maleVsMaleDamage)
-    })
-
-    it('should apply custom config consistently across entities', () => {
-      const customDamage = 40
-      const customConfig = createConfig({
-        human: { maleVsMaleDamage: customDamage }
-      })
-
-      system.updateConfig(customConfig)
-
-      const male1 = new Human(10, 10, Sex.MALE)
-      const male2 = new Human(11, 10, Sex.MALE)
-      
-      // Enforce strength 1.0
-      male1.genome.strength = 1.0;
-      male2.genome.strength = 1.0;
-
-      const initialHealth = 100
-      male1.health = initialHealth
-      male2.health = initialHealth
-
-      board.setEntity(10, 10, male1)
-      board.setEntity(11, 10, male2)
-
-      const male1Before = male1.health
-      const male2Before = male2.health
-
-      system.execute(board)
-
-      const damage1 = male1Before - male1.health
-      const damage2 = male2Before - male2.health
-
-      expect(damage1).toBeCloseTo(customDamage)
-      expect(damage2).toBeCloseTo(customDamage)
-    })
-
-    it('should support independent damage modifications per species', () => {
-      const config = DEFAULT_CONFIG
-
-      const customConfig = createConfig({
-        human: { maleVsMaleDamage: 30 },
-        wolf: { damageToMale: 40 },
-        dog: { damageToWolf: 45 }
-      })
-
-      expect(customConfig.human.maleVsMaleDamage).toBe(30)
-      expect(customConfig.wolf.damageToMale).toBe(40)
-      expect(customConfig.dog.damageToWolf).toBe(45)
-    })
-  })
-
-  describe('Damage Parameter Relationships', () => {
-    it('should allow customization of all damage parameters independently', () => {
-      const config = createConfig({
-        human: {
-          maleVsMaleDamage: 25,
-          maleVsWolfDamage: 30
-        },
-        wolf: {
-          damageToMale: 35,
-          damageToFemale: 45,
-          damageToDog: 18
-        },
-        dog: {
-          damageToWolf: 38
-        }
-      })
-
-      expect(config.human.maleVsMaleDamage).toBe(25)
-      expect(config.human.maleVsWolfDamage).toBe(30)
-      expect(config.wolf.damageToMale).toBe(35)
-      expect(config.wolf.damageToFemale).toBe(45)
-      expect(config.wolf.damageToDog).toBe(18)
-      expect(config.dog.damageToWolf).toBe(38)
-    })
-
-    it('should maintain logical damage progression (dogs > wolves > humans)', () => {
-      const config = DEFAULT_CONFIG
-
-      // Dogs are effective vs wolves
-      expect(config.dog.damageToWolf).toBeGreaterThan(config.wolf.damageToDog)
-
-      // Wolves are effective vs humans
-      expect(config.wolf.damageToMale).toBeGreaterThan(0)
-      expect(config.wolf.damageToFemale).toBeGreaterThan(config.wolf.damageToMale)
-
-      // Humans have counter-attack option
-      expect(config.human.maleVsWolfDamage).toBeGreaterThan(0)
+    it('handles an empty board without effects', () => {
+      system.execute(board, createConfig())
+      expect(renderer.addVisualEffect).not.toHaveBeenCalled()
     })
   })
 })

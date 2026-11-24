@@ -1,336 +1,380 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { Game } from '../../src/core/Game'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { Game, CONFIG_LOCKED_MESSAGE } from '../../src/core/Game'
 import { Board } from '../../src/core/Board'
-import { Human, Wolf, Dog, Fruit, Mushroom } from '../../src/entities'
-import { Sex, EntityType } from '../../src/types'
-import { createConfig, createMockRenderer } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
+import { Human, Wolf, Fruit } from '../../src/entities'
+import { Sex } from '../../src/types'
+import type { GameConfig } from '../../src/ui/ConfigPanel'
+import { createConfig, createMockRenderer, type ConfigOverrides } from '../setup'
 
 /**
- * Game Integration Tests
+ * Game orchestration tests: phase order, config locking, round lifecycle
+ * (continuous / step / stepRounds / pause mid-animation) and callbacks.
  *
- * Tests end-to-end game functionality:
- * - All 51 parameters verified end-to-end
- * - Phase execution order validation
- * - Configuration locking after game start
- * - Parameter flow through entire simulation
+ * Timers, requestAnimationFrame and performance.now are faked so animations
+ * progress only when the test advances time.
  */
 
-describe('Game Integration', () => {
+const PHASES = ['movement', 'combat', 'eating', 'reproduction', 'death', 'birth', 'spawn'] as const
+const SYSTEM_FIELDS: Record<(typeof PHASES)[number], string> = {
+  movement: 'movementSystem',
+  combat: 'combatSystem',
+  eating: 'eatingSystem',
+  reproduction: 'reproductionSystem',
+  death: 'deathSystem',
+  birth: 'birthSystem',
+  spawn: 'spawnSystem',
+}
+
+/** A config where nothing spawns and nothing dies of age (only explicit rules act). */
+function quietConfig(overrides: ConfigOverrides = {}): GameConfig {
+  const base = createConfig({
+    spawn: { maleHumanProbability: 0, femaleHumanProbability: 0, wolfProbability: 0, dogProbability: 0, fruitProbability: 0, mushroomProbability: 0 },
+    fruit: { spawnProbability: 0 },
+    mushroom: { spawnProbability: 0 },
+    wolf: { spawnProbability: 0, gompertzA: 0 },
+    dog: { spawnProbability: 0, gompertzA: 0 },
+    human: { gompertzA: 0 },
+  })
+  for (const [k, v] of Object.entries(overrides)) Object.assign((base as any)[k], v)
+  return base
+}
+
+describe('Game', () => {
   let board: Board
-  let renderer: any
+  let renderer: ReturnType<typeof createMockRenderer>
   let game: Game
 
   beforeEach(() => {
-    board = new Board(30, 30)
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance', 'Date'],
+    })
+    board = new Board(10, 10)
     renderer = createMockRenderer()
     game = new Game(board, renderer)
   })
 
-  describe('Configuration: Initialization', () => {
-    it('should initialize with default configuration', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** Start a game on an empty board with a quiet config, then place entities. */
+  function newGame(config: GameConfig = quietConfig()): void {
+    game.updateConfig(config)
+    game.initializeBoard()
+  }
+
+  function wanderingWolf(x = 5, y = 5): Wolf {
+    const wolf = new Wolf(x, y, 80, 0, 0)
+    board.setEntity(x, y, wolf)
+    return wolf
+  }
+
+  function spyPhases(): string[] {
+    const calls: string[] = []
+    for (const phase of PHASES) {
+      const system = (game as any)[SYSTEM_FIELDS[phase]]
+      const original = system.execute.bind(system)
+      vi.spyOn(system, 'execute').mockImplementation((...args: unknown[]) => {
+        calls.push(phase)
+        return original(...args)
+      })
+    }
+    return calls
+  }
+
+  describe('phase order', () => {
+    it('runs movement, combat, eating, reproduction, death, birth, spawn in order (no animation)', () => {
+      newGame()
+      game.setAnimationDuration(0)
+      wanderingWolf()
+      const calls = spyPhases()
+
+      game.step()
+
+      expect(calls).toEqual([...PHASES])
+      expect(board.round).toBe(1)
+    })
+
+    it('keeps the order when movement is animated, running phases 2–7 only after the animation', () => {
+      newGame()
+      wanderingWolf()
+      const calls = spyPhases()
+
+      game.step()
+      expect(calls).toEqual(['movement'])
+      expect(game.isAnimatingNow()).toBe(true)
+
+      vi.advanceTimersByTime(game.getAnimationDuration() + 100)
+
+      expect(calls).toEqual([...PHASES])
+      expect(game.isAnimatingNow()).toBe(false)
+      expect(board.round).toBe(1)
+    })
+
+    it('passes the game config to every system', () => {
+      const config = quietConfig({ human: { maleVsMaleDamage: 42 } })
+      newGame(config)
+      game.setAnimationDuration(0)
+      const spies = PHASES.map((p) => vi.spyOn((game as any)[SYSTEM_FIELDS[p]], 'execute'))
+
+      game.step()
+
+      for (const spy of spies) {
+        expect(spy).toHaveBeenCalledTimes(1)
+        expect(spy.mock.calls[0][0]).toBe(board)
+        expect((spy.mock.calls[0][1] as GameConfig).human.maleVsMaleDamage).toBe(42)
+      }
+    })
+  })
+
+  describe('same-round consequences', () => {
+    it('a creature killed in combat is removed in the death phase of the same round', () => {
+      board.resize(2, 1)
+      newGame()
+      game.setAnimationDuration(0)
+      const wolf = new Wolf(0, 0, 80, 0, 0)
+      const female = new Human(1, 0, Sex.FEMALE, 10, 0, 0)
+      board.setEntity(0, 0, wolf)
+      board.setEntity(1, 0, female)
+
+      game.step()
+
+      expect(board.getEntity(1, 0)).toBeNull()
+      expect(board.getEntity(0, 0)).toBe(wolf)
+    })
+  })
+
+  describe('configuration', () => {
+    it('stores a deep-frozen copy and notifies the renderer of the injured threshold', () => {
+      const config = quietConfig({ board: { injuredThreshold: 33 } })
+      game.updateConfig(config)
+
+      const stored = game.getConfig()
+      expect(stored).not.toBe(config)
+      expect(stored).toEqual(config)
+      expect(Object.isFrozen(stored)).toBe(true)
+      expect(Object.isFrozen(stored.human)).toBe(true)
+      expect(() => {
+        ;(stored.human as { startingHealth: number }).startingHealth = 1
+      }).toThrow()
+
+      config.human.startingHealth = 999
+      expect(game.getConfig().human.startingHealth).not.toBe(999)
+      expect(renderer.setInjuredThreshold).toHaveBeenCalledWith(33)
+    })
+
+    it('is locked by initializeBoard and unlocked by reset', () => {
+      expect(game.isConfigLocked()).toBe(false)
       game.initializeBoard()
+      expect(game.isConfigLocked()).toBe(true)
+      expect(() => game.updateConfig(quietConfig())).toThrow(CONFIG_LOCKED_MESSAGE)
+      expect(CONFIG_LOCKED_MESSAGE).toBe('Configuration is locked while a game is in progress')
+
+      game.reset()
+      expect(game.isConfigLocked()).toBe(false)
+      expect(() => game.updateConfig(quietConfig())).not.toThrow()
+    })
+
+    it('initializeBoard(config) populates the board with configured entities', () => {
+      const config = quietConfig({
+        spawn: { maleHumanProbability: 0.5, femaleHumanProbability: 0, wolfProbability: 0, dogProbability: 0, fruitProbability: 0.5, mushroomProbability: 0 },
+        human: { startingHealth: 60, gompertzA: 0.002, gompertzB: 0.2 },
+        fruit: { energyHealed: 9, roundsToRipen: 5, spawnProbability: 0 },
+      })
+      game.initializeBoard(config)
 
       const entities = board.getAllEntities()
-      expect(entities.length).toBeGreaterThan(0)
-    })
-
-    it('should accept custom configuration', () => {
-      const customConfig = createConfig({
-        board: { width: 20, height: 20 },
-        human: { startingHealth: 150 }
-      })
-
-      const customBoard = new Board(20, 20)
-      const customGame = new Game(customBoard, renderer)
-      customGame.initializeBoard(customConfig)
-
-      // Verify custom config was used - board dimensions
-      expect(customBoard.width).toBe(20)
-      expect(customBoard.height).toBe(20)
-
-      // Humans exist with health clamped to genome maxHealth
-      const humans = customBoard.getAllEntities().filter(e => e instanceof Human)
-      if (humans.length > 0) {
-        expect(humans[0].health).toBeLessThanOrEqual((humans[0] as Human).genome.maxHealth)
-        expect(humans[0].health).toBeGreaterThan(0)
+      expect(entities).toHaveLength(100)
+      const humans = entities.filter((e): e is Human => e instanceof Human)
+      const fruits = entities.filter((e): e is Fruit => e instanceof Fruit)
+      expect(humans.length + fruits.length).toBe(100)
+      for (const h of humans) {
+        expect(h.sex).toBe(Sex.MALE)
+        expect(h.health).toBeLessThanOrEqual(60)
+        expect(h.gompertzA).toBe(0.002)
+        expect(h.gompertzB).toBe(0.2)
       }
-    })
-
-    it('should apply all configuration parameters during initialization', () => {
-      const customConfig = createConfig({
-        human: {
-          startingHealth: 120,
-          gompertzA: 0.0002,
-          gompertzB: 0.15
-        },
-        wolf: {
-          startingHealth: 90,
-          gompertzA: 0.0003,
-          gompertzB: 0.14
-        },
-        fruit: {
-          energyHealed: 50,
-          roundsToRipen: 3
-        }
-      })
-
-      game.initializeBoard(customConfig)
-
-      // Verify entities were created with custom values
-      const entities = board.getAllEntities()
-      const humans = entities.filter(e => e instanceof Human)
-      const wolves = entities.filter(e => e instanceof Wolf)
-      const fruits = entities.filter(e => e instanceof Fruit)
-
-      if (humans.length > 0) {
-        // Health is clamped to genome maxHealth, so just verify it's positive and reasonable
-        expect(humans[0].health).toBeGreaterThan(0)
-        expect(humans[0].health).toBeLessThanOrEqual((humans[0] as Human).genome.maxHealth)
-        expect(humans[0].gompertzA).toBe(0.0002)
-        expect(humans[0].gompertzB).toBe(0.15)
+      for (const f of fruits) {
+        expect(f.energyHealed).toBe(9)
+        expect(f.ripeningCounter).toBe(5)
       }
-
-      if (wolves.length > 0) {
-        expect(wolves[0].health).toBe(90)
-        expect(wolves[0].gompertzA).toBe(0.0003)
-        expect(wolves[0].gompertzB).toBe(0.14)
-      }
-
-      if (fruits.length > 0) {
-        expect(fruits[0].energyHealed).toBe(50)
-        expect(fruits[0].ripeningCounter).toBe(3)
-      }
+      expect(game.getConfig().human.startingHealth).toBe(60)
+      expect(game.getPopulationHistory()).toEqual([humans.length])
     })
   })
 
-  describe('Phase Execution Order', () => {
-    it('should execute phases in correct order: Movement → Combat → Eating → Reproduction → Death → Birth → Spawn', () => {
-      // Create entities for testing
-      const male = new Human(15, 15, Sex.MALE)
-      const female = new Human(16, 15, Sex.FEMALE)
-      const fruit = new Fruit(17, 15)
-      fruit.ripeningCounter = 0 // Ripe
+  describe('pause during movement animation (H2)', () => {
+    it('snaps positions and completes the round exactly once', () => {
+      newGame()
+      const wolf = wanderingWolf()
+      const combat = vi.spyOn((game as any).combatSystem, 'execute')
+      const onRound = vi.fn()
+      game.onRoundComplete = onRound
 
-      board.setEntity(15, 15, male)
-      board.setEntity(16, 15, female)
-      board.setEntity(17, 15, fruit)
+      game.start()
+      expect(game.isAnimatingNow()).toBe(true)
+      const afterMove = { x: wolf.x, y: wolf.y }
+      vi.advanceTimersByTime(game.getAnimationDuration() / 2)
 
-      // Mock requestAnimationFrame to skip animations
-      const originalRAF = window.requestAnimationFrame
-      window.requestAnimationFrame = vi.fn((cb) => {
-        setTimeout(() => cb(0), 0)
-        return 0
-      }) as any
+      game.pause()
 
-      const initialRound = board.round
-      game.executeRound()
+      expect(game.running()).toBe(false)
+      expect(game.isAnimatingNow()).toBe(false)
+      expect(board.round).toBe(1)
+      expect(combat).toHaveBeenCalledTimes(1)
+      expect(onRound).toHaveBeenCalledTimes(1)
+      expect([wolf.visualX, wolf.visualY]).toEqual([wolf.x, wolf.y])
+      expect([wolf.x, wolf.y]).toEqual([afterMove.x, afterMove.y])
 
-      // Round should increment after phases complete
-      // Note: May need to wait for animations
-      expect(typeof board.round).toBe('number')
-
-      window.requestAnimationFrame = originalRAF
+      // Nothing else happens afterwards
+      vi.advanceTimersByTime(5000)
+      expect(board.round).toBe(1)
+      expect(combat).toHaveBeenCalledTimes(1)
+      expect([wolf.x, wolf.y]).toEqual([afterMove.x, afterMove.y])
     })
 
-    it('should have executeRound method', () => {
-      expect(typeof game.executeRound).toBe('function')
-    })
-  })
+    it('resuming starts a fresh round', () => {
+      newGame()
+      wanderingWolf()
+      game.start()
+      game.pause()
+      expect(board.round).toBe(1)
 
-  describe('Configuration Parameter Flow', () => {
-    it('should use configured combat damage values', () => {
-      const customConfig = createConfig({
-        human: { maleVsMaleDamage: 30 }
-      })
-
-      game.updateConfig(customConfig)
-      
-      // Verify config was updated
-      expect(customConfig.human.maleVsMaleDamage).toBe(30)
-      // CombatSystem should receive updated config
-      expect(typeof game.executeRound).toBe('function')
-    })
-
-    it('should use configured fruit healing values', () => {
-      const customConfig = createConfig({
-        fruit: { energyHealed: 50 }
-      })
-
-      game.initializeBoard(customConfig)
-
-      // Verify config was used during initialization
-      const fruits = board.getAllEntities().filter(e => e instanceof Fruit)
-      if (fruits.length > 0) {
-        expect(fruits[0].energyHealed).toBe(50)
-      }
-    })
-
-    it('should use configured reproduction probability', () => {
-      const customConfig = createConfig({
-        human: { reproductionProbability: 1.0 } // Always reproduce
-      })
-
-      game.initializeBoard(customConfig)
-
-      // Verify config was set
-      expect(customConfig.human.reproductionProbability).toBe(1.0)
-      // ReproductionSystem uses DEFAULT_CONFIG directly, but config is available
-      expect(typeof game.executeRound).toBe('function')
-    })
-
-    it('should use configured spawn probabilities', () => {
-      const customConfig = createConfig({
-        fruit: { spawnProbability: 0.5 } // High spawn rate
-      })
-
-      game.updateConfig(customConfig)
-
-      // Clear board
-      for (let x = 0; x < board.width; x++) {
-        for (let y = 0; y < board.height; y++) {
-          board.removeEntity(x, y)
-        }
-      }
-
-      // Mock random to spawn fruits (need multiple calls for each cell check)
-      let callCount = 0
-      vi.spyOn(Math, 'random').mockImplementation(() => {
-        callCount++
-        // Return value below 0.5 for fruit spawn probability
-        return 0.3
-      })
-
-      game.executeRound()
-
-      // Note: SpawnSystem uses Random.chance which calls Math.random
-      // The test verifies config is passed to spawn system
-      expect(customConfig.fruit.spawnProbability).toBe(0.5)
-
-      vi.restoreAllMocks()
+      game.start()
+      vi.advanceTimersByTime(game.getAnimationDuration() + 50)
+      expect(board.round).toBeGreaterThanOrEqual(2)
+      game.pause()
     })
   })
 
-  describe('Round Counter', () => {
-    it('should start at round 0', () => {
+  describe('stepping', () => {
+    it('stepRounds(5) advances exactly 5 rounds and fires onStepComplete once (animated)', () => {
+      newGame()
+      wanderingWolf()
+      const onStep = vi.fn()
+      const onRound = vi.fn()
+      game.onStepComplete = onStep
+      game.onRoundComplete = onRound
+
+      game.stepRounds(5)
+      vi.advanceTimersByTime(20_000)
+
+      expect(board.round).toBe(5)
+      expect(onRound).toHaveBeenCalledTimes(5)
+      expect(onStep).toHaveBeenCalledTimes(1)
+      expect(game.isStepping()).toBe(false)
+    })
+
+    it('stepRounds(5) also works when nothing moves', () => {
+      newGame()
+      const onStep = vi.fn()
+      game.onStepComplete = onStep
+
+      game.stepRounds(5)
+      vi.advanceTimersByTime(20_000)
+
+      expect(board.round).toBe(5)
+      expect(onStep).toHaveBeenCalledTimes(1)
+    })
+
+    it('step() runs one round and fires onStepComplete after it', () => {
+      newGame()
+      wanderingWolf()
+      const onStep = vi.fn()
+      game.onStepComplete = onStep
+
+      game.step()
+      expect(onStep).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(game.getAnimationDuration() + 50)
+
+      expect(board.round).toBe(1)
+      expect(onStep).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores step requests while a step is in progress or the game is running', () => {
+      newGame()
+      wanderingWolf()
+      game.stepRounds(2)
+      game.step()
+      game.stepRounds(3)
+      vi.advanceTimersByTime(20_000)
+      expect(board.round).toBe(2)
+
+      game.start()
+      const roundAtStart = board.round
+      game.stepRounds(50)
+      game.pause()
+      expect(board.round).toBeLessThanOrEqual(roundAtStart + 1)
+    })
+
+    it('start() during a step sequence takes over without firing onStepComplete', () => {
+      newGame()
+      const onStep = vi.fn()
+      game.onStepComplete = onStep
+      game.stepRounds(10)
+      game.start()
+      vi.advanceTimersByTime(game.getSpeed() * 3 + 10)
+      game.pause()
+      expect(onStep).not.toHaveBeenCalled()
+      expect(game.isStepping()).toBe(false)
+    })
+  })
+
+  describe('continuous run', () => {
+    it('fires onRoundComplete every round and never onStepComplete', () => {
+      newGame()
+      const onRound = vi.fn()
+      const onStep = vi.fn()
+      game.onRoundComplete = onRound
+      game.onStepComplete = onStep
+
+      game.start() // nothing moves → one round per getSpeed() ms
+      vi.advanceTimersByTime(game.getSpeed() * 4 + 10)
+      game.pause()
+
+      expect(board.round).toBe(5)
+      expect(onRound).toHaveBeenCalledTimes(5)
+      expect(onStep).not.toHaveBeenCalled()
+    })
+
+    it('setSpeed changes the delay between rounds', () => {
+      newGame()
+      game.start() // round 1 runs immediately
+      game.setSpeed(1000)
+      expect(game.getSpeed()).toBe(1000)
+      vi.advanceTimersByTime(999)
+      expect(board.round).toBe(1)
+      vi.advanceTimersByTime(2)
+      expect(board.round).toBe(2)
+      game.pause()
+    })
+
+    it('records population after initialization and every round', () => {
+      newGame()
+      game.setAnimationDuration(0)
+      board.setEntity(0, 0, new Human(0, 0, Sex.MALE, 50, 0, 0))
+      game.step()
+      game.step()
+      expect(game.getPopulationHistory()).toEqual([0, 1, 1])
+    })
+  })
+
+  describe('reset', () => {
+    it('stops the game, clears board, round, history and visual effects', () => {
+      newGame()
+      wanderingWolf()
+      game.start()
+      game.reset()
+
+      expect(game.running()).toBe(false)
+      expect(game.isAnimatingNow()).toBe(false)
+      expect(board.getAllEntities()).toHaveLength(0)
       expect(board.round).toBe(0)
-    })
+      expect(game.getPopulationHistory()).toEqual([])
+      expect(renderer.clearVisualEffects).toHaveBeenCalled()
 
-    it('should have round counter', () => {
-      expect(typeof board.round).toBe('number')
-      expect(board.round).toBeGreaterThanOrEqual(0)
-    })
-  })
-
-  describe('Entity State Consistency', () => {
-    it('should maintain entity state across phases', () => {
-      const human = new Human(15, 15, Sex.MALE)
-      human.health = 100
-      human.age = 10
-
-      board.setEntity(15, 15, human)
-
-      game.executeRound()
-
-      // Entity should still exist (unless died)
-      const entity = board.getEntity(15, 15)
-      if (entity) {
-        expect(entity).toBeInstanceOf(Human)
-        // Age should have incremented
-        expect(entity.age).toBeGreaterThan(10)
-      }
-    })
-
-    it('should handle entity removal during death phase', () => {
-      const human = new Human(15, 15, Sex.MALE)
-      human.health = 0 // Dead
-
-      board.setEntity(15, 15, human)
-
-      game.executeRound()
-
-      // Dead entity should be removed
-      expect(board.getEntity(15, 15)).toBeNull()
-    })
-  })
-
-  describe('Population Tracking', () => {
-    it('should track population history', () => {
-      game.initializeBoard()
-
-      const initialPopulation = board.getAllEntities().filter(
-        e => e instanceof Human
-      ).length
-
-      // Record population should be called during initialization
-      expect(game.getPopulationHistory().length).toBeGreaterThan(0)
-    })
-
-    it('should record population after each round', () => {
-      game.initializeBoard()
-
-      const initialHistoryLength = game.getPopulationHistory().length
-      expect(initialHistoryLength).toBeGreaterThan(0) // Should record during initialization
-
-      // History is recorded during initialization and after rounds
-      // Round execution may be delayed by animations, so we verify history exists
-      expect(game.getPopulationHistory().length).toBeGreaterThanOrEqual(initialHistoryLength)
-    })
-  })
-
-  describe('Multiple Rounds', () => {
-    it('should have executeRound method for multiple rounds', () => {
-      expect(typeof game.executeRound).toBe('function')
-      // Can be called multiple times
-      expect(() => {
-        game.executeRound()
-      }).not.toThrow()
-    })
-
-    it('should maintain game state', () => {
-      game.initializeBoard()
-
-      // Game should maintain board reference
-      expect(game.getBoard()).toBe(board)
-      expect(board.getAllEntities().length).toBeGreaterThanOrEqual(0)
-    })
-  })
-
-  describe('Edge Cases', () => {
-    it('should handle empty board', () => {
-      // Don't initialize, leave board empty
-      expect(() => {
-        game.executeRound()
-      }).not.toThrow()
-    })
-
-    it('should handle board with single entity', () => {
-      const human = new Human(15, 15, Sex.MALE)
-      board.setEntity(15, 15, human)
-
-      // Should not throw errors
-      expect(() => {
-        game.executeRound()
-      }).not.toThrow()
-    })
-
-    it('should handle full board', () => {
-      // Fill board with entities
-      for (let x = 0; x < board.width; x++) {
-        for (let y = 0; y < board.height; y++) {
-          board.setEntity(x, y, new Human(x, y, Sex.MALE))
-        }
-      }
-
-      // Should not throw errors
-      expect(() => {
-        game.executeRound()
-      }).not.toThrow()
+      vi.advanceTimersByTime(5000)
+      expect(board.round).toBe(0)
     })
   })
 })
-
-// Add helper method to Game class for testing (if not already present)
-// Note: This assumes Game has a getPopulationHistory method
-// If not, we'll need to access it differently or add it
-

@@ -11,6 +11,7 @@ import { Random } from './Random';
  * - age: current age of the entity
  * - multiplier: overcrowding multiplier (optional, default: 1)
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: namespace-style utility kept for API stability
 export class Gompertz {
   /**
    * Calculate probability of death from age
