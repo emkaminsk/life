@@ -189,7 +189,7 @@ See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation detail
 
 - Complete simulation with all entity types and behaviors
 - Full parameter configurability before game start
-- Visual feedback system for events (flashes, borders, state indicators)
+- Visual feedback system for events (flashes, state icons)
 - Statistics panel with real-time population graph
 - Comprehensive rules documentation accessible during gameplay
 - Keyboard and mouse controls
@@ -248,8 +248,8 @@ Each round executes in this fixed order:
 - 🍏 Green apple = Unripe fruit (not edible yet)
 - 🍎 Red apple = Ripe fruit (ready to eat, heals +30 HP)
 - 🍄 Mushroom = Poisonous (damages -40 HP)
-- 🤰 Pregnant indicator = Pink border
-- Red border = Injured creature (health < 50%)
+- 🤰 Pregnant woman emoji = Pregnant female
+- 💔 Broken heart overlay = Injured creature (health below the injured threshold, default 50% of max health)
 - Red flash = Combat or poisoning
 - Green flash = Reproduction or birth
 - Yellow flash = Fruit consumption
@@ -265,7 +265,7 @@ Each round executes in this fixed order:
 - ✅ Complete entity ecosystem (Humans, Wolves, Dogs, Fruits, Mushrooms)
 - ✅ Age-based mortality (Gompertz function)
 - ✅ Perception-based movement
-- ✅ Visual feedback system (flashes, borders, pregnancy indicator)
+- ✅ Visual feedback system (flashes, injured/pregnancy icons)
 
 **User Interface:**
 - ✅ Real-time statistics panel

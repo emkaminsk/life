@@ -4,7 +4,7 @@
 
 Game of Life is a browser-based educational simulation tool designed for students aged 11-15 to explore population dynamics, cause-effect relationships, and ecosystem balance through interactive experimentation. The application simulates a simple ecosystem with humans (males and females), animals (wolves and dogs), and plants (fruits and mushrooms) on a grid-based board, with comprehensive configurable parameters governing all behaviors.
 
-The simulation operates in discrete rounds with a fixed priority order, allowing students to observe emergent behaviors and learn about complex systems through hands-on experimentation. Built with vanilla JavaScript and HTML5 Canvas for optimal performance, the application supports boards ranging from 10x10 to 100x100 cells with up to 1,000 total creatures.
+The simulation operates in discrete rounds with a fixed priority order, allowing students to observe emergent behaviors and learn about complex systems through hands-on experimentation. Built with vanilla TypeScript and HTML5 Canvas for optimal performance, the application supports boards ranging from 10x10 to 100x100 cells with up to 1,000 total creatures.
 
 Target delivery: MVP focused on core educational value with complete parameter configurability, visual feedback systems, and comprehensive documentation, excluding tutorials, data export, and save functionality.
 
@@ -34,7 +34,7 @@ The solution must enable exploration-based learning where students discover prin
 
 3.1.4 Entities are represented by emojis (spirits, images): 🧑‍🦰 (male human), 👩 (female human), 🤰 (pregnant female), 🐺 (wolf), 🐕 (dog), 🍎 (ripe fruit), 🍏 (unripe fruit), 🍄 (mushroom)
 
-3.1.5 Injured creatures (health < certain level (parameter) of health) display red border (3px, #FF0000 at 60% opacity) around cell
+3.1.5 Injured creatures (humans, wolves and dogs whose health is below the configured injured threshold, expressed as a percentage of their maximum health) display a 💔 overlay icon in the top-right corner of their cell (replaces the earlier red-border design, see Phase 24)
 
 ### 3.2 Creature Mechanics
 
@@ -176,7 +176,7 @@ The solution must enable exploration-based learning where students discover prin
 
 ### 3.9 Visual Feedback
 
-3.9.1 Combat events trigger brief red flash (approximately 1 second) on affected squares
+3.9.1 Combat and mushroom-poisoning events trigger brief red flash (approximately 1 second) on affected squares; at most one flash is shown per square (the newest replaces an older one)
 
 3.9.2 Reproduction events trigger brief green flash (approximately 1 second) on affected squares
 
@@ -538,7 +538,7 @@ Acceptance Criteria:
 - Mushrooms spawn randomly on empty squares
 - Mushrooms immediately poisonous (no ripening)
 - Human adjacent to mushroom eats it at round end
-- Yellow flash displays on eating event
+- Red flash displays on poisoning event (red = harm; yellow is reserved for fruit)
 - Human health decreases by configured energy loss
 - Eaten mushroom removed from board
 - Only one human eats mushroom when multiple adjacent
