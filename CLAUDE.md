@@ -22,7 +22,15 @@ npm run build        # TypeScript compile + Vite production build → dist/
 
 # Preview
 npm run preview      # Preview production build locally
+
+# Quality
+npm test             # Vitest (watch); npm run test:run for a single run
+npm run test:coverage  # Coverage with thresholds (80% statements)
+npm run typecheck    # Type-check src AND tests
+npm run lint         # Biome lint
 ```
+
+Debug logging (`debugLog` in `src/utils/debug.ts`) and the FPS readout are enabled with `?debug` in the URL or `localStorage.debug = '1'`.
 
 ## Architecture Overview
 
@@ -55,7 +63,7 @@ src/
 │   ├── Dog.ts            # Protect humans by attacking wolves
 │   ├── Fruit.ts          # Ripening mechanic (unripe/ripe states)
 │   └── Mushroom.ts       # Poisonous plants
-├── systems/        # Phase execution systems (stateless)
+├── systems/        # Phase execution systems (stateless; execute(board, config))
 │   ├── MovementSystem.ts       # Phase 1: Perception-based weighted movement
 │   ├── CombatSystem.ts         # Phase 2: Damage dealing, counter-attacks
 │   ├── EatingSystem.ts         # Phase 3: Plant consumption
@@ -65,7 +73,8 @@ src/
 │   └── SpawnSystem.ts     # Phase 7: Probabilistic spawning
 ├── utils/
 │   ├── Gompertz.ts       # Age-based mortality calculation
-│   └── Random.ts         # Seeded random utilities
+│   ├── Random.ts         # Central, seedable randomness (Random.seed(n)); never call Math.random directly
+│   └── debug.ts          # debugLog gated behind ?debug
 ├── ui/
 │   └── ConfigPanel.ts    # Pre-game configuration interface
 ├── types.ts        # Enums (EntityType, Sex) and interfaces
@@ -82,8 +91,8 @@ src/
 
 **System Design (ECS-like):**
 - Systems are **stateless** - all state lives in entities and board
-- Each system receives board + renderer, operates on all relevant entities
-- Systems use `Renderer` for visual effects (flashes, borders) in `src/core/Renderer.ts:45-67`
+- Each system is constructed with the renderer and runs as `execute(board, config)`; systems must read parameters from the passed `GameConfig`, never from `DEFAULT_CONFIG` (that is only a source of defaults)
+- Systems emit visual effects via `Renderer.addVisualEffect()` using `VISUAL_EFFECT_DURATION_MS` from `src/config.ts`
 
 **Performance Optimizations:**
 - **Dirty Rectangle Rendering**: Only redraw changed cells + neighbors
@@ -115,7 +124,7 @@ P(death | age) = 1 - e^(-A * e^(B * age))
 - Implementation in `src/systems/MovementSystem.ts`
 
 ### 4. Configuration Immutability
-Once game starts (`Game.start()`), configuration is **locked**. All parameters in `GameConfig` must be frozen.
+Once the board is initialized (`Game.initializeBoard()`), configuration is **locked** until `Game.reset()`: `Game.updateConfig()` stores a deep-frozen copy and throws while locked.
 
 Rationale: Students need consistent parameters throughout an experiment to understand cause-effect.
 
@@ -143,7 +152,7 @@ Flashes are non-blocking and last ~1 second. Implement in `Renderer.addVisualEff
 If approved:
 1. Create system in `src/systems/` following existing pattern
 2. Add system instantiation in `Game` constructor
-3. Call system in correct order in `Game.runRound()` at `src/core/Game.ts:145-200`
+3. Call system in correct order in `Game.executeRound()` (movement) / `Game.runRemainingPhases()` (phases 2-7) in `src/core/Game.ts`
 4. Update PRD documentation to reflect new priority order
 
 ### Modifying Configuration Parameters
@@ -154,22 +163,19 @@ If approved:
 5. Update tooltips with valid ranges and descriptions
 
 ### Performance Debugging
-1. Enable debug mode in `Renderer` to show FPS counter
+1. Open the app with `?debug` to show the FPS counter and debug logs
 2. Check dirty rectangle optimization is working (verify only changed cells redraw)
 3. Profile emoji rendering (should use cached Canvas images, not `fillText`)
 4. Verify spatial grid lookups are O(1) not O(n)
 5. Check for garbage collection pauses (minimize object creation in game loop)
 
 ### Testing Simulation Phases
-Test each phase in isolation by commenting out others in `Game.runRound()`:
+Each system has behaviour tests in `tests/systems/`. Run a system in isolation against a small `Board` with a mock renderer and an explicit config:
 ```typescript
-// Test only movement
-this.movementSystem.process(this.board);
-// this.combatSystem.process(this.board);
-// ... comment out rest
+const system = new MovementSystem(createMockRenderer())
+system.execute(board, createConfig({ wolf: { perceptionRange: 1 } }))
 ```
-
-Then verify behavior matches PRD specifications.
+Control randomness with `Random.seed(n)` or `vi.spyOn(Math, 'random')` (Random delegates to Math.random by default; mocks are restored after each test). Phase order is asserted in `tests/core/Game.test.ts`.
 
 ## Important Technical Constraints
 
@@ -194,7 +200,7 @@ Then verify behavior matches PRD specifications.
 
 All game parameters live in `src/config.ts` as `DEFAULT_CONFIG`. Categories:
 
-- **board**: Dimensions, injured threshold for red borders
+- **board**: Dimensions, injured threshold (% of max health) for the 💔 icon
 - **spawn**: Probability per entity type at game start
 - **human**: Health, damage, reproduction, pregnancy, perception, Gompertz
 - **wolf**: Health, damage, perception, Gompertz
@@ -230,8 +236,8 @@ Educational requirement - students need to understand that simultaneous events h
 ### Why Emoji Caching is Critical?
 Without it, 1000 entities × 1ms emoji rendering = 1 second per frame = 1 FPS. With caching: 1000 entities × 0.1ms drawImage = 100ms = 10 FPS. Makes 1000-creature simulations viable.
 
-### Why No Tests in MVP?
-Educational project with tight scope. Manual testing sufficient for MVP. Consider adding tests post-MVP for regression protection.
+### Testing Strategy
+Vitest + jsdom unit/behaviour tests live in `tests/` (canvas is stubbed in `tests/rendering/canvasStub.ts`). Tests are type-checked (`npm run typecheck`) and coverage thresholds are enforced. Prefer tests that execute a system and assert outcomes over tests that assert config values.
 
 ## Future Enhancement Hooks
 
