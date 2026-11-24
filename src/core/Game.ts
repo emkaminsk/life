@@ -15,6 +15,7 @@ import { DeathSystem } from '../systems/DeathSystem';
 import { BirthSystem } from '../systems/BirthSystem';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { AnimationSystem, type MovementRecord } from './AnimationSystem';
+import { Random } from '../utils/Random';
 
 import type { GameConfig } from '../ui/ConfigPanel';
 
@@ -153,7 +154,7 @@ export class Game {
     for (let y = 0; y < this.board.height; y++) {
       for (let x = 0; x < this.board.width; x++) {
         // Weighted random selection using cumulative probabilities
-        const rand = Math.random();
+        const rand = Random.next();
         const cumulativeMale = gameConfig.spawn.maleHumanProbability;
         const cumulativeFemale = cumulativeMale + gameConfig.spawn.femaleHumanProbability;
         const cumulativeWolf = cumulativeFemale + gameConfig.spawn.wolfProbability;

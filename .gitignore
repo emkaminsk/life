@@ -36,3 +36,5 @@ playwright/.auth/
 
 # Supabase
 supabase/seed-prod.sql
+# test coverage output
+coverage/

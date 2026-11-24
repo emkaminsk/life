@@ -1,6 +1,51 @@
 import type { Position } from '../types';
 
+type RandomSource = () => number;
+
+/**
+ * Mulberry32: small, fast, deterministic PRNG returning floats in [0, 1).
+ */
+function mulberry32(seed: number): RandomSource {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Central source of randomness for the whole simulation.
+ *
+ * All game code must draw random numbers through this class (never call
+ * Math.random directly) so experiments can be reproduced with a seed and
+ * tests can be deterministic.
+ *
+ * By default it delegates to Math.random (so `vi.spyOn(Math, 'random')`
+ * still controls it in tests). Call `Random.seed(n)` for a reproducible
+ * sequence and `Random.useMathRandom()` to go back to the default.
+ */
+// biome-ignore lint/complexity/noStaticOnlyClass: namespace-style utility kept for API stability
 export class Random {
+  private static source: RandomSource | null = null;
+
+  /** Use a deterministic seeded sequence. */
+  static seed(seed: number): void {
+    Random.source = mulberry32(seed);
+  }
+
+  /** Restore the default (Math.random) source. */
+  static useMathRandom(): void {
+    Random.source = null;
+  }
+
+  /** Float in [0, 1). */
+  static next(): number {
+    return Random.source ? Random.source() : Math.random();
+  }
+
   /**
    * Calculate Manhattan distance between two positions
    */
@@ -12,14 +57,14 @@ export class Random {
    * Get random integer between min (inclusive) and max (exclusive)
    */
   static int(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min)) + min;
+    return Math.floor(Random.next() * (max - min)) + min;
   }
 
   /**
    * Return true with given probability (0-1)
    */
   static chance(probability: number): boolean {
-    return Math.random() < probability;
+    return Random.next() < probability;
   }
 
   /**
@@ -27,7 +72,7 @@ export class Random {
    */
   static choice<T>(array: T[]): T | null {
     if (array.length === 0) return null;
-    return array[Math.floor(Math.random() * array.length)];
+    return array[Math.floor(Random.next() * array.length)];
   }
 
   /**

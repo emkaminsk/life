@@ -1,3 +1,5 @@
+import { Random } from './Random';
+
 /**
  * Gompertz mortality calculation
  *
@@ -23,6 +25,6 @@ export class Gompertz {
    */
   static shouldDie(age: number, A: number, B: number, multiplier: number = 1): boolean {
     const probability = Gompertz.deathProbability(age, A, B, multiplier);
-    return Math.random() < probability;
+    return Random.next() < probability;
   }
 }

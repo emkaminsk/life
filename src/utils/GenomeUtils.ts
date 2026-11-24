@@ -40,7 +40,7 @@ export class GenomeUtils {
    */
   private static mutate(value: number, variance: number, min?: number, max?: number): number {
     if (Random.chance(this.MUTATION_CHANCE)) {
-      const mutation = (Math.random() * 2 - 1) * variance; // -variance to +variance
+      const mutation = (Random.next() * 2 - 1) * variance; // -variance to +variance
       let result = value + mutation;
       
       if (min !== undefined) result = Math.max(min, result);
@@ -56,8 +56,8 @@ export class GenomeUtils {
    * Uses Box-Muller transform
    */
   private static gaussianRandom(mean: number, stdDev: number): number {
-    const u = 1 - Math.random(); // Converting [0,1) to (0,1]
-    const v = Math.random();
+    const u = 1 - Random.next(); // Converting [0,1) to (0,1]
+    const v = Random.next();
     const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     return z * stdDev + mean;
   }

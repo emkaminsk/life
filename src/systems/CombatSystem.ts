@@ -5,6 +5,7 @@ import { Wolf } from '../entities/Wolf';
 import { Dog } from '../entities/Dog';
 import type { Renderer } from '../core/Renderer';
 import type { GameConfig } from '../ui/ConfigPanel';
+import { Random } from '../utils/Random';
 
 export class CombatSystem {
   private renderer: Renderer;
@@ -112,7 +113,7 @@ export class CombatSystem {
           dyingInitialHealth = male2InitialHealth;
         } else {
           // Equal health - random selection
-          if (Math.random() < 0.5) {
+          if (Random.chance(0.5)) {
             survivor = entity1;
             dyingMale = entity2;
             dyingInitialHealth = male2InitialHealth;
