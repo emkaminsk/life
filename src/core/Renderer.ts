@@ -2,21 +2,99 @@ import type { Board } from './Board';
 import type { Entity } from '../entities/Entity';
 import { Human } from '../entities/Human';
 import { Wolf } from '../entities/Wolf';
+import { Dog } from '../entities/Dog';
 import { Fruit } from '../entities/Fruit';
 import { EntityType, type VisualEffect } from '../types';
 import { DEFAULT_CONFIG } from '../config';
-import type { AnimationSystem } from './AnimationSystem';
+import type { AnimationSystem, MovementPath } from './AnimationSystem';
+import { debugLog } from '../utils/debug';
 
+/** Cell background and grid line colours. */
+const BACKGROUND_COLOR = '#f0f0f0';
+const GRID_COLOR = '#ddd';
+
+/** Emoji-capable font stack (plain Arial renders emoji small / clipped on some platforms). */
+const EMOJI_FONT_STACK = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+/** Glyph size relative to the cached sprite box. */
+const EMOJI_SCALE = 0.82;
+
+const BROKEN_HEART = '💔';
+
+/** Cell size limits used by fitToWidth (CSS px). */
+export const MIN_CELL_SIZE = 6;
+export const MAX_CELL_SIZE = 28;
+
+/** Flash colour (set once, faded via globalAlpha) and peak opacity per effect type. */
+const EFFECT_STYLE: Record<VisualEffect['type'], { color: string; maxAlpha: number }> = {
+  combat: { color: 'rgb(255, 0, 0)', maxAlpha: 0.45 }, // red: combat damage / poison
+  reproduction: { color: 'rgb(0, 255, 0)', maxAlpha: 0.5 }, // green: reproduction / birth
+  eating: { color: 'rgb(255, 255, 0)', maxAlpha: 0.55 }, // yellow: fruit eaten
+};
+
+/** If an external animation frame was rendered this recently, the effect loop does not draw. */
+const EXTERNAL_FRAME_GRACE_MS = 100;
+
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function deviceRatio(): number {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+  return Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+}
+
+/**
+ * Canvas renderer with:
+ * - HiDPI backing store (CSS size × devicePixelRatio) and DPR-aware emoji cache
+ * - dirty-cell rendering backed by typed arrays (key = y * width + x)
+ * - ghost-free movement animation frames
+ * - one fading flash per cell, kept alive by its own rAF loop while paused
+ *
+ * The canvas CSS size is always boardWidth × cellSize by boardHeight × cellSize
+ * (excluding any CSS border), so CSS px / cellSize gives the cell coordinate.
+ */
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private cellSize: number;
+  private dpr: number;
+  private gridWidth = 0;
+  private gridHeight = 0;
+
+  /** Sprite cache for the current cell size / DPR, keyed by emoji. */
   private emojiCache: Map<string, HTMLCanvasElement>;
-  private dirtyRects: Set<string>;
-  private visualEffects: VisualEffect[];
-  private frameCount: number;
-  private lastFpsUpdate: number;
-  private currentFps: number;
+  private heartIcon: HTMLCanvasElement | null = null;
+  private heartIconSize = 0;
+  private cellBackground: HTMLCanvasElement | null = null;
+
+  // Dirty cell set: flag per cell + compact index list.
+  private dirtyFlags: Uint8Array = new Uint8Array(0);
+  private dirtyList: Int32Array = new Int32Array(0);
+  private dirtyCount = 0;
+
+  // Cells covered by moving sprites in the last animation frame (redrawn next frame).
+  private touchedFlags: Uint8Array = new Uint8Array(0);
+  private touchedList: Int32Array = new Int32Array(0);
+  private touchedCount = 0;
+
+  /** Active visual effects, at most one per cell (newest wins). */
+  private visualEffects: Map<number, VisualEffect>;
+
+  private injuredThreshold: number;
+
+  // Effect loop
+  private lastBoard: Board | null = null;
+  private effectLoopId: number | null = null;
+  private lastAnimationSystem: AnimationSystem | null = null;
+  private lastExternalFrameAt = Number.NEGATIVE_INFINITY;
+  private lastAnimationGeneration = -1;
+
+  // FPS measurement (frames actually rendered)
+  private fpsWindowStart: number;
+  private fpsFrames = 0;
+  private lastFrameAt = Number.NEGATIVE_INFINITY;
+  private currentFps = 0;
 
   constructor(canvas: HTMLCanvasElement, cellSize: number = 20) {
     this.canvas = canvas;
@@ -24,53 +102,110 @@ export class Renderer {
     if (!ctx) throw new Error('Could not get 2D context');
     this.ctx = ctx;
     this.cellSize = cellSize;
+    this.dpr = deviceRatio();
     this.emojiCache = new Map();
-    this.dirtyRects = new Set();
-    this.visualEffects = [];
-    this.frameCount = 0;
-    this.lastFpsUpdate = Date.now();
-    this.currentFps = 0;
+    this.visualEffects = new Map();
+    this.injuredThreshold = DEFAULT_CONFIG.board.injuredThreshold;
+    this.fpsWindowStart = now();
 
-    // Set canvas size
-    const initialWidth = DEFAULT_CONFIG.board.width * cellSize;
-    const initialHeight = DEFAULT_CONFIG.board.height * cellSize;
-    this.canvas.width = initialWidth;
-    this.canvas.height = initialHeight;
-    // Explicitly set CSS dimensions to match internal resolution to prevent scaling
-    this.canvas.style.width = `${initialWidth}px`;
-    this.canvas.style.height = `${initialHeight}px`;
+    this.resize(DEFAULT_CONFIG.board.width, DEFAULT_CONFIG.board.height);
   }
 
-  resize(width: number, height: number): void {
-    const pixelWidth = width * this.cellSize;
-    const pixelHeight = height * this.cellSize;
-    this.canvas.width = pixelWidth;
-    this.canvas.height = pixelHeight;
-    // Explicitly set CSS dimensions to match internal resolution to prevent scaling
-    this.canvas.style.width = `${pixelWidth}px`;
-    this.canvas.style.height = `${pixelHeight}px`;
-    console.log(`[Renderer] Canvas resized to ${pixelWidth}x${pixelHeight} pixels (${width}x${height} cells)`);
+  // ---------------------------------------------------------------------------
+  // Sizing
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resize the canvas for a board of width × height cells. Clears the dirty set,
+   * effects and caches, and marks every cell dirty (the canvas was cleared).
+   */
+  resize(width: number, height: number, cellSize?: number): void {
+    if (cellSize !== undefined && Number.isFinite(cellSize) && cellSize > 0) {
+      this.cellSize = cellSize;
+    }
+    this.gridWidth = Math.max(0, Math.floor(width));
+    this.gridHeight = Math.max(0, Math.floor(height));
+    this.applyCanvasSize();
+
+    const cells = this.gridWidth * this.gridHeight;
+    this.dirtyFlags = new Uint8Array(cells);
+    this.dirtyList = new Int32Array(cells);
+    this.dirtyCount = 0;
+    this.touchedFlags = new Uint8Array(cells);
+    this.touchedList = new Int32Array(cells);
+    this.touchedCount = 0;
+    this.visualEffects.clear();
+    this.markAllCells();
+
+    debugLog(
+      `[Renderer] Canvas resized to ${this.gridWidth * this.cellSize}x${this.gridHeight * this.cellSize} CSS px ` +
+        `(${this.gridWidth}x${this.gridHeight} cells, cell ${this.cellSize}px, dpr ${this.dpr})`
+    );
   }
+
+  /**
+   * Pick a cell size so the board fits the available CSS width:
+   * clamp(floor(available / boardWidth), 6, 28). Resizes and returns the cell size.
+   */
+  fitToWidth(availableCssWidth: number, boardWidth: number, boardHeight: number): number {
+    const raw = boardWidth > 0 ? Math.floor(availableCssWidth / boardWidth) : MIN_CELL_SIZE;
+    const size = Number.isFinite(raw) ? Math.min(MAX_CELL_SIZE, Math.max(MIN_CELL_SIZE, raw)) : MIN_CELL_SIZE;
+    this.resize(boardWidth, boardHeight, size);
+    return size;
+  }
+
+  getCellSize(): number {
+    return this.cellSize;
+  }
+
+  /** Injured indicator threshold, as a percentage of the creature's max health. */
+  setInjuredThreshold(percent: number): void {
+    if (Number.isFinite(percent)) this.injuredThreshold = percent;
+  }
+
+  private applyCanvasSize(): void {
+    this.dpr = deviceRatio();
+    const cssWidth = this.gridWidth * this.cellSize;
+    const cssHeight = this.gridHeight * this.cellSize;
+    this.canvas.width = Math.round(cssWidth * this.dpr);
+    this.canvas.height = Math.round(cssHeight * this.dpr);
+    this.canvas.style.width = `${cssWidth}px`;
+    this.canvas.style.height = `${cssHeight}px`;
+    // Setting width/height resets the context state, so re-apply the transform.
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+
+    this.emojiCache.clear();
+    this.heartIcon = null;
+    this.heartIconSize = this.computeHeartIconSize();
+    this.cellBackground = null;
+  }
+
+  /** Board / DPR changed behind our back: resize and redraw everything. */
+  private syncWithBoard(board: Board): void {
+    if (board.width !== this.gridWidth || board.height !== this.gridHeight) {
+      this.resize(board.width, board.height);
+    } else if (deviceRatio() !== this.dpr) {
+      this.applyCanvasSize();
+      this.markAllCells();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Caches
+  // ---------------------------------------------------------------------------
 
   private getEntityEmoji(entity: Entity): string {
     switch (entity.type) {
       case EntityType.MALE:
         return '👨';
       case EntityType.FEMALE:
-        // Show pregnant woman emoji for pregnant females
-        if (entity instanceof Human && entity.isPregnant()) {
-          return '🤰';
-        }
-        return '👩';
+        return entity instanceof Human && entity.isPregnant() ? '🤰' : '👩';
       case EntityType.WOLF:
         return '🐺';
       case EntityType.DOG:
         return '🐕';
       case EntityType.FRUIT:
-        // Check if fruit is ripe
-        if (entity instanceof Fruit) {
-          return entity.isRipe() ? '🍎' : '🍏';
-        }
+        if (entity instanceof Fruit) return entity.isRipe() ? '🍎' : '🍏';
         return '🍎';
       case EntityType.MUSHROOM:
         return '🍄';
@@ -79,207 +214,291 @@ export class Renderer {
     }
   }
 
-  private cacheEmoji(emoji: string, size: number): HTMLCanvasElement {
-    const key = `${emoji}_${size}`;
-    const cached = this.emojiCache.get(key);
-    if (cached) {
-      return cached;
-    }
+  /** Render an emoji once into an offscreen canvas at cssSize × dpr device pixels. */
+  private createEmojiSprite(emoji: string, cssSize: number): HTMLCanvasElement {
+    const px = Math.max(1, Math.round(cssSize * this.dpr));
+    const sprite = document.createElement('canvas');
+    sprite.width = px;
+    sprite.height = px;
+    sprite.dataset.emoji = emoji;
+    const c = sprite.getContext('2d');
+    if (!c) throw new Error('Could not create offscreen context');
 
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = size;
-    offscreenCanvas.height = size;
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-    if (!offscreenCtx) throw new Error('Could not create offscreen context');
+    c.font = `${Math.floor(px * EMOJI_SCALE)}px ${EMOJI_FONT_STACK}`;
+    c.textAlign = 'left';
+    c.textBaseline = 'alphabetic';
+    const m = c.measureText(emoji);
+    const left = m.actualBoundingBoxLeft || 0;
+    const right = m.actualBoundingBoxRight || 0;
+    const ascent = m.actualBoundingBoxAscent || 0;
+    const descent = m.actualBoundingBoxDescent || 0;
 
-    offscreenCtx.font = `${size * 0.8}px Arial`;
-    offscreenCtx.textAlign = 'center';
-    offscreenCtx.textBaseline = 'middle';
-    offscreenCtx.fillText(emoji, size / 2, size / 2);
-
-    this.emojiCache.set(key, offscreenCanvas);
-    return offscreenCanvas;
+    // Centre the actual glyph bounding box (avoids bottom clipping of emoji).
+    const glyphWidth = left + right > 0 ? left + right : m.width || px * EMOJI_SCALE;
+    const glyphHeight = ascent + descent > 0 ? ascent + descent : px * EMOJI_SCALE;
+    const x = (px - glyphWidth) / 2 + (left + right > 0 ? left : 0);
+    const y = (px - glyphHeight) / 2 + (ascent + descent > 0 ? ascent : glyphHeight * 0.8);
+    c.fillText(emoji, x, y);
+    return sprite;
   }
 
-  private drawCell(x: number, y: number, entity: Entity | null, visualPosition?: { x: number; y: number }): void {
-    const cellX = x * this.cellSize;
-    const cellY = y * this.cellSize;
+  private getSprite(emoji: string): HTMLCanvasElement {
+    let sprite = this.emojiCache.get(emoji);
+    if (!sprite) {
+      sprite = this.createEmojiSprite(emoji, this.cellSize);
+      this.emojiCache.set(emoji, sprite);
+    }
+    return sprite;
+  }
 
-    // Clear cell
-    this.ctx.fillStyle = '#f0f0f0';
-    this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+  /** ≈48% of the cell, at least 9 CSS px, but never more than 3/4 of the cell. */
+  private computeHeartIconSize(): number {
+    return Math.min(this.cellSize * 0.75, Math.max(9, Math.round(this.cellSize * 0.48)));
+  }
 
-    // Draw grid line
-    this.ctx.strokeStyle = '#ddd';
-    this.ctx.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+  private getHeartIcon(): HTMLCanvasElement {
+    if (!this.heartIcon) this.heartIcon = this.createEmojiSprite(BROKEN_HEART, this.heartIconSize);
+    return this.heartIcon;
+  }
 
-    // Draw entity if present
-    if (entity) {
-      // Use visual position if provided (for animations), otherwise use cell position
-      const drawX = visualPosition ? visualPosition.x * this.cellSize : cellX;
-      const drawY = visualPosition ? visualPosition.y * this.cellSize : cellY;
+  /** One cell of background + crisp 1-device-pixel grid line (top and left edges). */
+  private getCellBackground(): HTMLCanvasElement {
+    if (this.cellBackground) return this.cellBackground;
+    const px = Math.max(1, Math.round(this.cellSize * this.dpr));
+    const tile = document.createElement('canvas');
+    tile.width = px;
+    tile.height = px;
+    tile.dataset.role = 'cell-bg';
+    const c = tile.getContext('2d');
+    if (!c) throw new Error('Could not create offscreen context');
+    const line = Math.max(1, Math.round(this.dpr));
+    c.fillStyle = BACKGROUND_COLOR;
+    c.fillRect(0, 0, px, px);
+    c.fillStyle = GRID_COLOR;
+    c.fillRect(0, 0, px, line);
+    c.fillRect(0, 0, line, px);
+    this.cellBackground = tile;
+    return tile;
+  }
 
-      const emoji = this.getEntityEmoji(entity);
-      const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
-      this.ctx.drawImage(cachedEmoji, drawX, drawY);
+  // ---------------------------------------------------------------------------
+  // Drawing primitives
+  // ---------------------------------------------------------------------------
 
-      // Draw broken heart icon for injured creatures (not fruits)
-      if ((entity instanceof Human || entity instanceof Wolf) &&
-          entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
-        const iconSize = this.cellSize * 0.4; // 40% of cell size
-        // Use drawX/drawY to ensure icon moves with entity if visualPosition is used
-        const iconX = drawX + (this.cellSize * 0.8) - iconSize;
-        const iconY = drawY + (this.cellSize * 0.1);
-        const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
-        this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
-      }
+  /** Creatures (not plants) below the injured % of their max health. */
+  private isInjured(entity: Entity): boolean {
+    if (!(entity instanceof Human || entity instanceof Wolf || entity instanceof Dog)) return false;
+    const maxHealth = entity.maxHealth;
+    if (!(maxHealth > 0)) return false;
+    return (entity.health / maxHealth) * 100 < this.injuredThreshold;
+  }
+
+  private drawBackground(x: number, y: number): void {
+    const s = this.cellSize;
+    this.ctx.drawImage(this.getCellBackground(), x * s, y * s, s, s);
+  }
+
+  /** Draw an entity sprite (+ injured icon) with its top-left at CSS px (px, py). */
+  private drawSprite(entity: Entity, px: number, py: number): void {
+    const s = this.cellSize;
+    this.ctx.drawImage(this.getSprite(this.getEntityEmoji(entity)), px, py, s, s);
+    if (this.isInjured(entity)) {
+      const icon = this.heartIconSize;
+      this.ctx.drawImage(this.getHeartIcon(), px + s - icon, py, icon, icon);
     }
   }
 
-  /**
-   * Draw an entity at an arbitrary fractional position (for animations)
-   * Handles clearing affected cells and drawing entity at interpolated position
-   */
-  private drawEntity(entity: Entity, visualX: number, visualY: number, board: Board): void {
-    // Calculate which cells are affected by this entity's position
-    // Entity can overlap up to 4 cells when moving diagonally
-    const minCellX = Math.floor(visualX);
-    const maxCellX = Math.ceil(visualX);
-    const minCellY = Math.floor(visualY);
-    const maxCellY = Math.ceil(visualY);
-
-    // Clear all affected cells (background and grid)
-    // Only clear cells that don't have other entities at their logical positions
-    for (let cy = minCellY; cy <= maxCellY; cy++) {
-      for (let cx = minCellX; cx <= maxCellX; cx++) {
-        if (cx >= 0 && cx < board.width && cy >= 0 && cy < board.height) {
-          const cellEntity = board.getEntity(cx, cy);
-          // Clear cell if:
-          // 1. Cell is empty, OR
-          // 2. Cell contains this animating entity (at its destination)
-          // Don't clear cells with other stationary entities
-          if (!cellEntity || cellEntity === entity) {
-            const cellX = cx * this.cellSize;
-            const cellY = cy * this.cellSize;
-            this.ctx.fillStyle = '#f0f0f0';
-            this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
-            this.ctx.strokeStyle = '#ddd';
-            this.ctx.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
-          }
-        }
-      }
-    }
-
-    // Draw entity emoji at visual position (fractional pixel coordinates)
-    const pixelX = visualX * this.cellSize;
-    const pixelY = visualY * this.cellSize;
-    const emoji = this.getEntityEmoji(entity);
-    const cachedEmoji = this.cacheEmoji(emoji, this.cellSize);
-    this.ctx.drawImage(cachedEmoji, pixelX, pixelY);
-
-    // Draw broken heart icon for injured creatures (not fruits)
-    // Icon follows visual position during animations
-    if ((entity instanceof Human || entity instanceof Wolf) &&
-        entity.isInjured(DEFAULT_CONFIG.board.injuredThreshold)) {
-      const iconSize = this.cellSize * 0.4; // 40% of cell size
-      const iconX = pixelX + (this.cellSize * 0.8) - iconSize;
-      const iconY = pixelY + (this.cellSize * 0.1);
-      const brokenHeartIcon = this.cacheEmoji('💔', iconSize);
-      this.ctx.drawImage(brokenHeartIcon, iconX, iconY);
-    }
+  private drawCell(x: number, y: number, entity: Entity | null): void {
+    this.drawBackground(x, y);
+    if (entity) this.drawSprite(entity, x * this.cellSize, y * this.cellSize);
   }
+
+  // ---------------------------------------------------------------------------
+  // Dirty set
+  // ---------------------------------------------------------------------------
 
   markDirty(x: number, y: number): void {
-    this.dirtyRects.add(`${x},${y}`);
+    if (x < 0 || y < 0 || x >= this.gridWidth || y >= this.gridHeight) return;
+    const idx = y * this.gridWidth + x;
+    if (this.dirtyFlags[idx] === 0) {
+      this.dirtyFlags[idx] = 1;
+      this.dirtyList[this.dirtyCount++] = idx;
+    }
   }
 
   markAllDirty(board: Board): void {
-    for (let y = 0; y < board.height; y++) {
-      for (let x = 0; x < board.width; x++) {
-        this.markDirty(x, y);
-      }
+    if (board.width !== this.gridWidth || board.height !== this.gridHeight) {
+      this.resize(board.width, board.height); // marks everything
+      return;
+    }
+    this.markAllCells();
+  }
+
+  private markAllCells(): void {
+    const cells = this.gridWidth * this.gridHeight;
+    this.dirtyFlags.fill(1);
+    for (let i = 0; i < cells; i++) this.dirtyList[i] = i;
+    this.dirtyCount = cells;
+  }
+
+  /** Mark a cell dirty and remember it as covered by a moving sprite this frame. */
+  private touch(x: number, y: number): void {
+    if (x < 0 || y < 0 || x >= this.gridWidth || y >= this.gridHeight) return;
+    this.markDirty(x, y);
+    const idx = y * this.gridWidth + x;
+    if (this.touchedFlags[idx] === 0) {
+      this.touchedFlags[idx] = 1;
+      this.touchedList[this.touchedCount++] = idx;
     }
   }
 
+  /** Cells covered by moving sprites last frame must be redrawn this frame. */
+  private flushTouched(): void {
+    for (let i = 0; i < this.touchedCount; i++) {
+      const idx = this.touchedList[i];
+      this.touchedFlags[idx] = 0;
+      if (this.dirtyFlags[idx] === 0) {
+        this.dirtyFlags[idx] = 1;
+        this.dirtyList[this.dirtyCount++] = idx;
+      }
+    }
+    this.touchedCount = 0;
+  }
+
+  private touchRect(minX: number, minY: number, maxX: number, maxY: number): void {
+    for (let cy = minY; cy <= maxY; cy++) {
+      for (let cx = minX; cx <= maxX; cx++) this.touch(cx, cy);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Visual effects
+  // ---------------------------------------------------------------------------
+
+  /** Add a flash. A newer flash on the same cell replaces the older one. */
   addVisualEffect(effect: VisualEffect): void {
-    this.visualEffects.push(effect);
+    const { x, y } = effect;
+    if (x < 0 || y < 0 || x >= this.gridWidth || y >= this.gridHeight) return;
+    this.visualEffects.set(y * this.gridWidth + x, effect);
+    this.markDirty(x, y);
+    this.ensureEffectLoop();
   }
 
-  private drawVisualEffects(): void {
-    const now = Date.now();
-    const expiredEffects: VisualEffect[] = [];
-
-    this.visualEffects = this.visualEffects.filter(effect => {
-      const elapsed = now - effect.startTime;
-      if (elapsed > effect.duration) {
-        // Effect expired - will be marked dirty one more time when next render clears it
-        expiredEffects.push(effect);
-        return false;
-      }
-
-      const alpha = 1 - (elapsed / effect.duration);
-      const cellX = effect.x * this.cellSize;
-      const cellY = effect.y * this.cellSize;
-
-      let color: string;
-      switch (effect.type) {
-        case 'combat':
-          color = `rgba(255, 0, 0, ${alpha * 0.25})`; // Reduced opacity for less overwhelming flash
-          break;
-        case 'reproduction':
-          color = `rgba(0, 255, 0, ${alpha * 0.5})`;
-          break;
-        case 'eating':
-          color = `rgba(255, 255, 0, ${alpha * 0.5})`;
-          break;
-      }
-
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
-
-      return true;
-    });
-
-    // Mark cells with expired effects as dirty for final cleanup
-    expiredEffects.forEach(effect => {
-      this.markDirty(effect.x, effect.y);
-    });
+  /** Remove all flashes (cells are redrawn clean on the next render). */
+  clearVisualEffects(): void {
+    for (const idx of this.visualEffects.keys()) {
+      this.markDirty(idx % this.gridWidth, Math.floor(idx / this.gridWidth));
+    }
+    this.visualEffects.clear();
   }
 
-  private updateFps(): void {
-    this.frameCount++;
-    const now = Date.now();
-    if (now - this.lastFpsUpdate >= 1000) {
-      this.currentFps = this.frameCount;
-      this.frameCount = 0;
-      this.lastFpsUpdate = now;
+  getActiveEffectCount(): number {
+    return this.visualEffects.size;
+  }
+
+  /** Mark cells of all effects dirty; drop expired ones (their cell is redrawn clean). */
+  private prepareEffects(time: number): void {
+    for (const [idx, effect] of this.visualEffects) {
+      if (time - effect.startTime >= effect.duration) this.visualEffects.delete(idx);
+      const x = idx % this.gridWidth;
+      this.markDirty(x, (idx - x) / this.gridWidth);
     }
   }
 
+  private drawVisualEffects(time: number): void {
+    if (this.visualEffects.size === 0) return;
+    const ctx = this.ctx;
+    const s = this.cellSize;
+    let lastColor = '';
+    for (const effect of this.visualEffects.values()) {
+      const elapsed = Math.max(0, time - effect.startTime);
+      const style = EFFECT_STYLE[effect.type] ?? EFFECT_STYLE.combat;
+      if (style.color !== lastColor) {
+        ctx.fillStyle = style.color;
+        lastColor = style.color;
+      }
+      ctx.globalAlpha = style.maxAlpha * (1 - elapsed / effect.duration);
+      ctx.fillRect(effect.x * s, effect.y * s, s, s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Start the self-driven effect loop if effects are active and none is scheduled. */
+  private ensureEffectLoop(): void {
+    if (this.effectLoopId !== null || this.visualEffects.size === 0) return;
+    if (typeof requestAnimationFrame !== 'function') return;
+    this.effectLoopId = requestAnimationFrame(this.effectTick);
+  }
+
+  private effectTick = (): void => {
+    this.effectLoopId = null;
+    if (this.visualEffects.size === 0) return;
+    const animationDriven =
+      this.lastAnimationSystem?.isAnimating() === true && now() - this.lastExternalFrameAt < EXTERNAL_FRAME_GRACE_MS;
+    if (!animationDriven && this.lastBoard) {
+      this.render(this.lastBoard); // reschedules itself while effects remain
+      return;
+    }
+    this.ensureEffectLoop();
+  };
+
+  /** True while the internal effect loop has a frame scheduled. */
+  isEffectLoopRunning(): boolean {
+    return this.effectLoopId !== null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // FPS
+  // ---------------------------------------------------------------------------
+
+  private countFrame(): void {
+    const t = now();
+    this.lastFrameAt = t;
+    this.fpsFrames++;
+    const elapsed = t - this.fpsWindowStart;
+    if (elapsed >= 1000) {
+      this.currentFps = Math.round((this.fpsFrames * 1000) / elapsed);
+      this.fpsFrames = 0;
+      this.fpsWindowStart = t;
+    }
+  }
+
+  /** Frames actually rendered per second over the last ~1 s window (0 when idle). */
   getCurrentFps(): number {
+    const t = now();
+    if (t - this.lastFrameAt > 1000) {
+      this.fpsFrames = 0;
+      this.fpsWindowStart = t;
+      return 0;
+    }
     return this.currentFps;
   }
 
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+
+  /** Redraw dirty cells (entities at their logical positions) and effects. */
   render(board: Board): void {
-    // Mark cells with active visual effects as dirty before rendering
-    // This ensures they're redrawn each frame to prevent color accumulation
-    this.visualEffects.forEach(effect => {
-      this.markDirty(effect.x, effect.y);
-    });
+    this.syncWithBoard(board);
+    this.lastBoard = board;
+    this.flushTouched();
+    const time = Date.now();
+    this.prepareEffects(time);
 
-    // Render only dirty rectangles
-    this.dirtyRects.forEach(coord => {
-      const [x, y] = coord.split(',').map(Number);
-      const entity = board.getEntity(x, y);
-      this.drawCell(x, y, entity);
-    });
-    this.dirtyRects.clear();
+    const w = this.gridWidth;
+    for (let i = 0; i < this.dirtyCount; i++) {
+      const idx = this.dirtyList[i];
+      this.dirtyFlags[idx] = 0;
+      const x = idx % w;
+      const y = (idx - x) / w;
+      this.drawCell(x, y, board.getEntity(x, y));
+    }
+    this.dirtyCount = 0;
 
-    // Draw visual effects
-    this.drawVisualEffects();
-
-    // Update FPS counter
-    this.updateFps();
+    this.drawVisualEffects(time);
+    this.countFrame();
+    this.ensureEffectLoop();
   }
 
   renderFull(board: Board): void {
@@ -288,96 +507,81 @@ export class Renderer {
   }
 
   /**
-   * Mark all animation paths as dirty (optimized batch marking)
-   * Called once at animation start to mark all affected cells
-   * @param board The game board
-   * @param animationSystem The animation system managing current animations
+   * Mark all cells on all animation paths dirty (called once at animation start).
+   * The cells are also remembered so the next frame redraws them.
    */
   markAnimationPaths(board: Board, animationSystem: AnimationSystem): void {
-    const movementPaths = animationSystem.getAllMovementPaths();
-    
-    // Mark all cells in all animation paths
-    for (const path of movementPaths.values()) {
-      // Mark cells in path (handles diagonal movement - up to 4 cells)
-      const minX = Math.min(path.fromX, path.toX);
-      const maxX = Math.max(path.fromX, path.toX);
-      const minY = Math.min(path.fromY, path.toY);
-      const maxY = Math.max(path.fromY, path.toY);
-
-      for (let cy = minY; cy <= maxY; cy++) {
-        for (let cx = minX; cx <= maxX; cx++) {
-          if (cx >= 0 && cx < board.width && cy >= 0 && cy < board.height) {
-            this.markDirty(cx, cy);
-          }
-        }
-      }
-    }
+    this.syncWithBoard(board);
+    this.lastAnimationGeneration = animationSystem.getGeneration();
+    animationSystem.getAllMovementPaths().forEach(this.touchPath);
   }
 
+  private touchPath = (path: MovementPath): void => {
+    this.touchRect(
+      Math.min(path.fromX, path.toX),
+      Math.min(path.fromY, path.toY),
+      Math.max(path.fromX, path.toX),
+      Math.max(path.fromY, path.toY)
+    );
+  };
+
+  private touchVisual = (_path: MovementPath, entity: Entity): void => {
+    const vx = entity.visualX;
+    const vy = entity.visualY;
+    this.touchRect(Math.floor(vx), Math.floor(vy), Math.ceil(vx), Math.ceil(vy));
+  };
+
+  private drawMover = (_path: MovementPath, entity: Entity): void => {
+    // Snap to device pixels so moving sprites stay sharp.
+    const scale = this.cellSize * this.dpr;
+    this.drawSprite(entity, Math.round(entity.visualX * scale) / this.dpr, Math.round(entity.visualY * scale) / this.dpr);
+  };
+
   /**
-   * Render a single animation frame during movement animations
-   * Draws all animating entities at their interpolated positions
-   * @param board The game board
-   * @param animationSystem The animation system managing current animations
+   * Render one movement animation frame. Cells covered by each moving sprite in
+   * the previous and the current frame are redrawn (background + stationary
+   * entity), then moving sprites are drawn on top at their visual positions.
    */
   renderAnimationFrame(board: Board, animationSystem: AnimationSystem): void {
-    // Mark cells with active visual effects as dirty
-    this.visualEffects.forEach(effect => {
-      this.markDirty(effect.x, effect.y);
-    });
+    this.syncWithBoard(board);
+    this.lastBoard = board;
+    this.lastAnimationSystem = animationSystem;
+    this.lastExternalFrameAt = now();
 
-    // Get all animating entities
-    const animatingEntities = animationSystem.getAnimatingEntities();
+    // Previous frame's sprite cells.
+    this.flushTouched();
 
-    // Mark animation paths as dirty (only cells that need updating)
-    // This is optimized - we mark paths once, but also mark current visual position cells each frame
-    for (const entity of animatingEntities) {
-      const visualPos = animationSystem.getVisualPosition(entity);
-      if (visualPos) {
-        // Mark current visual position cell (entity might be between cells)
-        const visualCellX = Math.floor(visualPos.x);
-        const visualCellY = Math.floor(visualPos.y);
-        if (visualCellX >= 0 && visualCellX < board.width && 
-            visualCellY >= 0 && visualCellY < board.height) {
-          this.markDirty(visualCellX, visualCellY);
-        }
-        // Also mark adjacent cells if entity is near cell boundary
-        if (visualPos.x - visualCellX > 0.5 && visualCellX + 1 < board.width) {
-          this.markDirty(visualCellX + 1, visualCellY);
-        }
-        if (visualPos.y - visualCellY > 0.5 && visualCellY + 1 < board.height) {
-          this.markDirty(visualCellX, visualCellY + 1);
-        }
-      }
+    const paths = animationSystem.getAllMovementPaths();
+    if (animationSystem.getGeneration() !== this.lastAnimationGeneration) {
+      // New batch not announced via markAnimationPaths: cover start cells too.
+      this.lastAnimationGeneration = animationSystem.getGeneration();
+      paths.forEach(this.touchPath);
     }
+    // Current frame's sprite cells.
+    paths.forEach(this.touchVisual);
 
-    // Render dirty cells (non-animating entities at their logical positions)
-    this.dirtyRects.forEach(coord => {
-      const [x, y] = coord.split(',').map(Number);
+    const time = Date.now();
+    this.prepareEffects(time);
+
+    const w = this.gridWidth;
+    for (let i = 0; i < this.dirtyCount; i++) {
+      const idx = this.dirtyList[i];
+      this.dirtyFlags[idx] = 0;
+      const x = idx % w;
+      const y = (idx - x) / w;
       const entity = board.getEntity(x, y);
-      
-      // Only render if this entity is not currently animating
-      if (entity && !animatingEntities.includes(entity)) {
+      if (entity && !animationSystem.isAnimatingEntity(entity)) {
         this.drawCell(x, y, entity);
-      } else if (!entity) {
-        // Empty cell - clear it (might be part of animation path)
-        this.drawCell(x, y, null);
-      }
-    });
-    this.dirtyRects.clear();
-
-    // Draw all animating entities at their visual positions
-    for (const entity of animatingEntities) {
-      const visualPos = animationSystem.getVisualPosition(entity);
-      if (visualPos) {
-        this.drawEntity(entity, visualPos.x, visualPos.y, board);
+      } else {
+        this.drawBackground(x, y); // empty, or a mover drawn below at its visual position
       }
     }
+    this.dirtyCount = 0;
 
-    // Draw visual effects
-    this.drawVisualEffects();
+    paths.forEach(this.drawMover);
 
-    // Update FPS counter
-    this.updateFps();
+    this.drawVisualEffects(time);
+    this.countFrame();
+    this.ensureEffectLoop();
   }
 }

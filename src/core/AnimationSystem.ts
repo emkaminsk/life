@@ -1,4 +1,5 @@
 import type { Entity } from '../entities/Entity';
+import { debugLog } from '../utils/debug';
 
 /**
  * Record of entity movement for animation purposes
@@ -12,6 +13,16 @@ export interface MovementRecord {
 }
 
 /**
+ * Start and end cell of one animated movement.
+ */
+export interface MovementPath {
+  readonly fromX: number;
+  readonly fromY: number;
+  readonly toX: number;
+  readonly toY: number;
+}
+
+/**
  * Animation state for a single entity
  */
 interface AnimationState {
@@ -20,7 +31,7 @@ interface AnimationState {
   fromY: number;
   toX: number;
   toY: number;
-  progress: number; // 0.0 to 1.0
+  progress: number; // eased progress, 0.0 to 1.0
 }
 
 /**
@@ -28,43 +39,36 @@ interface AnimationState {
  */
 type EasingFunction = (t: number) => number;
 
+const linearEasing: EasingFunction = (t) => t;
+/** Deceleration at the end; feels more natural. */
+const easeOutEasing: EasingFunction = (t) => 1 - (1 - t) ** 2;
+/** Acceleration then deceleration. */
+const easeInOutEasing: EasingFunction = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
 /**
- * Manages smooth animations for entity movements
- * Interpolates entity positions between rounds for visual continuity
+ * Manages smooth animations for entity movements.
+ * Interpolates entity visual positions (entity.visualX / visualY) between rounds.
+ *
+ * Hot-path methods (update, isAnimatingEntity, getAllMovementPaths) do not
+ * allocate per frame.
  */
 export class AnimationSystem {
   private activeAnimations: Map<Entity, AnimationState>;
   private duration: number;
   private startTime: number;
   private easingFunction: EasingFunction;
+  private generation: number;
 
   constructor() {
     this.activeAnimations = new Map();
     this.duration = 300; // Default 300ms
     this.startTime = 0;
-    this.easingFunction = this.linearEasing;
-  }
-
-  /**
-   * Linear easing function (no acceleration/deceleration)
-   */
-  private linearEasing(t: number): number {
-    return t;
-  }
-
-  /**
-   * Ease-out easing function (deceleration at end)
-   * Provides more natural-feeling movement
-   */
-  private easeOutEasing(t: number): number {
-    return 1 - (1 - t) ** 2;
-  }
-
-  /**
-   * Ease-in-out easing function (acceleration and deceleration)
-   */
-  private easeInOutEasing(t: number): number {
-    return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    this.easingFunction = linearEasing;
+    this.generation = 0;
   }
 
   /**
@@ -73,65 +77,67 @@ export class AnimationSystem {
   setEasing(easing: 'linear' | 'ease-out' | 'ease-in-out'): void {
     switch (easing) {
       case 'linear':
-        this.easingFunction = this.linearEasing;
+        this.easingFunction = linearEasing;
         break;
       case 'ease-out':
-        this.easingFunction = this.easeOutEasing;
+        this.easingFunction = easeOutEasing;
         break;
       case 'ease-in-out':
-        this.easingFunction = this.easeInOutEasing;
+        this.easingFunction = easeInOutEasing;
         break;
     }
   }
 
   /**
-   * Start animations for a batch of movements
+   * Start animations for a batch of movements (replaces any running batch).
+   * Each entity's visual position is reset to its starting cell.
    * @param movements Array of movement records to animate
    * @param durationMs Duration of animations in milliseconds
    */
   startAnimations(movements: MovementRecord[], durationMs: number): void {
     this.activeAnimations.clear();
     this.duration = durationMs;
-    this.startTime = Date.now();
+    this.startTime = now();
+    this.generation++;
 
     for (const movement of movements) {
-      const animState: AnimationState = {
+      this.activeAnimations.set(movement.entity, {
         entity: movement.entity,
         fromX: movement.fromX,
         fromY: movement.fromY,
         toX: movement.toX,
         toY: movement.toY,
-        progress: 0.0,
-      };
-      this.activeAnimations.set(movement.entity, animState);
+        progress: 0,
+      });
+      movement.entity.setVisualPosition(movement.fromX, movement.fromY);
     }
 
-    console.log(`[AnimationSystem] Started ${movements.length} animations (${durationMs}ms)`);
+    debugLog(`[AnimationSystem] Started ${movements.length} animations (${durationMs}ms)`);
   }
 
   /**
-   * Update animation progress based on elapsed time
+   * Update animation progress based on elapsed time and write the
+   * interpolated position into each entity's visualX / visualY.
+   * When the batch completes, entities are left exactly at their target cell
+   * and the batch is cleared.
    */
   update(): void {
     if (this.activeAnimations.size === 0) return;
 
-    const elapsed = Date.now() - this.startTime;
-    const rawProgress = Math.min(1.0, elapsed / this.duration);
-    const easedProgress = this.easingFunction(rawProgress);
+    const elapsed = now() - this.startTime;
+    const rawProgress = this.duration > 0 ? Math.min(1, Math.max(0, elapsed / this.duration)) : 1;
+    const eased = rawProgress >= 1 ? 1 : this.easingFunction(rawProgress);
 
-    // Update all animation states
-    for (const [entity, state] of this.activeAnimations.entries()) {
-      state.progress = easedProgress;
-
-      // Update entity's visual position
-      const visualX = state.fromX + (state.toX - state.fromX) * easedProgress;
-      const visualY = state.fromY + (state.toY - state.fromY) * easedProgress;
-      entity.setVisualPosition(visualX, visualY);
+    for (const state of this.activeAnimations.values()) {
+      state.progress = eased;
+      state.entity.setVisualPosition(
+        state.fromX + (state.toX - state.fromX) * eased,
+        state.fromY + (state.toY - state.fromY) * eased
+      );
     }
 
-    // Clean up completed animations
-    if (rawProgress >= 1.0) {
-      console.log(`[AnimationSystem] Completed ${this.activeAnimations.size} animations`);
+    if (rawProgress >= 1) {
+      debugLog(`[AnimationSystem] Completed ${this.activeAnimations.size} animations`);
       this.activeAnimations.clear();
     }
   }
@@ -144,22 +150,30 @@ export class AnimationSystem {
   }
 
   /**
-   * Get the current visual position of an entity
-   * @param entity Entity to get visual position for
-   * @returns Visual position {x, y} or null if not animating
+   * O(1) check whether a specific entity is currently animating.
    */
-  getVisualPosition(entity: Entity): { x: number; y: number } | null {
-    const state = this.activeAnimations.get(entity);
-    if (!state) return null;
-
-    const visualX = state.fromX + (state.toX - state.fromX) * state.progress;
-    const visualY = state.fromY + (state.toY - state.fromY) * state.progress;
-
-    return { x: visualX, y: visualY };
+  isAnimatingEntity(entity: Entity): boolean {
+    return this.activeAnimations.has(entity);
   }
 
   /**
-   * Get all currently animating entities
+   * Incremented by every startAnimations() call; lets the renderer detect a new batch.
+   */
+  getGeneration(): number {
+    return this.generation;
+  }
+
+  /**
+   * Get the current visual position of an entity
+   * @returns Visual position {x, y} or null if not animating
+   */
+  getVisualPosition(entity: Entity): { x: number; y: number } | null {
+    if (!this.activeAnimations.has(entity)) return null;
+    return { x: entity.visualX, y: entity.visualY };
+  }
+
+  /**
+   * Get all currently animating entities (allocates; not for per-frame use)
    */
   getAnimatingEntities(): Entity[] {
     return Array.from(this.activeAnimations.keys());
@@ -169,48 +183,33 @@ export class AnimationSystem {
    * Get movement path for an entity (from and to positions)
    * Returns null if entity is not animating
    */
-  getMovementPath(entity: Entity): { fromX: number; fromY: number; toX: number; toY: number } | null {
-    const state = this.activeAnimations.get(entity);
-    if (!state) return null;
-    return {
-      fromX: state.fromX,
-      fromY: state.fromY,
-      toX: state.toX,
-      toY: state.toY,
-    };
+  getMovementPath(entity: Entity): MovementPath | null {
+    return this.activeAnimations.get(entity) ?? null;
   }
 
   /**
-   * Get all movement paths for currently animating entities
-   * Used for batch dirty rectangle marking
+   * Read-only view of all movement paths of the current batch (no copy).
+   * Do not hold on to it across startAnimations() calls.
    */
-  getAllMovementPaths(): Map<Entity, { fromX: number; fromY: number; toX: number; toY: number }> {
-    const paths = new Map<Entity, { fromX: number; fromY: number; toX: number; toY: number }>();
-    for (const [entity, state] of this.activeAnimations.entries()) {
-      paths.set(entity, {
-        fromX: state.fromX,
-        fromY: state.fromY,
-        toX: state.toX,
-        toY: state.toY,
-      });
-    }
-    return paths;
+  getAllMovementPaths(): ReadonlyMap<Entity, MovementPath> {
+    return this.activeAnimations;
   }
 
   /**
-   * Stop all animations immediately
+   * Stop all animations immediately (visual positions are left as they are;
+   * callers sync them with entity.syncVisualPosition()).
    */
   stopAll(): void {
-    console.log(`[AnimationSystem] Stopping ${this.activeAnimations.size} animations`);
+    debugLog(`[AnimationSystem] Stopping ${this.activeAnimations.size} animations`);
     this.activeAnimations.clear();
   }
 
   /**
-   * Get animation progress for debugging (0.0 to 1.0)
+   * Get raw (un-eased) animation progress for debugging (0.0 to 1.0)
    */
   getProgress(): number {
     if (this.activeAnimations.size === 0) return 1.0;
-    const elapsed = Date.now() - this.startTime;
-    return Math.min(1.0, elapsed / this.duration);
+    if (this.duration <= 0) return 1.0;
+    return Math.min(1.0, (now() - this.startTime) / this.duration);
   }
 }
