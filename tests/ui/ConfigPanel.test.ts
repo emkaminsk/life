@@ -584,7 +584,7 @@ describe('ConfigPanel', () => {
       expect(config.human.avgMetabolism).toBe(0.75);
     });
 
-    it('caution is a 0–1 probability, metabolism only has a minimum of 0', () => {
+    it('caution and metabolism are both 0–1 (the metabolism gene is capped at 1)', () => {
       setInput('humanCaution', '1.5');
       setInput('humanMetabolism', '-0.1');
       expect(
@@ -594,14 +594,16 @@ describe('ConfigPanel', () => {
           .sort(),
       ).toEqual(['humanCaution', 'humanMetabolism']);
       setInput('humanCaution', '1');
-      setInput('humanMetabolism', '50');
+      setInput('humanMetabolism', '1.5');
+      expect(panel.validate().fieldErrors.map((e) => e.rule.id)).toEqual(['humanMetabolism']);
+      setInput('humanMetabolism', '1');
       expect(panel.validate().valid).toBe(true);
     });
 
     it('loading a file fills both fields', () => {
-      panel.applyLoadedData({ config: { human: { avgCaution: 0.2, avgMetabolism: 1.5 } } }, 'g.json');
+      panel.applyLoadedData({ config: { human: { avgCaution: 0.2, avgMetabolism: 0.7 } } }, 'g.json');
       expect(input('humanCaution').value).toBe('0.2');
-      expect(input('humanMetabolism').value).toBe('1.5');
+      expect(input('humanMetabolism').value).toBe('0.7');
     });
   });
 

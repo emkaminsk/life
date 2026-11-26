@@ -30,7 +30,7 @@ export const DEFAULT_CONFIG = {
     perceptionRange: 5, // cells
     moveTowardFruitProbability: 0.7, // also the average greed gene of the initial population
     avgCaution: 0.5, // average caution gene (probability to flee a wolf) of the initial population
-    avgMetabolism: 0.1, // average metabolism gene (health cost per round) of the initial population
+    avgMetabolism: 0.5, // average metabolism gene (health cost per move, max 1) of the initial population
     gompertzA: 0.0001,
     gompertzB: 0.1,
   },

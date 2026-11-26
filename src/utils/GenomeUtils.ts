@@ -16,7 +16,7 @@ export const LONGEVITY_MEAN = 1;
 export const LONGEVITY_STD_DEV = 0.1;
 
 /** Mean metabolism of a random genome when no average is configured. */
-export const DEFAULT_AVG_METABOLISM = 0.1;
+export const DEFAULT_AVG_METABOLISM = 0.5;
 
 // biome-ignore lint/complexity/noStaticOnlyClass: namespace-style utility kept for API stability
 export class GenomeUtils {

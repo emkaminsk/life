@@ -226,6 +226,16 @@ export interface TranslationKeys {
     geneMetabolism: string;
     geneGreed: string;
     geneCaution: string;
+    geneLongevity: string;
+    perMove: string;
+    energy: string;
+    energyStates: {
+      desperate: string;
+      hungry: string;
+      moderate: string;
+      full: string;
+      satiated: string;
+    };
   };
 }
 

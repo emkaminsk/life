@@ -65,7 +65,7 @@ export const FIELD_RULES: readonly FieldRule[] = [
   { id: 'humanPerception', section: 'human', key: 'perceptionRange', min: 0, integer: true },
   probability('humanFruitProb', 'human', 'moveTowardFruitProbability'),
   probability('humanCaution', 'human', 'avgCaution'),
-  { id: 'humanMetabolism', section: 'human', key: 'avgMetabolism', min: 0 },
+  probability('humanMetabolism', 'human', 'avgMetabolism'), // the metabolism gene is capped at 1 (GENE_BOUNDS)
 
   { id: 'wolfHealth', section: 'wolf', key: 'startingHealth', min: 1 },
   { id: 'wolfDamageToMale', section: 'wolf', key: 'damageToMale', min: 0 },

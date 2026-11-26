@@ -203,6 +203,16 @@ export const translations: Translations = {
       geneMetabolism: 'Metabolism',
       geneGreed: 'Greed',
       geneCaution: 'Caution',
+      geneLongevity: 'Longevity (aging rate)',
+      perMove: 'per move',
+      energy: 'Energy',
+      energyStates: {
+        desperate: 'Desperate',
+        hungry: 'Hungry',
+        moderate: 'Moderate',
+        full: 'Full',
+        satiated: 'Satiated',
+      },
     },
   },
 
@@ -398,6 +408,16 @@ export const translations: Translations = {
       geneMetabolism: 'Metabolizm',
       geneGreed: 'Chciwość',
       geneCaution: 'Ostrożność',
+      geneLongevity: 'Długowieczność (tempo starzenia)',
+      perMove: 'na ruch',
+      energy: 'Energia',
+      energyStates: {
+        desperate: 'Zdesperowany',
+        hungry: 'Głodny',
+        moderate: 'Umiarkowany',
+        full: 'Najedzony',
+        satiated: 'Syty',
+      },
     },
   },
 };

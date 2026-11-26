@@ -147,10 +147,10 @@ export const en: RulesKeys = {
   plantsTitle: 'Plant Types',
   fruitsTitle: '🍎 Fruits',
   fruitsDesc:
-    'Fruits heal humans who eat them. A new fruit is unripe (🍏) and becomes ripe (🍎) after {0} rounds. Only ripe fruits can be eaten, and only by a human who is not at full health.',
+    'Fruits heal humans who eat them. A new fruit is unripe (🍏) and becomes ripe (🍎) after {0} rounds. Only ripe fruits can be eaten, and only by a human who is not at full health. If several hungry humans are next to it, a random one of them eats it.',
   mushroomsTitle: '🍄 Mushrooms',
   mushroomsDesc:
-    'Mushrooms are poisonous: a human who eats one loses health. They are dangerous from the moment they appear. Dogs can eat mushrooms safely.',
+    'Mushrooms are poisonous: a human who eats one loses health. They are dangerous from the moment they appear. Dogs can eat mushrooms safely. When several humans or dogs stand next to the same mushroom, a random one of them eats it.',
   mushroomsWarning: '⚠️ Warning: Mushrooms reduce health!',
 
   geneticsTitle: '🧬 Genes',
@@ -161,7 +161,8 @@ export const en: RulesKeys = {
   geneMetabolism: 'Metabolism - how much health every step costs. A fast metabolism means getting hungry quickly.',
   geneGreed: 'Greed - how likely the human is to walk toward a fruit they can see.',
   geneCaution: 'Caution - how likely the human is to run away from a wolf they can see.',
-  geneLongevity: 'Longevity - how slowly the human ages. Higher longevity means a longer life on average.',
+  geneLongevity:
+    'Longevity (aging rate) - how fast the human ages. 1 is normal; above 1 means ageing faster and a shorter life, below 1 a longer life.',
   energyTitle: '⚡ Energy',
   energyDesc: 'Health is also energy. How full a human is changes how they behave:',
   energyDesperate:
@@ -241,10 +242,10 @@ export const pl: RulesKeys = {
   plantsTitle: 'Typy Roślin',
   fruitsTitle: '🍎 Owoce',
   fruitsDesc:
-    'Owoce leczą ludzi, którzy je zjedzą. Nowy owoc jest niedojrzały (🍏) i dojrzewa (🍎) po pewnym czasie (w rundach): {0}. Zjeść można tylko dojrzały owoc i tylko wtedy, gdy człowiek nie ma pełnego zdrowia.',
+    'Owoce leczą ludzi, którzy je zjedzą. Nowy owoc jest niedojrzały (🍏) i dojrzewa (🍎) po pewnym czasie (w rundach): {0}. Zjeść można tylko dojrzały owoc i tylko wtedy, gdy człowiek nie ma pełnego zdrowia. Jeśli obok stoi kilku głodnych ludzi, zjada go losowo wybrany z nich.',
   mushroomsTitle: '🍄 Muchomory',
   mushroomsDesc:
-    'Muchomory są trujące: człowiek, który zje muchomora, traci zdrowie. Są groźne od chwili, gdy się pojawią. Psy mogą je jeść bezpiecznie.',
+    'Muchomory są trujące: człowiek, który zje muchomora, traci zdrowie. Są groźne od chwili, gdy się pojawią. Psy mogą je jeść bezpiecznie. Gdy obok tego samego muchomora stoi kilku ludzi lub psów, zjada go losowo wybrany z nich.',
   mushroomsWarning: '⚠️ Uwaga: Muchomory zmniejszają zdrowie!',
 
   geneticsTitle: '🧬 Geny',
@@ -255,7 +256,8 @@ export const pl: RulesKeys = {
   geneMetabolism: 'Metabolizm - ile zdrowia kosztuje każdy krok. Szybki metabolizm to szybki głód.',
   geneGreed: 'Chciwość - jak chętnie człowiek idzie do owocu, który widzi.',
   geneCaution: 'Ostrożność - jak chętnie człowiek ucieka przed wilkiem, którego widzi.',
-  geneLongevity: 'Długowieczność - jak wolno człowiek się starzeje. Większa długowieczność to średnio dłuższe życie.',
+  geneLongevity:
+    'Długowieczność (tempo starzenia) - jak szybko człowiek się starzeje. 1 to norma; powyżej 1 oznacza szybsze starzenie i krótsze życie, poniżej 1 dłuższe.',
   energyTitle: '⚡ Energia',
   energyDesc: 'Zdrowie to także energia. To, jak bardzo człowiek jest najedzony, zmienia jego zachowanie:',
   energyDesperate:
