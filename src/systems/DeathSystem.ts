@@ -39,7 +39,8 @@ export class DeathSystem {
     const humanFactor = humanCount > humanThreshold ? humanMultiplier : 1;
     const animalFactor = animalCount > animalThreshold ? animalMultiplier : 1;
     if (humanFactor !== 1) debugLog(`[Death] Human overcrowding (${humanCount} > ${humanThreshold}) ×${humanFactor}`);
-    if (animalFactor !== 1) debugLog(`[Death] Animal overcrowding (${animalCount} > ${animalThreshold}) ×${animalFactor}`);
+    if (animalFactor !== 1)
+      debugLog(`[Death] Animal overcrowding (${animalCount} > ${animalThreshold}) ×${animalFactor}`);
 
     let healthDeaths = 0;
     let ageDeaths = 0;

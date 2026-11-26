@@ -52,17 +52,13 @@ export class TraitChart {
 
   private getActiveTraits(): (keyof Genome)[] {
     const traits: (keyof Genome)[] = ['maxHealth', 'strength', 'metabolism', 'greed', 'caution'];
-    return traits.filter(trait => {
+    return traits.filter((trait) => {
       const checkbox = document.getElementById(`show${this.capitalizeFirst(trait)}`) as HTMLInputElement;
       return checkbox?.checked ?? false;
     });
   }
 
-  private drawTraitLine(
-    trait: keyof Genome,
-    sex: 'male' | 'female',
-    color: string
-  ): void {
+  private drawTraitLine(trait: keyof Genome, sex: 'male' | 'female', color: string): void {
     if (this.history.length === 0) return;
 
     // Scale Y-axis based on trait type
@@ -79,9 +75,10 @@ export class TraitChart {
 
       // Fix division by zero: when history.length === 1, use 0 for x position
       // Otherwise, calculate proportional position
-      const x = this.history.length === 1
-        ? 30  // Single point at left margin
-        : (i / (this.history.length - 1)) * (this.canvas.width - 40) + 30;
+      const x =
+        this.history.length === 1
+          ? 30 // Single point at left margin
+          : (i / (this.history.length - 1)) * (this.canvas.width - 40) + 30;
 
       const y = this.canvas.height - 30 - (value / yScale) * (this.canvas.height - 50);
 
@@ -124,7 +121,11 @@ export class TraitChart {
     // X-axis labels
     this.ctx.fillText(i18n.t('stats.graphRound', 0), 30, this.canvas.height - 15);
     if (this.history.length > 1) {
-      this.ctx.fillText(i18n.t('stats.graphRound', this.history.length - 1), this.canvas.width - 10, this.canvas.height - 15);
+      this.ctx.fillText(
+        i18n.t('stats.graphRound', this.history.length - 1),
+        this.canvas.width - 10,
+        this.canvas.height - 15,
+      );
     }
   }
 
@@ -166,22 +167,22 @@ export class TraitChart {
 
   private getMaleColor(trait: keyof Genome): string {
     const colors: Record<keyof Genome, string> = {
-      maxHealth: '#0066cc',    // Dark blue
-      strength: '#3399ff',     // Royal blue
-      metabolism: '#66a3ff',   // Light blue
-      greed: '#99c2ff',        // Pale blue
-      caution: '#cce0ff'       // Very pale blue
+      maxHealth: '#0066cc', // Dark blue
+      strength: '#3399ff', // Royal blue
+      metabolism: '#66a3ff', // Light blue
+      greed: '#99c2ff', // Pale blue
+      caution: '#cce0ff', // Very pale blue
     };
     return colors[trait] || '#000000';
   }
 
   private getFemaleColor(trait: keyof Genome): string {
     const colors: Record<keyof Genome, string> = {
-      maxHealth: '#cc0066',    // Dark pink
-      strength: '#ff3399',     // Hot pink
-      metabolism: '#ff66a3',   // Light pink
-      greed: '#ff99c2',        // Pale pink
-      caution: '#ffcce0'       // Very pale pink
+      maxHealth: '#cc0066', // Dark pink
+      strength: '#ff3399', // Hot pink
+      metabolism: '#ff66a3', // Light pink
+      greed: '#ff99c2', // Pale pink
+      caution: '#ffcce0', // Very pale pink
     };
     return colors[trait] || '#000000';
   }

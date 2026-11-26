@@ -78,11 +78,7 @@ export class Random {
   /**
    * Find positions that minimize distance to target
    */
-  static getClosestPositions(
-    positions: Position[],
-    targetX: number,
-    targetY: number
-  ): Position[] {
+  static getClosestPositions(positions: Position[], targetX: number, targetY: number): Position[] {
     if (positions.length === 0) return [];
 
     let minDistance = Infinity;
@@ -109,9 +105,9 @@ export class Random {
     entities: T[],
     centerX: number,
     centerY: number,
-    range: number
+    range: number,
   ): T[] {
-    return entities.filter(entity => {
+    return entities.filter((entity) => {
       const dist = Random.distance(centerX, centerY, entity.x, entity.y);
       return dist <= range && dist > 0; // Exclude self
     });

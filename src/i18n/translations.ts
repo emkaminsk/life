@@ -181,19 +181,25 @@ export const translations: Translations = {
 
       creaturesTitle: 'Creature Types',
       malesTitle: '🧑‍🦰 Male Humans',
-      malesDesc: 'Males move toward fruits and fight wolves. They compete with other males for territory. Males can reproduce with adjacent females.',
+      malesDesc:
+        'Males move toward fruits and fight wolves. They compete with other males for territory. Males can reproduce with adjacent females.',
       femalesTitle: '👩 Female Humans',
-      femalesDesc: 'Females move toward fruits and can become pregnant. Pregnancy lasts several rounds before giving birth. Pregnant females show 🤰.',
+      femalesDesc:
+        'Females move toward fruits and can become pregnant. Pregnancy lasts several rounds before giving birth. Pregnant females show 🤰.',
       wolvesTitle: '🐺 Wolves',
-      wolvesDesc: 'Wolves hunt humans and deal damage when adjacent. Males fight back against wolves, but females do not.',
+      wolvesDesc:
+        'Wolves hunt humans and deal damage when adjacent. Males fight back against wolves, but females do not.',
       dogsTitle: '🐕 Dogs',
-      dogsDesc: 'Dogs protect humans by attacking wolves. When adjacent to a wolf, dogs deal damage to protect the ecosystem.',
+      dogsDesc:
+        'Dogs protect humans by attacking wolves. When adjacent to a wolf, dogs deal damage to protect the ecosystem.',
 
       plantsTitle: 'Plant Types',
       fruitsTitle: '🍎 Fruits',
-      fruitsDesc: 'Fruits heal humans when eaten. New fruits are unripe (🍏) and become ripe (🍎) after several rounds. Only ripe fruits can be eaten.',
+      fruitsDesc:
+        'Fruits heal humans when eaten. New fruits are unripe (🍏) and become ripe (🍎) after several rounds. Only ripe fruits can be eaten.',
       mushroomsTitle: '🍄 Mushrooms',
-      mushroomsDesc: 'Mushrooms are poisonous plants that damage humans when eaten. They spawn randomly and are immediately dangerous.',
+      mushroomsDesc:
+        'Mushrooms are poisonous plants that damage humans when eaten. They spawn randomly and are immediately dangerous.',
       mushroomsWarning: '⚠️ Warning: Mushrooms reduce health!',
 
       controlsTitle: 'Controls',
@@ -419,9 +425,11 @@ export const translations: Translations = {
 
       creaturesTitle: 'Typy Stworzeń',
       malesTitle: '🧑‍🦰 Mężczyźni',
-      malesDesc: 'Mężczyźni poruszają się w stronę owoców i walczą z wilkami. Rywalizują z innymi mężczyznami o terytorium. Mogą rozmnażać się z sąsiednimi kobietami.',
+      malesDesc:
+        'Mężczyźni poruszają się w stronę owoców i walczą z wilkami. Rywalizują z innymi mężczyznami o terytorium. Mogą rozmnażać się z sąsiednimi kobietami.',
       femalesTitle: '👩 Kobiety',
-      femalesDesc: 'Kobiety poruszają się w stronę owoców i mogą zajść w ciążę. Ciąża trwa kilka rund przed porodem. Kobiety w ciąży pokazują 🤰.',
+      femalesDesc:
+        'Kobiety poruszają się w stronę owoców i mogą zajść w ciążę. Ciąża trwa kilka rund przed porodem. Kobiety w ciąży pokazują 🤰.',
       wolvesTitle: '🐺 Wilki',
       wolvesDesc: 'Wilki polują na ludzi i zadają obrażenia gdy są obok. Mężczyźni walczą z wilkami, ale kobiety nie.',
       dogsTitle: '🐕 Psy',
@@ -429,9 +437,11 @@ export const translations: Translations = {
 
       plantsTitle: 'Typy Roślin',
       fruitsTitle: '🍎 Owoce',
-      fruitsDesc: 'Owoce leczą ludzi gdy są zjedzone. Nowe owoce są niedojrzałe (🍏) i stają się dojrzałe (🍎) po kilku rundach. Tylko dojrzałe owoce mogą być zjedzone.',
+      fruitsDesc:
+        'Owoce leczą ludzi gdy są zjedzone. Nowe owoce są niedojrzałe (🍏) i stają się dojrzałe (🍎) po kilku rundach. Tylko dojrzałe owoce mogą być zjedzone.',
       mushroomsTitle: '🍄 Muchomory',
-      mushroomsDesc: 'Muchomory są trującymi roślinami które ranią ludzi gdy są zjedzone. Pojawiają się losowo i są natychmiast niebezpieczne.',
+      mushroomsDesc:
+        'Muchomory są trującymi roślinami które ranią ludzi gdy są zjedzone. Pojawiają się losowo i są natychmiast niebezpieczne.',
       mushroomsWarning: '⚠️ Uwaga: Muchomory zmniejszają zdrowie!',
 
       controlsTitle: 'Sterowanie',
@@ -442,7 +452,8 @@ export const translations: Translations = {
       keyDown: 'Strzałka w Dół - Pauza symulacji',
       keyLeft: 'Strzałka w Lewo - Pauza symulacji',
       mouseControlsTitle: 'Sterowanie Myszą',
-      mouseDesc: 'Użyj przycisków w panelu sterowania aby zarządzać symulacją. Kliknij "?" aby zobaczyć te zasady w każdej chwili.',
+      mouseDesc:
+        'Użyj przycisków w panelu sterowania aby zarządzać symulacją. Kliknij "?" aby zobaczyć te zasady w każdej chwili.',
     },
 
     errors: {

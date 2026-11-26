@@ -79,7 +79,10 @@ export class CombatSystem {
       return true;
     }
     // Wolf vs Human (any sex)
-    if ((entity1 instanceof Wolf && entity2 instanceof Human) || (entity1 instanceof Human && entity2 instanceof Wolf)) {
+    if (
+      (entity1 instanceof Wolf && entity2 instanceof Human) ||
+      (entity1 instanceof Human && entity2 instanceof Wolf)
+    ) {
       return true;
     }
     // Dog vs Wolf

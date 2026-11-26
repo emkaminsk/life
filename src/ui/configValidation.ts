@@ -25,7 +25,13 @@ export interface FieldRule {
   legacyKey?: string;
 }
 
-const probability = (id: string, section: Section, key: string): FieldRule => ({ id, section, key, min: 0, max: 1 });
+const probability = (id: string, section: Section, key: string): FieldRule => ({
+  id,
+  section,
+  key,
+  min: 0,
+  max: 1,
+});
 
 export const FIELD_RULES: readonly FieldRule[] = [
   { id: 'boardWidth', section: 'board', key: 'width', min: 10, max: 100, integer: true },
@@ -72,7 +78,13 @@ export const FIELD_RULES: readonly FieldRule[] = [
   probability('fruitSpawn', 'fruit', 'spawnProbability'),
   { id: 'fruitRipen', section: 'fruit', key: 'roundsToRipen', min: 0, integer: true },
 
-  { id: 'mushroomDamage', section: 'mushroom', key: 'energyRemoved', min: 0, legacyKey: 'damageValue' },
+  {
+    id: 'mushroomDamage',
+    section: 'mushroom',
+    key: 'energyRemoved',
+    min: 0,
+    legacyKey: 'damageValue',
+  },
   probability('mushroomSpawn', 'mushroom', 'spawnProbability'),
 
   { id: 'humanThreshold', section: 'overcrowding', key: 'humanThreshold', min: 10, max: 1000 },
@@ -138,7 +150,11 @@ export function isConfigStartable(config: GameConfig): boolean {
 export function getDefaultConfig(): GameConfig {
   const d = DEFAULT_CONFIG;
   return {
-    board: { width: d.board.width, height: d.board.height, injuredThreshold: d.board.injuredThreshold },
+    board: {
+      width: d.board.width,
+      height: d.board.height,
+      injuredThreshold: d.board.injuredThreshold,
+    },
     spawn: {
       maleHumanProbability: d.spawn.maleHumanProbability,
       femaleHumanProbability: d.spawn.femaleHumanProbability,

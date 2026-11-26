@@ -26,14 +26,16 @@ export class Human extends Entity {
     gompertzA?: number,
     gompertzB?: number,
     genome?: Genome,
-    avgGreed?: number
+    avgGreed?: number,
   ) {
-    const activeGenome = genome ?? GenomeUtils.createRandomGenome(
-      startingHealth ?? DEFAULT_CONFIG.human.startingHealth, // Avg Max Health
-      1.0, // Avg Strength (multiplier)
-      avgGreed ?? DEFAULT_CONFIG.human.moveTowardFruitProbability, // Avg Greed
-      0.0 // Avg Caution (default doesn't run from wolves)
-    );
+    const activeGenome =
+      genome ??
+      GenomeUtils.createRandomGenome(
+        startingHealth ?? DEFAULT_CONFIG.human.startingHealth, // Avg Max Health
+        1.0, // Avg Strength (multiplier)
+        avgGreed ?? DEFAULT_CONFIG.human.moveTowardFruitProbability, // Avg Greed
+        0.0, // Avg Caution (default doesn't run from wolves)
+      );
 
     super(
       x,
@@ -42,7 +44,7 @@ export class Human extends Entity {
       sex === Sex.MALE ? EntityType.MALE : EntityType.FEMALE,
       gompertzA ?? DEFAULT_CONFIG.human.gompertzA,
       gompertzB ?? DEFAULT_CONFIG.human.gompertzB,
-      activeGenome.maxHealth
+      activeGenome.maxHealth,
     );
 
     this.sex = sex;

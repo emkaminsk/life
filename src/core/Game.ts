@@ -164,7 +164,16 @@ export class Game {
           this.board.setEntity(
             x,
             y,
-            new Human(x, y, sex, human.startingHealth, human.gompertzA, human.gompertzB, undefined, human.moveTowardFruitProbability)
+            new Human(
+              x,
+              y,
+              sex,
+              human.startingHealth,
+              human.gompertzA,
+              human.gompertzB,
+              undefined,
+              human.moveTowardFruitProbability,
+            ),
           );
         } else if (rand < cumulativeWolf) {
           this.board.setEntity(x, y, new Wolf(x, y, wolf.startingHealth, wolf.gompertzA, wolf.gompertzB));

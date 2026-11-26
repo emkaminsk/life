@@ -77,12 +77,18 @@ export function formatEntityInfo(entity: Entity): TooltipContent {
   if (entity instanceof Human || entity instanceof Wolf || entity instanceof Dog) {
     const max = maxHealthOf(entity);
     const health = Math.round(entity.health);
-    rows.push({ label: t('tooltip.health'), value: max !== undefined ? `${health} / ${Math.round(max)}` : `${health}` });
+    rows.push({
+      label: t('tooltip.health'),
+      value: max !== undefined ? `${health} / ${Math.round(max)}` : `${health}`,
+    });
     rows.push({ label: t('tooltip.age'), value: String(entity.age) });
 
     if (entity instanceof Human) {
       if (entity.sex === Sex.FEMALE && entity.isPregnant()) {
-        rows.push({ label: t('tooltip.pregnant'), value: `${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}` });
+        rows.push({
+          label: t('tooltip.pregnant'),
+          value: `${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}`,
+        });
       }
       const g = entity.genome;
       sectionTitle = t('tooltip.genetics');
@@ -97,7 +103,10 @@ export function formatEntityInfo(entity: Entity): TooltipContent {
   }
 
   if (entity instanceof Fruit && !entity.isRipe()) {
-    rows.push({ label: t('tooltip.ripening'), value: `${entity.ripeningCounter} ${t('tooltip.roundsRemaining')}` });
+    rows.push({
+      label: t('tooltip.ripening'),
+      value: `${entity.ripeningCounter} ${t('tooltip.roundsRemaining')}`,
+    });
   }
 
   return { header: `${emoji} ${typeName}`, rows, sectionTitle, sectionRows };

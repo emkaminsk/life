@@ -433,7 +433,11 @@ export class ConfigPanel {
     const result = this.validate();
 
     if (result.valid) {
-      showNotification(i18n.t('notifications.configLoadedTitle'), i18n.t('notifications.configLoaded', fileName), 'info');
+      showNotification(
+        i18n.t('notifications.configLoadedTitle'),
+        i18n.t('notifications.configLoaded', fileName),
+        'info',
+      );
     } else {
       showNotification(
         i18n.t('notifications.configLoadInvalidTitle'),

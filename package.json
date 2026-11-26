@@ -13,7 +13,8 @@
     "test:coverage": "vitest --coverage",
     "lint": "biome lint src",
     "lint:fix": "biome lint --write src",
-    "format": "biome format --write src",
+    "format": "biome format --write src tests",
+    "format:check": "biome format src tests",
     "check": "biome check src",
     "typecheck": "tsc --noEmit && tsc -p tests --noEmit",
     "test:run": "vitest run"

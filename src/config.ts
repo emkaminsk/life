@@ -16,7 +16,7 @@ export const DEFAULT_CONFIG = {
     femaleHumanProbability: 0.15,
     wolfProbability: 0.05,
     dogProbability: 0.03,
-    fruitProbability: 0.10,
+    fruitProbability: 0.1,
     mushroomProbability: 0.01, // 1% spawn rate for mushrooms
   },
 

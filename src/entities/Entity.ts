@@ -20,7 +20,7 @@ export abstract class Entity {
     type: EntityType,
     gompertzA: number = 0.0001,
     gompertzB: number = 0.1,
-    maxHealth: number = health
+    maxHealth: number = health,
   ) {
     this.x = x;
     this.y = y;

@@ -37,7 +37,11 @@ export class BirthSystem {
 
       const emptyPositions = board.getEmptyAdjacentPositions(female.x, female.y);
       const birthPosition =
-        emptyPositions.length === 0 ? null : emptyPositions.length === 1 ? emptyPositions[0] : Random.choice(emptyPositions);
+        emptyPositions.length === 0
+          ? null
+          : emptyPositions.length === 1
+            ? emptyPositions[0]
+            : Random.choice(emptyPositions);
 
       const babySex = Random.chance(0.5) ? Sex.MALE : Sex.FEMALE;
       const x = birthPosition ? birthPosition.x : female.x;
@@ -49,7 +53,7 @@ export class BirthSystem {
         undefined, // starts at genome max health
         config.human.gompertzA,
         config.human.gompertzB,
-        babyGenome
+        babyGenome,
       );
 
       if (!birthPosition) {

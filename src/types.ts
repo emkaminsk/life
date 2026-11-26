@@ -4,12 +4,12 @@ export enum EntityType {
   WOLF = 'WOLF',
   DOG = 'DOG',
   FRUIT = 'FRUIT',
-  MUSHROOM = 'MUSHROOM'
+  MUSHROOM = 'MUSHROOM',
 }
 
 export enum Sex {
   MALE = 'MALE',
-  FEMALE = 'FEMALE'
+  FEMALE = 'FEMALE',
 }
 
 export interface Position {
@@ -26,11 +26,11 @@ export interface VisualEffect {
 }
 
 export interface Genome {
-  maxHealth: number;    // Physical: Determines starting and max health
-  strength: number;     // Physical: Damage multiplier in combat
-  metabolism: number;   // Physical: Energy cost per move (0-1)
-  greed: number;        // Behavioral: Probability to move toward food (0-1)
-  caution: number;      // Behavioral: Probability to run from predators (0-1)
+  maxHealth: number; // Physical: Determines starting and max health
+  strength: number; // Physical: Damage multiplier in combat
+  metabolism: number; // Physical: Energy cost per move (0-1)
+  greed: number; // Behavioral: Probability to move toward food (0-1)
+  caution: number; // Behavioral: Probability to run from predators (0-1)
 }
 
 export interface GenomeSnapshot {

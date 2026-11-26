@@ -26,12 +26,7 @@ export class GenomeUtils {
   /**
    * Creates a random genome based on configuration averages
    */
-  static createRandomGenome(
-    avgMaxHealth: number,
-    avgStrength: number,
-    avgGreed: number,
-    avgCaution: number
-  ): Genome {
+  static createRandomGenome(avgMaxHealth: number, avgStrength: number, avgGreed: number, avgCaution: number): Genome {
     return GenomeUtils.clampGenome({
       maxHealth: GenomeUtils.gaussianRandom(avgMaxHealth, avgMaxHealth * 0.2), // 20% variance
       strength: GenomeUtils.gaussianRandom(avgStrength, avgStrength * 0.2), // 20% variance
@@ -50,7 +45,7 @@ export class GenomeUtils {
     const pick = (gene: keyof Genome): number =>
       GenomeUtils.clampGene(
         gene,
-        GenomeUtils.mutate(Random.chance(0.5) ? mother[gene] : father[gene], GenomeUtils.MUTATION_VARIANCE[gene])
+        GenomeUtils.mutate(Random.chance(0.5) ? mother[gene] : father[gene], GenomeUtils.MUTATION_VARIANCE[gene]),
       );
     return {
       maxHealth: pick('maxHealth'),

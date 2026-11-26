@@ -80,7 +80,13 @@ export class EatingSystem {
   }
 
   private flash(type: 'eating' | 'combat', x: number, y: number): void {
-    this.renderer.addVisualEffect({ type, x, y, startTime: Date.now(), duration: VISUAL_EFFECT_DURATION_MS });
+    this.renderer.addVisualEffect({
+      type,
+      x,
+      y,
+      startTime: Date.now(),
+      duration: VISUAL_EFFECT_DURATION_MS,
+    });
     this.renderer.markDirty(x, y);
   }
 }

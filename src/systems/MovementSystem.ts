@@ -77,11 +77,19 @@ export class MovementSystem {
       targetPosition = this.getHumanTarget(creature, board, config, availablePositions);
     } else if (creature instanceof Wolf) {
       targetPosition = this.getChaseTarget(
-        creature, board, isHuman, config.wolf.perceptionRange, config.wolf.moveTowardHumanProbability
+        creature,
+        board,
+        isHuman,
+        config.wolf.perceptionRange,
+        config.wolf.moveTowardHumanProbability,
       );
     } else {
       targetPosition = this.getChaseTarget(
-        creature, board, isWolf, config.dog.perceptionRange, config.dog.moveTowardWolfProbability
+        creature,
+        board,
+        isWolf,
+        config.dog.perceptionRange,
+        config.dog.moveTowardWolfProbability,
       );
     }
 
@@ -104,7 +112,7 @@ export class MovementSystem {
     human: Human,
     board: Board,
     config: GameConfig,
-    availablePositions: Position[]
+    availablePositions: Position[],
   ): Position | null {
     const range = config.human.perceptionRange;
 
@@ -134,7 +142,7 @@ export class MovementSystem {
     board: Board,
     isTarget: EntityPredicate,
     range: number,
-    probability: number
+    probability: number,
   ): Position | null {
     // Probability checked first so the (more expensive) scan is skipped when it fails;
     // the resulting behaviour is identical to "detect, then roll".
@@ -152,9 +160,7 @@ export class MovementSystem {
    * random available adjacent cell.
    */
   static stepToward(board: Board, fromX: number, fromY: number, tx: number, ty: number): Position | null {
-    const candidates = board
-      .getAdjacentPositions(fromX, fromY)
-      .filter((p) => !(p.x === tx && p.y === ty));
+    const candidates = board.getAdjacentPositions(fromX, fromY).filter((p) => !(p.x === tx && p.y === ty));
     const preferred = Random.getClosestPositions(candidates, tx, ty);
     const free = preferred.filter((p) => board.isEmpty(p.x, p.y));
     return pick(free);
@@ -166,13 +172,7 @@ export class MovementSystem {
    * the grid (O(range²), no allocations for empty rings). Ties between equally
    * near targets are broken randomly.
    */
-  static findNearest(
-    board: Board,
-    cx: number,
-    cy: number,
-    range: number,
-    isTarget: EntityPredicate
-  ): Entity | null {
+  static findNearest(board: Board, cx: number, cy: number, range: number, isTarget: EntityPredicate): Entity | null {
     const maxRange = Math.min(Math.floor(range), board.width + board.height);
     const grid = board.grid;
     const width = board.width;

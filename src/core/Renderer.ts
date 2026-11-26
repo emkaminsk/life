@@ -139,7 +139,7 @@ export class Renderer {
 
     debugLog(
       `[Renderer] Canvas resized to ${this.gridWidth * this.cellSize}x${this.gridHeight * this.cellSize} CSS px ` +
-        `(${this.gridWidth}x${this.gridHeight} cells, cell ${this.cellSize}px, dpr ${this.dpr})`
+        `(${this.gridWidth}x${this.gridHeight} cells, cell ${this.cellSize}px, dpr ${this.dpr})`,
     );
   }
 
@@ -521,7 +521,7 @@ export class Renderer {
       Math.min(path.fromX, path.toX),
       Math.min(path.fromY, path.toY),
       Math.max(path.fromX, path.toX),
-      Math.max(path.fromY, path.toY)
+      Math.max(path.fromY, path.toY),
     );
   };
 
@@ -534,7 +534,11 @@ export class Renderer {
   private drawMover = (_path: MovementPath, entity: Entity): void => {
     // Snap to device pixels so moving sprites stay sharp.
     const scale = this.cellSize * this.dpr;
-    this.drawSprite(entity, Math.round(entity.visualX * scale) / this.dpr, Math.round(entity.visualY * scale) / this.dpr);
+    this.drawSprite(
+      entity,
+      Math.round(entity.visualX * scale) / this.dpr,
+      Math.round(entity.visualY * scale) / this.dpr,
+    );
   };
 
   /**

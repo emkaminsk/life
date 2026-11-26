@@ -251,7 +251,9 @@ speedSelect.addEventListener('change', () => {
 
 // ---------------------------------------------------------------- rules modal
 const rulesModal = byId<HTMLElement>('rulesModal');
-const rulesDialog = createDialog(rulesModal, { closeButton: document.getElementById('closeModal') });
+const rulesDialog = createDialog(rulesModal, {
+  closeButton: document.getElementById('closeModal'),
+});
 byId<HTMLButtonElement>('helpBtn').addEventListener('click', () => rulesDialog.open());
 
 const modalTabs = Array.from(document.querySelectorAll<HTMLElement>('.modal-tab'));

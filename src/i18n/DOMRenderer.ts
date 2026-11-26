@@ -16,7 +16,7 @@ export class DOMRenderer {
       if (key) {
         // Get data-i18n-args attribute for interpolation
         const argsAttr = element.getAttribute('data-i18n-args');
-        const args = argsAttr ? argsAttr.split(',').map(arg => arg.trim()) : [];
+        const args = argsAttr ? argsAttr.split(',').map((arg) => arg.trim()) : [];
 
         element.textContent = i18n.t(key, ...args);
       }
