@@ -14,8 +14,10 @@ export interface SetupKeys {
   };
   /** Palette button tooltip: {0} item name, {1} key. */
   toolHint: string;
+  /** Keyboard shortcuts (hidden on touch-only screens). */
   help: string;
-  mouseHelp: string;
+  /** Tap / click / drag instructions. */
+  pointerHelp: string;
   confirm: string;
   back: string;
   clear: string;
@@ -50,7 +52,8 @@ export const en: SetupKeys = {
   },
   toolHint: '{0} (key {1})',
   help: 'Arrows: move · Shift+arrows: select area · Ctrl+A: whole board · 1–6: place item · Shift+1–6: sprinkle ~30% · 0 or Delete: erase · Esc: clear selection · Ctrl+Enter: start',
-  mouseHelp: 'Drag an item onto the board, click to place the chosen item, or drag across the board to select an area.',
+  pointerHelp:
+    'Tap or click an item, then tap the board to place it. Drag across the board to select an area, then tap an item to fill it. With a mouse you can also drag an item onto the board.',
   confirm: 'Start game',
   back: 'Back to settings',
   clear: 'Clear board',
@@ -80,8 +83,8 @@ export const pl: SetupKeys = {
   },
   toolHint: '{0} (klawisz {1})',
   help: 'Strzałki: ruch · Shift+strzałki: zaznacz obszar · Ctrl+A: cała plansza · 1–6: postaw element · Shift+1–6: rozsyp ~30% · 0 lub Delete: wymaż · Esc: usuń zaznaczenie · Ctrl+Enter: start',
-  mouseHelp:
-    'Przeciągnij element na planszę, kliknij, aby postawić wybrany element, albo przeciągnij po planszy, aby zaznaczyć obszar.',
+  pointerHelp:
+    'Dotknij lub kliknij element, a potem dotknij planszy, aby go postawić. Przeciągnij po planszy, aby zaznaczyć obszar, a potem dotknij elementu, aby go wypełnić. Myszką możesz też przeciągnąć element na planszę.',
   confirm: 'Rozpocznij grę',
   back: 'Wróć do ustawień',
   clear: 'Wyczyść planszę',
