@@ -115,6 +115,7 @@ export class SummaryDialog {
   /** Stop listening for language changes (tests / teardown). */
   destroy(): void {
     this.i18n.offLanguageChange(this.languageListener);
+    this.dialog.destroy();
   }
 
   private t(key: string, ...args: (string | number)[]): string {

@@ -249,7 +249,14 @@ describe('GameControls.begin(paused)', () => {
     s.controls.begin(true);
     expect(s.controls.getState()).toBe('paused');
     expect(s.game.start).not.toHaveBeenCalled();
-    expect(enabled(s.buttons)).toEqual({ pause: true, step: true, runFive: true, run: true, reset: true, finish: true });
+    expect(enabled(s.buttons)).toEqual({
+      pause: true,
+      step: true,
+      runFive: true,
+      run: true,
+      reset: true,
+      finish: true,
+    });
     expect(s.buttons.pause.textContent).toBe('controls.resume');
     expect(document.activeElement).toBe(s.buttons.step);
     s.buttons.step.remove();
