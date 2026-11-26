@@ -39,6 +39,89 @@ describe('createDialog', () => {
     document.getElementById('close')!.click();
     expect(dialog.isOpen()).toBe(false);
   });
+
+  const tab = (target: Element, shiftKey = false) => {
+    const e = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+    target.dispatchEvent(e);
+    return e;
+  };
+
+  it('Tab on the last focusable wraps to the first, Shift+Tab on the first wraps to the last', () => {
+    // jsdom has no layout (offsetParent is always null): pretend everything is visible
+    vi.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockReturnValue(document.body);
+    const overlay = document.getElementById('overlay')!;
+    const close = document.getElementById('close')!;
+    const other = document.getElementById('other')!;
+    createDialog(overlay, { closeButton: close }).open();
+
+    other.focus();
+    expect(tab(other).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(close);
+
+    expect(tab(close, true).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(other);
+
+    // in the middle the browser moves focus itself
+    close.focus();
+    expect(tab(close).defaultPrevented).toBe(false);
+  });
+
+  it('skips hidden and disabled controls when wrapping', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'hidden' ? null : document.body;
+    });
+    document
+      .getElementById('overlay')!
+      .querySelector('.content')!
+      .insertAdjacentHTML('beforeend', '<button id="disabled" disabled>d</button><button id="hidden">h</button>');
+    const close = document.getElementById('close')!;
+    const other = document.getElementById('other')!;
+    createDialog(document.getElementById('overlay')!, { closeButton: close }).open();
+    other.focus();
+    tab(other);
+    expect(document.activeElement).toBe(close);
+  });
+
+  it('Tab is ignored when the dialog is closed', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockReturnValue(document.body);
+    const overlay = document.getElementById('overlay')!;
+    createDialog(overlay, { closeButton: document.getElementById('close') });
+    const other = document.getElementById('other')!;
+    other.focus();
+    expect(tab(other).defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(other);
+  });
+
+  it('Escape closes only when closeOnEscape is set; onClose fires on every close', () => {
+    const overlay = document.getElementById('overlay')!;
+    const onClose = vi.fn();
+    const plain = createDialog(overlay, { closeButton: document.getElementById('close'), onClose });
+    plain.open();
+    overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(plain.isOpen()).toBe(true); // keyboard.ts owns Escape for this dialog
+    plain.close();
+    expect(onClose).toHaveBeenCalledOnce();
+
+    document.body.innerHTML = '<div id="o2"><button id="b2">x</button></div>';
+    const o2 = document.getElementById('o2')!;
+    const escaping = createDialog(o2, { closeOnEscape: true, onClose });
+    escaping.open();
+    expect(document.activeElement?.id).toBe('b2'); // first focusable by default
+    o2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(escaping.isOpen()).toBe(false);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not return focus to an opener that became disabled', () => {
+    const overlay = document.getElementById('overlay')!;
+    const opener = document.getElementById('opener') as HTMLButtonElement;
+    const dialog = createDialog(overlay, { closeButton: document.getElementById('close') });
+    opener.focus();
+    dialog.open();
+    opener.disabled = true;
+    dialog.close();
+    expect(document.activeElement).not.toBe(opener);
+  });
 });
 
 describe('showNotification', () => {

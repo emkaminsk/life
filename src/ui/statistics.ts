@@ -2,6 +2,8 @@ import type { Entity } from '../entities/Entity';
 import { Fruit } from '../entities/Fruit';
 import { Human } from '../entities/Human';
 import { EntityType } from '../types';
+import { type NotificationType, showNotification } from './notifications';
+import './statistics.css';
 
 /** Snapshot of everything the statistics panel shows (PRD 3.10.1). */
 export interface PopulationCounts {
@@ -124,40 +126,115 @@ export class RoundsPerSecondTracker {
   }
 }
 
-export type AlertKind = 'maleExtinction' | 'femaleExtinction' | 'boardNearlyFull';
+export type PopulationAlertKind =
+  | 'maleExtinction'
+  | 'maleExtinctionUnlessBoy'
+  | 'femaleExtinction'
+  | 'wolfExtinction'
+  | 'dogExtinction'
+  | 'boardNearlyFull';
+
+/** i18n title / message keys and severity for every alert. */
+export const ALERT_MESSAGES: Record<PopulationAlertKind, { title: string; message: string; type: NotificationType }> = {
+  maleExtinction: { title: 'notifications.maleExtinctionTitle', message: 'notifications.allMalesDied', type: 'error' },
+  maleExtinctionUnlessBoy: {
+    title: 'notifications.maleExtinctionTitle',
+    message: 'summary.alerts.allMalesDiedUnlessBoy',
+    type: 'warning',
+  },
+  femaleExtinction: {
+    title: 'notifications.femaleExtinctionTitle',
+    message: 'notifications.allFemalesDied',
+    type: 'error',
+  },
+  wolfExtinction: { title: 'summary.alerts.wolvesExtinctTitle', message: 'summary.alerts.wolvesExtinct', type: 'info' },
+  dogExtinction: { title: 'summary.alerts.dogsExtinctTitle', message: 'summary.alerts.dogsExtinct', type: 'info' },
+  boardNearlyFull: {
+    title: 'notifications.boardNearlyFullTitle',
+    message: 'notifications.boardNearlyFull',
+    type: 'warning',
+  },
+};
+
+/** Show a notification for each alert kind (in the order given). */
+export function notifyAlerts(
+  kinds: readonly PopulationAlertKind[],
+  t: (key: string) => string,
+  notify: (title: string, message: string, type: NotificationType) => unknown = showNotification,
+): void {
+  for (const kind of kinds) {
+    const { title, message, type } = ALERT_MESSAGES[kind];
+    notify(t(title), t(message), type);
+  }
+}
 
 /**
- * Edge-triggered alerts (PRD 3.12): extinction fires once when a population that
- * existed drops to zero; the capacity warning re-arms after dropping below 90%.
+ * Fires once when a population that existed drops to 0 and re-arms as soon as
+ * it is back above 0 (e.g. a baby boy after the last male died, R7).
  */
-export class AlertTracker {
-  private previousMales = 0;
-  private previousFemales = 0;
-  private maleAlerted = false;
-  private femaleAlerted = false;
+class ExtinctionEdge {
+  private previous = 0;
+  private alerted = false;
+
+  reset(): void {
+    this.previous = 0;
+    this.alerted = false;
+  }
+
+  /** true exactly when this update is a new extinction. */
+  update(count: number): boolean {
+    const fired = this.previous > 0 && count === 0 && !this.alerted;
+    if (fired) this.alerted = true;
+    if (count > 0) this.alerted = false;
+    this.previous = count;
+    return fired;
+  }
+}
+
+/**
+ * Edge-triggered alerts (PRD 3.12): an extinction fires once when a population
+ * that existed drops to zero and re-arms when it comes back; the capacity
+ * warning re-arms after dropping below 90%.
+ *
+ * Male extinction while a female is still pregnant is not final (she may have
+ * a boy), so it raises 'maleExtinctionUnlessBoy'; if the last pregnancy then
+ * ends without bringing a male back, the final 'maleExtinction' follows.
+ */
+export class PopulationAlerts {
+  private readonly males = new ExtinctionEdge();
+  private readonly females = new ExtinctionEdge();
+  private readonly wolves = new ExtinctionEdge();
+  private readonly dogs = new ExtinctionEdge();
+  /** Male extinction was announced only provisionally (pregnancies pending). */
+  private malesProvisional = false;
   private capacityAlerted = false;
 
   constructor(private readonly capacityThreshold = 0.9) {}
 
   reset(): void {
-    this.previousMales = 0;
-    this.previousFemales = 0;
-    this.maleAlerted = false;
-    this.femaleAlerted = false;
+    this.males.reset();
+    this.females.reset();
+    this.wolves.reset();
+    this.dogs.reset();
+    this.malesProvisional = false;
     this.capacityAlerted = false;
   }
 
-  check(counts: PopulationCounts): AlertKind[] {
-    const alerts: AlertKind[] = [];
+  check(counts: PopulationCounts): PopulationAlertKind[] {
+    const alerts: PopulationAlertKind[] = [];
 
-    if (this.previousMales > 0 && counts.males === 0 && !this.maleAlerted) {
+    if (this.males.update(counts.males)) {
+      this.malesProvisional = counts.pregnant > 0;
+      alerts.push(this.malesProvisional ? 'maleExtinctionUnlessBoy' : 'maleExtinction');
+    } else if (counts.males > 0) {
+      this.malesProvisional = false;
+    } else if (this.malesProvisional && counts.pregnant === 0) {
+      this.malesProvisional = false;
       alerts.push('maleExtinction');
-      this.maleAlerted = true;
     }
-    if (this.previousFemales > 0 && counts.females === 0 && !this.femaleAlerted) {
-      alerts.push('femaleExtinction');
-      this.femaleAlerted = true;
-    }
+    if (this.females.update(counts.females)) alerts.push('femaleExtinction');
+    if (this.wolves.update(counts.wolves)) alerts.push('wolfExtinction');
+    if (this.dogs.update(counts.dogs)) alerts.push('dogExtinction');
 
     const fill = counts.capacity > 0 ? counts.total / counts.capacity : 0;
     if (fill >= this.capacityThreshold && !this.capacityAlerted) {
@@ -167,9 +244,34 @@ export class AlertTracker {
       this.capacityAlerted = false;
     }
 
-    this.previousMales = counts.males;
-    this.previousFemales = counts.females;
     return alerts;
+  }
+}
+
+/** @deprecated Legacy three-kind view kept only until main.ts switches to PopulationAlerts + notifyAlerts. */
+export type AlertKind = 'maleExtinction' | 'femaleExtinction' | 'boardNearlyFull';
+
+const LEGACY_KINDS: readonly PopulationAlertKind[] = ['maleExtinction', 'femaleExtinction', 'boardNearlyFull'];
+
+/**
+ * @deprecated Adapter over PopulationAlerts for the current main.ts wiring. It
+ * re-arms like PopulationAlerts but drops the kinds main.ts has no message for
+ * (so a provisional male extinction no longer shows the misleading "no longer
+ * possible" text). Delete once main.ts uses PopulationAlerts.
+ */
+export class AlertTracker {
+  private readonly inner: PopulationAlerts;
+
+  constructor(capacityThreshold = 0.9) {
+    this.inner = new PopulationAlerts(capacityThreshold);
+  }
+
+  reset(): void {
+    this.inner.reset();
+  }
+
+  check(counts: PopulationCounts): AlertKind[] {
+    return this.inner.check(counts).filter((k): k is AlertKind => LEGACY_KINDS.includes(k));
   }
 }
 
@@ -187,6 +289,7 @@ export function renderStatistics(
   counts: PopulationCounts,
   t: (key: string, ...args: (string | number)[]) => string,
   root: ParentNode = document,
+  overcrowding?: OvercrowdingLimits,
 ): void {
   setText(root, 'maleCount', String(counts.males));
   setText(root, 'femaleCount', String(counts.females));
@@ -197,4 +300,79 @@ export function renderStatistics(
   setText(root, 'fruitRipeUnripe', t('stats.ripeUnripe', counts.ripeFruits, counts.unripeFruits));
   setText(root, 'mushroomCount', String(counts.mushrooms));
   setText(root, 'totalCreatures', t('stats.total', counts.total, counts.capacity));
+  if (overcrowding) renderOvercrowding(counts, overcrowding, t, root);
+}
+
+/** The overcrowding part of GameConfig (structurally GameConfig['overcrowding']). */
+export interface OvercrowdingLimits {
+  humanThreshold: number;
+  humanMultiplier: number;
+  animalThreshold: number;
+  animalMultiplier: number;
+}
+
+export interface OvercrowdingState {
+  humans: number;
+  animals: number;
+  /** Active death-probability multiplier (1 = not overcrowded). Same rule as DeathSystem: count > threshold. */
+  humanFactor: number;
+  animalFactor: number;
+}
+
+export function overcrowdingState(counts: PopulationCounts, limits: OvercrowdingLimits): OvercrowdingState {
+  const humans = counts.males + counts.females;
+  const animals = counts.wolves + counts.dogs;
+  return {
+    humans,
+    animals,
+    humanFactor: humans > limits.humanThreshold ? limits.humanMultiplier : 1,
+    animalFactor: animals > limits.animalThreshold ? limits.animalMultiplier : 1,
+  };
+}
+
+export const OVERCROWDING_ID = 'overcrowdingStatus';
+
+/**
+ * Show "Humans 112/100 ⚠ overcrowded ×2" / "Animals 30/50" in the statistics
+ * panel (R8). The element is created on first use right after
+ * #totalCreatures, so index.html needs no extra markup. Not a live region:
+ * it changes every round and the screen-reader announcements would be noise.
+ */
+export function renderOvercrowding(
+  counts: PopulationCounts,
+  limits: OvercrowdingLimits,
+  t: (key: string, ...args: (string | number)[]) => string,
+  root: ParentNode = document,
+): HTMLElement | null {
+  let box = root.querySelector<HTMLElement>(`#${OVERCROWDING_ID}`);
+  if (!box) {
+    const anchor = root.querySelector<HTMLElement>('#totalCreatures');
+    if (!anchor) return null;
+    box = document.createElement('div');
+    box.id = OVERCROWDING_ID;
+    box.className = 'stat-overcrowding';
+    for (const group of ['humans', 'animals']) {
+      const line = document.createElement('div');
+      line.className = 'stat-overcrowding-line';
+      line.dataset.group = group;
+      box.appendChild(line);
+    }
+    anchor.after(box);
+  }
+
+  const state = overcrowdingState(counts, limits);
+  const lines: [string, number, number, number][] = [
+    ['humans', state.humans, limits.humanThreshold, state.humanFactor],
+    ['animals', state.animals, limits.animalThreshold, state.animalFactor],
+  ];
+  box.title = t('summary.overcrowding.title');
+  for (const [group, count, threshold, factor] of lines) {
+    const line = box.querySelector<HTMLElement>(`[data-group="${group}"]`);
+    if (!line) continue;
+    const label = t(`summary.overcrowding.${group}`, count, threshold);
+    const active = factor !== 1;
+    line.textContent = active ? `${label} ${t('summary.overcrowding.active', factor)}` : label;
+    line.classList.toggle('overcrowded', active);
+  }
+  return box;
 }

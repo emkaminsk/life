@@ -1,0 +1,14 @@
+/* Overcrowding indicator under "Total creatures" (R8). Text carries the meaning; colour only reinforces it. */
+.stat-overcrowding {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #444;
+}
+
+.stat-overcrowding-line.overcrowded {
+  color: #8a4b00;
+  font-weight: 600;
+}

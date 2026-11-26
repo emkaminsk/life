@@ -7,6 +7,8 @@ export interface ControllableGame {
   pause(): void;
   step(): void;
   stepRounds(n: number): void;
+  /** Halt immediately without finishing an in-flight round (R12). Falls back to pause() when absent. */
+  stop?(): void;
 }
 
 export interface ControlButtons {
@@ -24,8 +26,10 @@ export interface ControlButtons {
  * - paused: Resume, Step, Run Five Rounds, Run Free, Reset, Finish usable.
  * - stepping: a step / five-round sequence is executing; stepping and
  *   play/pause are disabled until Game.onStepComplete (PRD 3.8.8).
+ * - over: the game ended by itself (Game.onGameOver); the board stays visible
+ *   but cannot advance. Only Reset / Finish are usable.
  */
-export type ControlState = 'idle' | 'running' | 'paused' | 'stepping';
+export type ControlState = 'idle' | 'running' | 'paused' | 'stepping' | 'over';
 
 export const FIVE_ROUNDS = 5;
 
@@ -61,10 +65,20 @@ export class GameControls {
     this.setState('running');
   }
 
-  /** No game on the board (after Reset / Finish or before the first start). */
+  /**
+   * No game on the board (after Reset / Finish or before the first start).
+   * Halts at once: stop() does not complete a half-animated round (R12).
+   */
   setIdle(): void {
-    if (this.game.running()) this.game.pause();
+    // stop() also cancels a step / five-round sequence, which is not "running".
+    if (this.game.stop) this.game.stop();
+    else if (this.game.running()) this.game.pause();
     this.setState('idle');
+  }
+
+  /** The game ended by itself (wire to Game.onGameOver); Game has already halted. */
+  setOver(): void {
+    this.setState('over');
   }
 
   /** Space / Pause-Resume button. */
@@ -125,6 +139,7 @@ export class GameControls {
     step.disabled = s !== 'paused';
     runFive.disabled = s !== 'paused';
     run.disabled = s !== 'paused';
+    // 'over' leaves pause/step/runFive/run disabled by the checks above.
     reset.disabled = s === 'idle';
     finish.disabled = s === 'idle';
     this.refreshLabels();
