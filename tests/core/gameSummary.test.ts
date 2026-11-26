@@ -128,6 +128,11 @@ describe('summarize conclusions', () => {
   it('outcome sentence follows the end reason and the population trend', () => {
     const start = rec(0, { males: 5, females: 5 });
     expect(keys([start, rec(3)], 'humansExtinct')[0]).toBe('outcomeExtinct');
+    expect(summarize([start, rec(4, { males: 5, females: 5 })], 'challengeComplete').conclusions[0]).toEqual({
+      key: 'outcomeChallengeComplete',
+      args: [4],
+    });
+    expect(keys([start, rec(3)], 'challengeFailed')[0]).toBe('outcomeChallengeFailed');
     expect(summarize([start, rec(12, { males: 3, females: 3 })], 'humansSafe').conclusions[0]).toEqual({
       key: 'outcomeSafe',
       args: [12, 6],

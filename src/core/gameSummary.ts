@@ -193,6 +193,8 @@ export function summarize(
 function outcome(s: GameSummary): Conclusion {
   const start = s.initial.males + s.initial.females;
   const end = s.final.males + s.final.females;
+  if (s.endReason === 'challengeComplete') return { key: 'outcomeChallengeComplete', args: [s.roundsPlayed] };
+  if (s.endReason === 'challengeFailed') return { key: 'outcomeChallengeFailed', args: [s.roundsPlayed] };
   if (s.endReason === 'humansExtinct') return { key: 'outcomeExtinct', args: [s.roundsPlayed] };
   if (s.endReason === 'humansSafe') return { key: 'outcomeSafe', args: [s.roundsPlayed, end] };
   if (start === 0) return { key: 'outcomeNoHumans', args: [s.roundsPlayed] };
