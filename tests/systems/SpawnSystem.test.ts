@@ -6,8 +6,8 @@ import { Random } from '../../src/utils/Random';
 import { createConfig, createMockRenderer } from '../setup';
 
 /**
- * SpawnSystem behaviour tests (Phase 7). Single-cell boards make the sequence of
- * random draws (fruit → mushroom → wolf → dog) explicit.
+ * SpawnSystem behaviour tests (Phase 7). Per-type stats are checked by giving only
+ * that type a non-zero probability; one test pins the documented draw order.
  */
 
 describe('SpawnSystem', () => {
@@ -19,25 +19,23 @@ describe('SpawnSystem', () => {
     system = new SpawnSystem(renderer);
   });
 
-  const probs = createConfig({
-    fruit: { spawnProbability: 0.5, energyHealed: 11, roundsToRipen: 4 },
-    mushroom: { spawnProbability: 0.5, energyRemoved: 13 },
-    wolf: { spawnProbability: 0.5, startingHealth: 61, gompertzA: 0.003, gompertzB: 0.3 },
-    dog: { spawnProbability: 0.5, startingHealth: 51, gompertzA: 0.004, gompertzB: 0.4 },
-  });
+  const none = {
+    fruit: { spawnProbability: 0 },
+    mushroom: { spawnProbability: 0 },
+    wolf: { spawnProbability: 0 },
+    dog: { spawnProbability: 0 },
+  };
 
-  function spawnWithRolls(...rolls: number[]) {
+  /** Spawn on a 1×1 board where only one type can appear (probability 1, others 0). */
+  function spawnOnly(overrides: Parameters<typeof createConfig>[0]) {
     const board = new Board(1, 1);
-    const spy = vi.spyOn(Math, 'random');
-    for (const r of rolls) spy.mockReturnValueOnce(r);
-    spy.mockReturnValue(0.99);
-    system.execute(board, probs);
+    system.execute(board, createConfig({ ...none, ...overrides }));
     return board.getEntity(0, 0);
   }
 
-  describe('priority fruit → mushroom → wolf → dog, configured stats', () => {
+  describe('spawned entities use the configured stats', () => {
     it('fruit uses configured energyHealed and roundsToRipen', () => {
-      const e = spawnWithRolls(0.1);
+      const e = spawnOnly({ fruit: { spawnProbability: 1, energyHealed: 11, roundsToRipen: 4 } });
       expect(e).toBeInstanceOf(Fruit);
       expect((e as Fruit).energyHealed).toBe(11);
       expect((e as Fruit).ripeningCounter).toBe(4);
@@ -45,26 +43,53 @@ describe('SpawnSystem', () => {
     });
 
     it('mushroom uses configured energyRemoved', () => {
-      const e = spawnWithRolls(0.9, 0.1);
+      const e = spawnOnly({ mushroom: { spawnProbability: 1, energyRemoved: 13 } });
       expect(e).toBeInstanceOf(Mushroom);
       expect((e as Mushroom).energyRemoved).toBe(13);
     });
 
     it('wolf uses configured health and Gompertz', () => {
-      const e = spawnWithRolls(0.9, 0.9, 0.1) as Wolf;
+      const e = spawnOnly({ wolf: { spawnProbability: 1, startingHealth: 61, gompertzA: 0.003, gompertzB: 0.3 } });
       expect(e).toBeInstanceOf(Wolf);
-      expect([e.health, e.maxHealth, e.gompertzA, e.gompertzB]).toEqual([61, 61, 0.003, 0.3]);
+      const w = e as Wolf;
+      expect([w.health, w.maxHealth, w.gompertzA, w.gompertzB]).toEqual([61, 61, 0.003, 0.3]);
     });
 
     it('dog uses configured health and Gompertz', () => {
-      const e = spawnWithRolls(0.9, 0.9, 0.9, 0.1) as Dog;
+      const e = spawnOnly({ dog: { spawnProbability: 1, startingHealth: 51, gompertzA: 0.004, gompertzB: 0.4 } });
       expect(e).toBeInstanceOf(Dog);
-      expect([e.health, e.maxHealth, e.gompertzA, e.gompertzB]).toEqual([51, 51, 0.004, 0.4]);
+      const d = e as Dog;
+      expect([d.health, d.maxHealth, d.gompertzA, d.gompertzB]).toEqual([51, 51, 0.004, 0.4]);
     });
+  });
 
-    it('nothing spawns when every roll fails', () => {
-      expect(spawnWithRolls(0.9, 0.9, 0.9, 0.9)).toBeNull();
+  /**
+   * Contract: per empty cell the rolls are drawn in the order fruit → mushroom →
+   * wolf → dog, and the first success wins (at most one entity per cell). This test
+   * pins that draw order on purpose; changing it changes every seeded experiment.
+   */
+  it('rolls fruit, mushroom, wolf, dog in that order and the first success wins', () => {
+    const half = createConfig({
+      fruit: { spawnProbability: 0.5 },
+      mushroom: { spawnProbability: 0.5 },
+      wolf: { spawnProbability: 0.5 },
+      dog: { spawnProbability: 0.5 },
     });
+    const spawnWithRolls = (...rolls: number[]) => {
+      const board = new Board(1, 1);
+      const spy = vi.spyOn(Math, 'random');
+      for (const r of rolls) spy.mockReturnValueOnce(r);
+      spy.mockReturnValue(0.99);
+      system.execute(board, half);
+      vi.restoreAllMocks();
+      return board.getEntity(0, 0);
+    };
+
+    expect(spawnWithRolls(0.1, 0.1, 0.1, 0.1)).toBeInstanceOf(Fruit);
+    expect(spawnWithRolls(0.9, 0.1, 0.1, 0.1)).toBeInstanceOf(Mushroom);
+    expect(spawnWithRolls(0.9, 0.9, 0.1, 0.1)).toBeInstanceOf(Wolf);
+    expect(spawnWithRolls(0.9, 0.9, 0.9, 0.1)).toBeInstanceOf(Dog);
+    expect(spawnWithRolls(0.9, 0.9, 0.9, 0.9)).toBeNull();
   });
 
   it('only spawns on empty cells and never replaces an entity', () => {
@@ -99,15 +124,7 @@ describe('SpawnSystem', () => {
 
   it('probability 0 everywhere spawns nothing', () => {
     const board = new Board(10, 10);
-    system.execute(
-      board,
-      createConfig({
-        fruit: { spawnProbability: 0 },
-        mushroom: { spawnProbability: 0 },
-        wolf: { spawnProbability: 0 },
-        dog: { spawnProbability: 0 },
-      }),
-    );
+    system.execute(board, createConfig(none));
     expect(board.getAllEntities()).toHaveLength(0);
   });
 
