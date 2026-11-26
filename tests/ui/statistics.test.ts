@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Board } from '../../src/core/Board';
 import { Human } from '../../src/entities/Human';
 import { Wolf } from '../../src/entities/Wolf';
@@ -7,8 +7,12 @@ import { Fruit } from '../../src/entities/Fruit';
 import { Mushroom } from '../../src/entities/Mushroom';
 import { Sex } from '../../src/types';
 import {
+  ALERT_MESSAGES,
   AlertTracker,
   countPopulation,
+  notifyAlerts,
+  OVERCROWDING_ID,
+  PopulationAlerts,
   emptyCounts,
   renderStatistics,
   RoundsPerSecondTracker,
@@ -137,14 +141,14 @@ describe('RoundsPerSecondTracker', () => {
   });
 });
 
-describe('AlertTracker', () => {
+describe('PopulationAlerts', () => {
   const counts = (over: Partial<ReturnType<typeof emptyCounts>>) => ({
     ...emptyCounts(100),
     ...over,
   });
 
   it('raises male/female extinction once, only after the population existed', () => {
-    const alerts = new AlertTracker();
+    const alerts = new PopulationAlerts();
     expect(alerts.check(counts({ males: 0, females: 0 }))).toEqual([]);
     expect(alerts.check(counts({ males: 3, females: 2 }))).toEqual([]);
     expect(alerts.check(counts({ males: 0, females: 2 }))).toEqual(['maleExtinction']);
@@ -152,8 +156,42 @@ describe('AlertTracker', () => {
     expect(alerts.check(counts({ males: 0, females: 0 }))).toEqual([]);
   });
 
+  it('re-arms when the population comes back, so a second extinction is announced (R7)', () => {
+    const alerts = new PopulationAlerts();
+    alerts.check(counts({ males: 2, females: 2 }));
+    expect(alerts.check(counts({ males: 0, females: 2 }))).toEqual(['maleExtinction']);
+    expect(alerts.check(counts({ males: 1, females: 2 }))).toEqual([]); // a baby boy
+    expect(alerts.check(counts({ males: 0, females: 2 }))).toEqual(['maleExtinction']);
+  });
+
+  it('male extinction with a pregnant female is provisional, then final if no boy is born', () => {
+    const alerts = new PopulationAlerts();
+    alerts.check(counts({ males: 1, females: 2, pregnant: 1 }));
+    expect(alerts.check(counts({ males: 0, females: 2, pregnant: 1 }))).toEqual(['maleExtinctionUnlessBoy']);
+    expect(alerts.check(counts({ males: 0, females: 2, pregnant: 1 }))).toEqual([]);
+    expect(alerts.check(counts({ males: 0, females: 3, pregnant: 0 }))).toEqual(['maleExtinction']); // a girl
+    expect(alerts.check(counts({ males: 0, females: 3, pregnant: 0 }))).toEqual([]);
+  });
+
+  it('a boy after the provisional alert cancels the final one', () => {
+    const alerts = new PopulationAlerts();
+    alerts.check(counts({ males: 1, females: 1, pregnant: 1 }));
+    alerts.check(counts({ males: 0, females: 1, pregnant: 1 }));
+    expect(alerts.check(counts({ males: 1, females: 1, pregnant: 0 }))).toEqual([]);
+    expect(alerts.check(counts({ males: 1, females: 1, pregnant: 0 }))).toEqual([]);
+  });
+
+  it('announces wolf and dog extinction as info, once each', () => {
+    const alerts = new PopulationAlerts();
+    alerts.check(counts({ wolves: 2, dogs: 1 }));
+    expect(alerts.check(counts({ wolves: 0, dogs: 1 }))).toEqual(['wolfExtinction']);
+    expect(alerts.check(counts({ wolves: 0, dogs: 0 }))).toEqual(['dogExtinction']);
+    expect(alerts.check(counts({ wolves: 0, dogs: 0 }))).toEqual([]);
+    expect(ALERT_MESSAGES.wolfExtinction.type).toBe('info');
+  });
+
   it('warns at 90% capacity and re-arms after dropping below', () => {
-    const alerts = new AlertTracker();
+    const alerts = new PopulationAlerts();
     expect(alerts.check(counts({ total: 90 }))).toEqual(['boardNearlyFull']);
     expect(alerts.check(counts({ total: 95 }))).toEqual([]);
     expect(alerts.check(counts({ total: 50 }))).toEqual([]);
@@ -161,11 +199,75 @@ describe('AlertTracker', () => {
   });
 
   it('reset() re-arms everything for a new game', () => {
-    const alerts = new AlertTracker();
+    const alerts = new PopulationAlerts();
     alerts.check(counts({ males: 1 }));
     alerts.check(counts({ males: 0 }));
     alerts.reset();
     alerts.check(counts({ males: 1 }));
     expect(alerts.check(counts({ males: 0 }))).toEqual(['maleExtinction']);
+  });
+
+  it('notifyAlerts shows each alert with translated title, message and severity', () => {
+    const notify = vi.fn();
+    notifyAlerts(['maleExtinctionUnlessBoy', 'dogExtinction'], (k) => `T(${k})`, notify);
+    expect(notify.mock.calls).toEqual([
+      ['T(notifications.maleExtinctionTitle)', 'T(summary.alerts.allMalesDiedUnlessBoy)', 'warning'],
+      ['T(summary.alerts.dogsExtinctTitle)', 'T(summary.alerts.dogsExtinct)', 'info'],
+    ]);
+  });
+
+  it('legacy AlertTracker re-arms too but drops kinds main.ts cannot show yet', () => {
+    const alerts = new AlertTracker();
+    alerts.check(counts({ males: 1, females: 1, pregnant: 1, wolves: 1 }));
+    expect(alerts.check(counts({ males: 0, females: 1, pregnant: 1, wolves: 0 }))).toEqual([]);
+    expect(alerts.check(counts({ males: 0, females: 2, pregnant: 0 }))).toEqual(['maleExtinction']);
+    alerts.reset();
+    alerts.check(counts({ females: 1 }));
+    expect(alerts.check(counts({ females: 0 }))).toEqual(['femaleExtinction']);
+  });
+});
+
+describe('overcrowding indicator (R8)', () => {
+  const limits = { humanThreshold: 10, humanMultiplier: 2, animalThreshold: 5, animalMultiplier: 3 };
+  const t = (key: string, ...args: (string | number)[]) => `${key.split('.').pop()}(${args.join(',')})`;
+
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div class="stats-grid"><div id="maleCount"></div><div class="stat-row stat-total" id="totalCreatures"></div></div>';
+  });
+
+  const lines = () =>
+    Array.from(document.querySelectorAll(`#${OVERCROWDING_ID} .stat-overcrowding-line`)).map((l) => ({
+      text: l.textContent,
+      warn: l.classList.contains('overcrowded'),
+    }));
+
+  it('is created after "Total creatures" and shows counts vs thresholds', () => {
+    renderStatistics({ ...emptyCounts(100), males: 4, females: 6, wolves: 2, dogs: 3 }, t, document, limits);
+    expect(document.getElementById('totalCreatures')?.nextElementSibling?.id).toBe(OVERCROWDING_ID);
+    // exactly at the threshold is not overcrowded (DeathSystem uses count > threshold)
+    expect(lines()).toEqual([
+      { text: 'humans(10,10)', warn: false },
+      { text: 'animals(5,5)', warn: false },
+    ]);
+  });
+
+  it('flags the group above its threshold with the active multiplier, and clears it again', () => {
+    renderStatistics({ ...emptyCounts(100), males: 6, females: 6, wolves: 6 }, t, document, limits);
+    expect(lines()).toEqual([
+      { text: 'humans(12,10) active(2)', warn: true },
+      { text: 'animals(6,5) active(3)', warn: true },
+    ]);
+    renderStatistics({ ...emptyCounts(100), males: 1, wolves: 6 }, t, document, limits);
+    expect(lines()[0]).toEqual({ text: 'humans(1,10)', warn: false });
+    expect(document.querySelectorAll(`#${OVERCROWDING_ID}`).length).toBe(1);
+  });
+
+  it('is skipped without limits or without the stats panel', () => {
+    renderStatistics(emptyCounts(100), t, document);
+    expect(document.getElementById(OVERCROWDING_ID)).toBeNull();
+    document.body.innerHTML = '';
+    renderStatistics(emptyCounts(100), t, document, limits);
+    expect(document.getElementById(OVERCROWDING_ID)).toBeNull();
   });
 });

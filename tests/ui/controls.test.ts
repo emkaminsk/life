@@ -143,4 +143,74 @@ describe('GameControls', () => {
     s.controls.refreshLabels();
     expect(s.buttons.pause.textContent).toBe('controls.pause');
   });
+
+  it('setOver(): only Reset and Finish stay usable, from any active state', () => {
+    for (const prepare of [
+      () => s.controls.begin(),
+      () => {
+        s.controls.begin();
+        s.controls.pause();
+      },
+      () => {
+        s.controls.begin();
+        s.controls.pause();
+        s.controls.step();
+      },
+    ]) {
+      s = setup();
+      prepare();
+      s.game.isRunning = false; // Game has already halted when it reports game over
+      s.controls.setOver();
+      expect(s.controls.getState()).toBe('over');
+      expect(enabled(s.buttons)).toEqual({
+        pause: false,
+        step: false,
+        runFive: false,
+        run: false,
+        reset: true,
+        finish: true,
+      });
+    }
+  });
+
+  it("'over' ignores pause, resume, step, five rounds and a late onStepComplete", () => {
+    s.controls.begin();
+    s.game.isRunning = false;
+    s.controls.setOver();
+    s.controls.togglePause();
+    s.controls.pause();
+    s.controls.runFree();
+    s.controls.step();
+    s.controls.stepFive();
+    s.controls.handleStepComplete();
+    expect(s.controls.getState()).toBe('over');
+    expect(s.game.start).toHaveBeenCalledTimes(1); // only begin()
+    expect(s.game.pause).not.toHaveBeenCalled();
+    expect(s.game.step).not.toHaveBeenCalled();
+    expect(s.game.stepRounds).not.toHaveBeenCalled();
+    s.controls.setIdle();
+    expect(s.controls.getState()).toBe('idle');
+  });
+
+  it('pause() while paused and runFree() while running are no-ops', () => {
+    s.controls.begin();
+    s.controls.runFree();
+    expect(s.game.start).toHaveBeenCalledTimes(1);
+    s.controls.pause();
+    s.controls.pause();
+    expect(s.game.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('setIdle uses stop() when the game has it, so no extra round is finished (R12)', () => {
+    const stop = vi.fn(() => {
+      s.game.isRunning = false;
+    });
+    const game = { ...s.game, stop };
+    const controls = new GameControls(game, s.buttons, (k) => k);
+    controls.begin();
+    controls.setIdle();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(s.game.pause).not.toHaveBeenCalled();
+    expect(controls.getState()).toBe('idle');
+  });
 });
