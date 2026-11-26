@@ -34,8 +34,9 @@ export interface Genome {
   longevity: number; // Physical: Multiplier on the Gompertz ageing rate B (0.5-2.0, mean 1)
 }
 
+/** Average genes of the living males and females in one round (PRD 3.18.2); null when that sex is extinct. */
 export interface GenomeSnapshot {
   round: number;
-  maleAverage: Genome;
-  femaleAverage: Genome;
+  maleAverage: Genome | null;
+  femaleAverage: Genome | null;
 }
