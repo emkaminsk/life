@@ -195,14 +195,13 @@ export function getChallenge(id?: ChallengeId): ChallengeDef<any> | null {
 
 /** Incremental evaluation: start from round 0, step once per completed round (used by Game). */
 export class ChallengeTracker {
+  private readonly def: ChallengeDef<unknown>;
   private state: unknown;
   private round: number;
 
   // biome-ignore lint/suspicious/noExplicitAny: see CHALLENGES
-  constructor(
-    private readonly def: ChallengeDef<any>,
-    initial: RoundRecord,
-  ) {
+  constructor(def: ChallengeDef<any>, initial: RoundRecord) {
+    this.def = def;
     this.state = def.init(initial);
     this.round = initial.round;
   }

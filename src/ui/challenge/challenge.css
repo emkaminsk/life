@@ -1,0 +1,168 @@
+/* Challenge picker (#challengeMount in the config panel) and HUD (#challengePanel). */
+
+.challenge-picker {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 2px solid #e0c97a;
+  border-radius: 8px;
+  background: #fffbea;
+}
+
+.challenge-picker-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.challenge-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 15px;
+  border: 2px solid #bbb;
+  border-radius: 6px;
+  background: white;
+}
+
+.challenge-select:focus-visible {
+  outline: 3px solid #1565c0;
+  outline-offset: 1px;
+}
+
+.challenge-picker-goal,
+.challenge-picker-hint,
+.challenge-picker-locked {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.challenge-picker-goal {
+  font-weight: 600;
+}
+
+.challenge-picker-hint {
+  color: #555;
+}
+
+.challenge-picker-locked[hidden] {
+  display: none;
+}
+
+/* ---- HUD ---- */
+
+#challengePanel[hidden] {
+  display: none;
+}
+
+.challenge-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.challenge-hud-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.challenge-hud-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+#challengePanel .challenge-hud-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  color: #333;
+}
+
+.challenge-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.challenge-badge[data-status="complete"] {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.challenge-badge[data-status="failed"] {
+  background: #ffebee;
+  color: #b71c1c;
+  white-space: normal;
+}
+
+.challenge-hud-goal {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #444;
+}
+
+.challenge-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.challenge-bar {
+  flex: 1 1 auto;
+  height: 12px;
+  border-radius: 6px;
+  background: #e0e0e0;
+  overflow: hidden;
+}
+
+.challenge-bar-fill {
+  height: 100%;
+  width: 0;
+  background: #1976d2;
+  transition: width 0.3s ease;
+}
+
+.challenge-hud[data-status="complete"] .challenge-bar-fill {
+  background: #2e7d32;
+}
+
+.challenge-hud[data-status="failed"] .challenge-bar-fill {
+  background: #c62828;
+}
+
+.challenge-hud-value {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge-bar-fill {
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .challenge-picker {
+    padding: 8px 10px;
+  }
+
+  #challengePanel .challenge-hud-name {
+    font-size: 15px;
+  }
+
+  .challenge-hud-emoji {
+    font-size: 18px;
+  }
+}
