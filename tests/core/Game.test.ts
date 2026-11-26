@@ -81,6 +81,22 @@ describe('Game', () => {
     game.initializeBoard();
   }
 
+  /**
+   * newGame() plus a human boxed into the corner by unripe fruit: it never moves,
+   * eats or dies, so the game does not end with humansExtinct.
+   */
+  function newLiveGame(config: GameConfig = quietConfig()): void {
+    newGame(config);
+    board.setEntity(9, 9, new Human(9, 9, Sex.FEMALE));
+    for (const [x, y] of [
+      [8, 8],
+      [8, 9],
+      [9, 8],
+    ]) {
+      board.setEntity(x, y, new Fruit(x, y, 30, 10_000));
+    }
+  }
+
   function wanderingWolf(x = 5, y = 5): Wolf {
     const wolf = new Wolf(x, y, 80, 0, 0);
     board.setEntity(x, y, wolf);
@@ -269,7 +285,7 @@ describe('Game', () => {
     });
 
     it('resuming starts a fresh round', () => {
-      newGame();
+      newLiveGame();
       wanderingWolf();
       game.start();
       game.pause();
@@ -284,7 +300,7 @@ describe('Game', () => {
 
   describe('stepping', () => {
     it('stepRounds(5) advances exactly 5 rounds and fires onStepComplete once (animated)', () => {
-      newGame();
+      newLiveGame();
       wanderingWolf();
       const onStep = vi.fn();
       const onRound = vi.fn();
@@ -301,7 +317,7 @@ describe('Game', () => {
     });
 
     it('stepRounds(5) also works when nothing moves', () => {
-      newGame();
+      newLiveGame();
       const onStep = vi.fn();
       game.onStepComplete = onStep;
 
@@ -313,7 +329,7 @@ describe('Game', () => {
     });
 
     it('step() runs one round and fires onStepComplete after it', () => {
-      newGame();
+      newLiveGame();
       wanderingWolf();
       const onStep = vi.fn();
       game.onStepComplete = onStep;
@@ -327,7 +343,7 @@ describe('Game', () => {
     });
 
     it('ignores step requests while a step is in progress or the game is running', () => {
-      newGame();
+      newLiveGame();
       wanderingWolf();
       game.stepRounds(2);
       game.step();
@@ -357,7 +373,7 @@ describe('Game', () => {
 
   describe('continuous run', () => {
     it('fires onRoundComplete every round and never onStepComplete', () => {
-      newGame();
+      newLiveGame();
       const onRound = vi.fn();
       const onStep = vi.fn();
       game.onRoundComplete = onRound;
@@ -373,7 +389,7 @@ describe('Game', () => {
     });
 
     it('setSpeed changes the delay between rounds', () => {
-      newGame();
+      newLiveGame();
       game.start(); // round 1 runs immediately
       game.setSpeed(1000);
       expect(game.getSpeed()).toBe(1000);
@@ -431,7 +447,7 @@ describe('Game', () => {
 
   describe('control guard branches', () => {
     it('start() twice schedules only one round loop', () => {
-      newGame();
+      newLiveGame();
       const movement = vi.spyOn((game as any).movementSystem, 'execute');
       game.start();
       game.start();
@@ -443,7 +459,7 @@ describe('Game', () => {
     });
 
     it('start() during an animated step waits for the animation, then keeps running', () => {
-      newGame();
+      newLiveGame();
       wanderingWolf();
       const onStep = vi.fn();
       game.onStepComplete = onStep;
@@ -478,7 +494,7 @@ describe('Game', () => {
       [Number.NaN, 0],
       [2.7, 2],
     ])('stepRounds(%s) runs %i rounds', (n, expected) => {
-      newGame();
+      newLiveGame();
       game.setAnimationDuration(0);
       const onStep = vi.fn();
       game.onStepComplete = onStep;

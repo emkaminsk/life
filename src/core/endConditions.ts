@@ -1,3 +1,4 @@
+import type { ChallengeProgress } from './challenges';
 import { humansIn } from './GameHistory';
 import type { EndReason, RoundRecord } from './simulationEvents';
 
@@ -5,27 +6,28 @@ import type { EndReason, RoundRecord } from './simulationEvents';
 export const HUMANS_SAFE_MIN_ROUND = 10;
 
 /**
- * Decides when a game ends on its own.
- * - humansExtinct: there were humans at some point (initially or later) and now there are none.
+ * Decides whether the game ends after the round described by `current` (null = continue).
+ * Round 0 (the initial board) never ends a game.
+ *
+ * Free play (no challenge):
+ * - humansExtinct: no humans left after a round ≥ 1 (also when there were none at the start).
  * - humansSafe (literal rule, user decision): no wolves and no mushrooms, at least one human,
- *   and round ≥ HUMANS_SAFE_MIN_ROUND. Ends the first round this holds.
+ *   and round ≥ HUMANS_SAFE_MIN_ROUND.
+ *
+ * With a challenge (its progress after `current`), humansSafe is disabled:
+ * - challengeFailed: the challenge failed, or no humans are left.
+ * - challengeComplete: the challenge is complete.
  */
-export class EndConditionTracker {
-  private hadHumans = false;
-
-  /** Begin tracking a new game from its initial (round 0) record. */
-  start(initial: RoundRecord): void {
-    this.hadHumans = humansIn(initial) > 0;
+export function checkEnd(current: RoundRecord, challenge?: ChallengeProgress | null): EndReason | null {
+  if (current.round < 1) return null;
+  const humans = humansIn(current);
+  if (challenge) {
+    if (humans === 0 || challenge.status === 'failed') return 'challengeFailed';
+    return challenge.status === 'complete' ? 'challengeComplete' : null;
   }
-
-  /** The reason the game ends after the round described by `current`, or null to continue. */
-  check(current: RoundRecord): EndReason | null {
-    const humans = humansIn(current);
-    if (humans > 0) this.hadHumans = true;
-    if (this.hadHumans && humans === 0) return 'humansExtinct';
-    if (current.wolves === 0 && current.mushrooms === 0 && humans > 0 && current.round >= HUMANS_SAFE_MIN_ROUND) {
-      return 'humansSafe';
-    }
-    return null;
+  if (humans === 0) return 'humansExtinct';
+  if (current.wolves === 0 && current.mushrooms === 0 && current.round >= HUMANS_SAFE_MIN_ROUND) {
+    return 'humansSafe';
   }
+  return null;
 }
