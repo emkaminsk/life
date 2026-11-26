@@ -241,3 +241,47 @@ describe('GameControls when the game ends inside start()', () => {
     expect(controls.getState()).toBe('over');
   });
 });
+
+describe('GameControls.begin(paused)', () => {
+  it('begin(true) shows the paused state without starting, and focuses Step', () => {
+    const s = setup();
+    document.body.append(s.buttons.step);
+    s.controls.begin(true);
+    expect(s.controls.getState()).toBe('paused');
+    expect(s.game.start).not.toHaveBeenCalled();
+    expect(enabled(s.buttons)).toEqual({ pause: true, step: true, runFive: true, run: true, reset: true, finish: true });
+    expect(s.buttons.pause.textContent).toBe('controls.resume');
+    expect(document.activeElement).toBe(s.buttons.step);
+    s.buttons.step.remove();
+  });
+
+  it('begin(false) is the default auto-start', () => {
+    const s = setup();
+    s.controls.begin(false);
+    expect(s.controls.getState()).toBe('running');
+    expect(s.game.start).toHaveBeenCalledOnce();
+  });
+});
+
+describe('GameControls when the game ends inside pause()', () => {
+  // Game.pause() mid-animation finishes the round, which may end the game
+  // (onGameOver → setOver) before pause() returns.
+  it("pause() keeps the over state instead of overwriting it with 'paused'", () => {
+    const s = setup();
+    s.controls.begin();
+    s.game.pause = vi.fn(() => {
+      s.game.isRunning = false;
+      s.controls.setOver();
+    });
+    s.controls.pause();
+    expect(s.controls.getState()).toBe('over');
+    expect(enabled(s.buttons)).toEqual({
+      pause: false,
+      step: false,
+      runFive: false,
+      run: false,
+      reset: true,
+      finish: true,
+    });
+  });
+});
