@@ -16,7 +16,7 @@ export const DEFAULT_CONFIG = {
     femaleHumanProbability: 0.15,
     wolfProbability: 0.05,
     dogProbability: 0.03,
-    fruitProbability: 0.10,
+    fruitProbability: 0.1,
     mushroomProbability: 0.01, // 1% spawn rate for mushrooms
   },
 
@@ -28,7 +28,9 @@ export const DEFAULT_CONFIG = {
     pregnancyPeriod: 3, // rounds
     cooldownPeriod: 2, // rounds after birth
     perceptionRange: 5, // cells
-    moveTowardFruitProbability: 0.7,
+    moveTowardFruitProbability: 0.7, // also the average greed gene of the initial population
+    avgCaution: 0.5, // average caution gene (probability to flee a wolf) of the initial population
+    avgMetabolism: 0.5, // average metabolism gene (health cost per move, max 1) of the initial population
     gompertzA: 0.0001,
     gompertzB: 0.1,
   },

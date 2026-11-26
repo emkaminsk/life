@@ -1,9 +1,16 @@
+import type { AppKeys } from './sections/app';
+import type { ConfigHelpKeys } from './sections/configHelp';
+import type { GenomeKeys } from './sections/genome';
+import type { RulesKeys } from './sections/rules';
+import type { SetupKeys } from './sections/setup';
+import type { SummaryKeys } from './sections/summary';
+
 /**
  * Language enumeration for supported languages
  */
 export enum Language {
   EN = 'en',
-  PL = 'pl'
+  PL = 'pl',
 }
 
 /**
@@ -176,60 +183,13 @@ export interface TranslationKeys {
     startError: string;
   };
 
-  // Rules modal
-  rules: {
-    title: string;
-    tabGameRules: string;
-    tabCreatures: string;
-    tabPlants: string;
-    tabControls: string;
-
-    // Game Rules tab content
-    gameRulesTitle: string;
-    roundPriorityTitle: string;
-    roundPriorityDesc: string;
-    phase1Movement: string;
-    phase2Combat: string;
-    phase3Eating: string;
-    phase4Reproduction: string;
-    phase5Death: string;
-    phase6Birth: string;
-    phase7Spawn: string;
-    importantRulesTitle: string;
-    importantRule1: string;
-    importantRule2: string;
-    importantRule3: string;
-
-    // Creatures tab content
-    creaturesTitle: string;
-    malesTitle: string;
-    malesDesc: string;
-    femalesTitle: string;
-    femalesDesc: string;
-    wolvesTitle: string;
-    wolvesDesc: string;
-    dogsTitle: string;
-    dogsDesc: string;
-
-    // Plants tab content
-    plantsTitle: string;
-    fruitsTitle: string;
-    fruitsDesc: string;
-    mushroomsTitle: string;
-    mushroomsDesc: string;
-    mushroomsWarning: string;
-
-    // Controls tab content
-    controlsTitle: string;
-    keyboardShortcutsTitle: string;
-    keySpace: string;
-    keyRight: string;
-    keyUp: string;
-    keyDown: string;
-    keyLeft: string;
-    mouseControlsTitle: string;
-    mouseDesc: string;
-  };
+  // Sections owned by individual workstreams (one file each in ./sections)
+  rules: RulesKeys;
+  configHelp: ConfigHelpKeys;
+  setup: SetupKeys;
+  summary: SummaryKeys;
+  genome: GenomeKeys;
+  app: AppKeys;
 
   // Error messages
   errors: {
@@ -266,6 +226,16 @@ export interface TranslationKeys {
     geneMetabolism: string;
     geneGreed: string;
     geneCaution: string;
+    geneLongevity: string;
+    perMove: string;
+    energy: string;
+    energyStates: {
+      desperate: string;
+      hungry: string;
+      moderate: string;
+      full: string;
+      satiated: string;
+    };
   };
 }
 

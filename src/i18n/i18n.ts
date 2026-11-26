@@ -158,7 +158,7 @@ export class I18n {
    * @param listener - Callback function to remove
    */
   offLanguageChange(listener: LanguageChangeListener): void {
-    this.listeners = this.listeners.filter(l => l !== listener);
+    this.listeners = this.listeners.filter((l) => l !== listener);
   }
 
   /**

@@ -132,7 +132,7 @@ export class AnimationSystem {
       state.progress = eased;
       state.entity.setVisualPosition(
         state.fromX + (state.toX - state.fromX) * eased,
-        state.fromY + (state.toY - state.fromY) * eased
+        state.fromY + (state.toY - state.fromY) * eased,
       );
     }
 

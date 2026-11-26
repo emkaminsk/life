@@ -54,13 +54,6 @@ export class Random {
   }
 
   /**
-   * Get random integer between min (inclusive) and max (exclusive)
-   */
-  static int(min: number, max: number): number {
-    return Math.floor(Random.next() * (max - min)) + min;
-  }
-
-  /**
    * Return true with given probability (0-1)
    */
   static chance(probability: number): boolean {
@@ -78,11 +71,7 @@ export class Random {
   /**
    * Find positions that minimize distance to target
    */
-  static getClosestPositions(
-    positions: Position[],
-    targetX: number,
-    targetY: number
-  ): Position[] {
+  static getClosestPositions(positions: Position[], targetX: number, targetY: number): Position[] {
     if (positions.length === 0) return [];
 
     let minDistance = Infinity;
@@ -100,20 +89,5 @@ export class Random {
     }
 
     return closest;
-  }
-
-  /**
-   * Find all entities within perception range
-   */
-  static getEntitiesInRange<T extends { x: number; y: number }>(
-    entities: T[],
-    centerX: number,
-    centerY: number,
-    range: number
-  ): T[] {
-    return entities.filter(entity => {
-      const dist = Random.distance(centerX, centerY, entity.x, entity.y);
-      return dist <= range && dist > 0; // Exclude self
-    });
   }
 }

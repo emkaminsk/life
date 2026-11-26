@@ -8,36 +8,52 @@ export const GENE_BOUNDS: Readonly<Record<keyof Genome, { min: number; max: numb
   metabolism: { min: 0, max: 1 },
   greed: { min: 0, max: 1 },
   caution: { min: 0, max: 1 },
+  longevity: { min: 0.5, max: 2.0 },
 };
+
+/** Population mean and standard deviation of the longevity gene for random genomes. */
+export const LONGEVITY_MEAN = 1;
+export const LONGEVITY_STD_DEV = 0.1;
+
+/** Mean metabolism of a random genome when no average is configured. */
+export const DEFAULT_AVG_METABOLISM = 0.5;
 
 // biome-ignore lint/complexity/noStaticOnlyClass: namespace-style utility kept for API stability
 export class GenomeUtils {
   static readonly MUTATION_CHANCE = 0.2; // 20% chance per gene
 
-  /** Mutation variance per gene (uniform in [-variance, +variance]). */
+  /**
+   * Mutation variance per gene (uniform in [-variance, +variance]). Strength is a
+   * damage multiplier with mean 1, so ±0.2 (20 %) keeps one mutation from
+   * multiplying a male's damage several times over.
+   */
   static readonly MUTATION_VARIANCE: Readonly<Record<keyof Genome, number>> = {
     maxHealth: 10,
-    strength: 2,
+    strength: 0.2,
     metabolism: 0.05,
     greed: 0.1,
     caution: 0.1,
+    longevity: 0.1,
   };
 
   /**
-   * Creates a random genome based on configuration averages
+   * Creates a random genome based on configuration averages.
+   * Random draw order: maxHealth, strength, metabolism, greed, caution, longevity.
    */
   static createRandomGenome(
     avgMaxHealth: number,
     avgStrength: number,
     avgGreed: number,
-    avgCaution: number
+    avgCaution: number,
+    avgMetabolism: number = DEFAULT_AVG_METABOLISM,
   ): Genome {
     return GenomeUtils.clampGenome({
       maxHealth: GenomeUtils.gaussianRandom(avgMaxHealth, avgMaxHealth * 0.2), // 20% variance
       strength: GenomeUtils.gaussianRandom(avgStrength, avgStrength * 0.2), // 20% variance
-      metabolism: GenomeUtils.gaussianRandom(0.1, 0.05), // Avg 0.1 energy per turn
+      metabolism: GenomeUtils.gaussianRandom(avgMetabolism, avgMetabolism * 0.5), // health cost per round
       greed: GenomeUtils.gaussianRandom(avgGreed, 0.2),
       caution: GenomeUtils.gaussianRandom(avgCaution, 0.2),
+      longevity: GenomeUtils.gaussianRandom(LONGEVITY_MEAN, LONGEVITY_STD_DEV),
     });
   }
 
@@ -50,7 +66,7 @@ export class GenomeUtils {
     const pick = (gene: keyof Genome): number =>
       GenomeUtils.clampGene(
         gene,
-        GenomeUtils.mutate(Random.chance(0.5) ? mother[gene] : father[gene], GenomeUtils.MUTATION_VARIANCE[gene])
+        GenomeUtils.mutate(Random.chance(0.5) ? mother[gene] : father[gene], GenomeUtils.MUTATION_VARIANCE[gene]),
       );
     return {
       maxHealth: pick('maxHealth'),
@@ -58,6 +74,7 @@ export class GenomeUtils {
       metabolism: pick('metabolism'),
       greed: pick('greed'),
       caution: pick('caution'),
+      longevity: pick('longevity'),
     };
   }
 
@@ -69,6 +86,7 @@ export class GenomeUtils {
       metabolism: GenomeUtils.clampGene('metabolism', genome.metabolism),
       greed: GenomeUtils.clampGene('greed', genome.greed),
       caution: GenomeUtils.clampGene('caution', genome.caution),
+      longevity: GenomeUtils.clampGene('longevity', genome.longevity),
     };
   }
 

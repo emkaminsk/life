@@ -10,7 +10,7 @@ export class Dog extends Entity {
       startingHealth ?? DEFAULT_CONFIG.dog.startingHealth,
       EntityType.DOG,
       gompertzA ?? DEFAULT_CONFIG.dog.gompertzA,
-      gompertzB ?? DEFAULT_CONFIG.dog.gompertzB
+      gompertzB ?? DEFAULT_CONFIG.dog.gompertzB,
     );
   }
 }

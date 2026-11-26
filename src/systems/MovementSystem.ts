@@ -10,12 +10,14 @@ import { Random } from '../utils/Random';
 import { debugLog } from '../utils/debug';
 import type { MovementRecord } from '../core/AnimationSystem';
 import type { GameConfig } from '../ui/ConfigPanel';
+import { ENERGY_MODIFIERS, modulatedProbability } from '../utils/energy';
 
 type EntityPredicate = (entity: Entity) => boolean;
 
 const isWolf: EntityPredicate = (e) => e instanceof Wolf;
 const isHuman: EntityPredicate = (e) => e instanceof Human;
 const isRipeFruit: EntityPredicate = (e) => e instanceof Fruit && e.isRipe();
+const isLivingMale: EntityPredicate = (e) => e instanceof Human && e.isMale() && !e.isDead();
 
 /** Pick one element; only consumes a random number when there is a real choice. */
 function pick<T>(items: T[]): T | null {
@@ -34,9 +36,15 @@ function pick<T>(items: T[]): T | null {
  * - No target → random free adjacent cell.
  * - No free adjacent cell → no move.
  *
- * Humans flee from the nearest wolf (probability = caution gene) and seek ripe
- * fruit (probability = greed gene). Each human pays its metabolism gene in health
- * per round before moving.
+ * Humans (energy-driven, PRD 3.16; modifiers in src/utils/energy.ts), in priority order:
+ * 1. flee the nearest wolf with probability caution × predatorAvoidance(state) (≤ 1);
+ * 2. DESPERATE males always flee the nearest perceived living male (US-046);
+ * 3. seek the nearest ripe fruit with probability greed × foodSeeking(state) (≤ 1).
+ *
+ * Metabolism (PRD 3.16.6 "per move"): a human pays its metabolism gene in health
+ * only after it actually moved. A human killed this way stays on the board with
+ * deathCause 'metabolism'; DeathSystem (phase 5) removes it and reports the death,
+ * so execute() keeps returning only the movement records.
  */
 export class MovementSystem {
   private renderer: Renderer;
@@ -62,13 +70,6 @@ export class MovementSystem {
   private moveCreature(creature: Human | Wolf | Dog, board: Board, config: GameConfig): MovementRecord | null {
     if (creature.isDead()) return null;
 
-    // Metabolism: humans pay their metabolism gene in health each round
-    if (creature instanceof Human && creature.genome.metabolism > 0) {
-      creature.takeDamage(creature.genome.metabolism);
-      this.renderer.markDirty(creature.x, creature.y);
-      if (creature.isDead()) return null; // Dead creatures don't move
-    }
-
     const availablePositions = board.getEmptyAdjacentPositions(creature.x, creature.y);
     if (availablePositions.length === 0) return null;
 
@@ -77,11 +78,19 @@ export class MovementSystem {
       targetPosition = this.getHumanTarget(creature, board, config, availablePositions);
     } else if (creature instanceof Wolf) {
       targetPosition = this.getChaseTarget(
-        creature, board, isHuman, config.wolf.perceptionRange, config.wolf.moveTowardHumanProbability
+        creature,
+        board,
+        isHuman,
+        config.wolf.perceptionRange,
+        config.wolf.moveTowardHumanProbability,
       );
     } else {
       targetPosition = this.getChaseTarget(
-        creature, board, isWolf, config.dog.perceptionRange, config.dog.moveTowardWolfProbability
+        creature,
+        board,
+        isWolf,
+        config.dog.perceptionRange,
+        config.dog.moveTowardWolfProbability,
       );
     }
 
@@ -97,6 +106,11 @@ export class MovementSystem {
 
     this.renderer.markDirty(fromX, fromY);
     this.renderer.markDirty(targetPosition.x, targetPosition.y);
+
+    // Metabolism is charged per actual move (may kill; DeathSystem removes the body)
+    if (creature instanceof Human && creature.genome.metabolism > 0) {
+      creature.takeDamage(creature.genome.metabolism, 'metabolism');
+    }
     return { entity: creature, fromX, fromY, toX: targetPosition.x, toY: targetPosition.y };
   }
 
@@ -104,22 +118,34 @@ export class MovementSystem {
     human: Human,
     board: Board,
     config: GameConfig,
-    availablePositions: Position[]
+    availablePositions: Position[],
   ): Position | null {
     const range = config.human.perceptionRange;
+    const state = human.getEnergyState();
+    const modifiers = ENERGY_MODIFIERS[state];
 
-    // 1. Flee from the nearest wolf (caution gene)
-    if (human.genome.caution > 0 && Random.chance(human.genome.caution)) {
+    // 1. Flee from the nearest wolf (caution gene, energy-modulated)
+    const fleeWolf = modulatedProbability(human.genome.caution, modifiers.predatorAvoidance);
+    if (fleeWolf > 0 && Random.chance(fleeWolf)) {
       const wolf = MovementSystem.findNearest(board, human.x, human.y, range, isWolf);
       if (wolf) {
-        const furthest = MovementSystem.getFurthestPositions(availablePositions, wolf.x, wolf.y);
-        const flee = pick(furthest);
+        const flee = pick(MovementSystem.getFurthestPositions(availablePositions, wolf.x, wolf.y));
         if (flee) return flee;
       }
     }
 
-    // 2. Seek the nearest ripe fruit (greed gene)
-    if (human.genome.greed > 0 && Random.chance(human.genome.greed)) {
+    // 2. Desperate males avoid male-on-male combat: always flee the nearest perceived male
+    if (modifiers.fleesMales && human.isMale()) {
+      const rival = MovementSystem.findNearest(board, human.x, human.y, range, isLivingMale);
+      if (rival) {
+        const flee = pick(MovementSystem.getFurthestPositions(availablePositions, rival.x, rival.y));
+        if (flee) return flee;
+      }
+    }
+
+    // 3. Seek the nearest ripe fruit (greed gene, energy-modulated)
+    const seekFood = modulatedProbability(human.genome.greed, modifiers.foodSeeking);
+    if (seekFood > 0 && Random.chance(seekFood)) {
       const fruit = MovementSystem.findNearest(board, human.x, human.y, range, isRipeFruit);
       if (fruit) {
         return MovementSystem.stepToward(board, human.x, human.y, fruit.x, fruit.y);
@@ -134,7 +160,7 @@ export class MovementSystem {
     board: Board,
     isTarget: EntityPredicate,
     range: number,
-    probability: number
+    probability: number,
   ): Position | null {
     // Probability checked first so the (more expensive) scan is skipped when it fails;
     // the resulting behaviour is identical to "detect, then roll".
@@ -152,9 +178,7 @@ export class MovementSystem {
    * random available adjacent cell.
    */
   static stepToward(board: Board, fromX: number, fromY: number, tx: number, ty: number): Position | null {
-    const candidates = board
-      .getAdjacentPositions(fromX, fromY)
-      .filter((p) => !(p.x === tx && p.y === ty));
+    const candidates = board.getAdjacentPositions(fromX, fromY).filter((p) => !(p.x === tx && p.y === ty));
     const preferred = Random.getClosestPositions(candidates, tx, ty);
     const free = preferred.filter((p) => board.isEmpty(p.x, p.y));
     return pick(free);
@@ -166,13 +190,7 @@ export class MovementSystem {
    * the grid (O(range²), no allocations for empty rings). Ties between equally
    * near targets are broken randomly.
    */
-  static findNearest(
-    board: Board,
-    cx: number,
-    cy: number,
-    range: number,
-    isTarget: EntityPredicate
-  ): Entity | null {
+  static findNearest(board: Board, cx: number, cy: number, range: number, isTarget: EntityPredicate): Entity | null {
     const maxRange = Math.min(Math.floor(range), board.width + board.height);
     const grid = board.grid;
     const width = board.width;

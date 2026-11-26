@@ -77,27 +77,41 @@ export function formatEntityInfo(entity: Entity): TooltipContent {
   if (entity instanceof Human || entity instanceof Wolf || entity instanceof Dog) {
     const max = maxHealthOf(entity);
     const health = Math.round(entity.health);
-    rows.push({ label: t('tooltip.health'), value: max !== undefined ? `${health} / ${Math.round(max)}` : `${health}` });
+    rows.push({
+      label: t('tooltip.health'),
+      value: max !== undefined ? `${health} / ${Math.round(max)}` : `${health}`,
+    });
     rows.push({ label: t('tooltip.age'), value: String(entity.age) });
 
     if (entity instanceof Human) {
       if (entity.sex === Sex.FEMALE && entity.isPregnant()) {
-        rows.push({ label: t('tooltip.pregnant'), value: `${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}` });
+        rows.push({
+          label: t('tooltip.pregnant'),
+          value: `${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}`,
+        });
       }
+      rows.push({
+        label: t('tooltip.energy'),
+        value: t(`tooltip.energyStates.${entity.getEnergyState()}`),
+      });
       const g = entity.genome;
       sectionTitle = t('tooltip.genetics');
       sectionRows.push(
         { label: t('tooltip.geneMaxHealth'), value: String(Math.round(g.maxHealth)) },
         { label: t('tooltip.geneStrength'), value: `${g.strength.toFixed(2)}x` },
-        { label: t('tooltip.geneMetabolism'), value: g.metabolism.toFixed(2) },
+        { label: t('tooltip.geneMetabolism'), value: `${g.metabolism.toFixed(2)} ${t('tooltip.perMove')}` },
         { label: t('tooltip.geneGreed'), value: `${(g.greed * 100).toFixed(0)}%` },
         { label: t('tooltip.geneCaution'), value: `${(g.caution * 100).toFixed(0)}%` },
+        { label: t('tooltip.geneLongevity'), value: `${g.longevity.toFixed(2)}x` },
       );
     }
   }
 
   if (entity instanceof Fruit && !entity.isRipe()) {
-    rows.push({ label: t('tooltip.ripening'), value: `${entity.ripeningCounter} ${t('tooltip.roundsRemaining')}` });
+    rows.push({
+      label: t('tooltip.ripening'),
+      value: `${entity.ripeningCounter} ${t('tooltip.roundsRemaining')}`,
+    });
   }
 
   return { header: `${emoji} ${typeName}`, rows, sectionTitle, sectionRows };

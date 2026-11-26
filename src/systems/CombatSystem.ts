@@ -27,6 +27,10 @@ const FORWARD_OFFSETS: ReadonlyArray<readonly [number, number]> = [
  * - Dog vs wolf: wolf takes dog damage, dog takes wolf counter-damage.
  * A creature knocked to 0 health by an earlier pair this round takes no part in
  * later pairs.
+ *
+ * Lethal damage records the victim's deathCause (wolfAttack, humanDefense, dogAttack,
+ * maleFight). Combat returns nothing: DeathSystem (phase 5) turns those causes into
+ * DeathRecords when it removes the dead, so each death is counted exactly once.
  */
 export class CombatSystem {
   private renderer: Renderer;
@@ -79,7 +83,10 @@ export class CombatSystem {
       return true;
     }
     // Wolf vs Human (any sex)
-    if ((entity1 instanceof Wolf && entity2 instanceof Human) || (entity1 instanceof Human && entity2 instanceof Wolf)) {
+    if (
+      (entity1 instanceof Wolf && entity2 instanceof Human) ||
+      (entity1 instanceof Human && entity2 instanceof Wolf)
+    ) {
       return true;
     }
     // Dog vs Wolf
@@ -98,9 +105,9 @@ export class CombatSystem {
     if (entity1 instanceof Dog || entity2 instanceof Dog) {
       const dog = (entity1 instanceof Dog ? entity1 : entity2) as Dog;
       const wolf = (entity1 instanceof Wolf ? entity1 : entity2) as Wolf;
-      wolf.takeDamage(config.dog.damageToWolf);
+      wolf.takeDamage(config.dog.damageToWolf, 'dogAttack');
       // Wolf counter-attacks with configured damage (PRD US-019)
-      dog.takeDamage(config.wolf.damageToDog);
+      dog.takeDamage(config.wolf.damageToDog, 'wolfAttack');
       debugLog(`[Combat] Dog at (${dog.x},${dog.y}) vs Wolf at (${wolf.x},${wolf.y})`);
       this.addCombatEffect(wolf.x, wolf.y);
       this.addCombatEffect(dog.x, dog.y);
@@ -112,13 +119,13 @@ export class CombatSystem {
 
     // Wolf attacks human with differentiated damage
     const wolfDamage = human.isMale() ? config.wolf.damageToMale : config.wolf.damageToFemale;
-    human.takeDamage(wolfDamage);
+    human.takeDamage(wolfDamage, 'wolfAttack');
     this.addCombatEffect(human.x, human.y);
     debugLog(`[Combat] Wolf at (${wolf.x},${wolf.y}) attacks ${human.sex} at (${human.x},${human.y}): ${wolfDamage}`);
 
     // Male human counter-attacks using strength gene
     if (human.isMale()) {
-      wolf.takeDamage(config.human.maleVsWolfDamage * human.genome.strength);
+      wolf.takeDamage(config.human.maleVsWolfDamage * human.genome.strength, 'humanDefense');
       this.addCombatEffect(wolf.x, wolf.y);
     }
   }
@@ -138,8 +145,8 @@ export class CombatSystem {
     const final1 = initial1 - damage2; // unclamped, so "lower health" is meaningful
     const final2 = initial2 - damage1;
 
-    male1.takeDamage(damage2);
-    male2.takeDamage(damage1);
+    male1.takeDamage(damage2, 'maleFight');
+    male2.takeDamage(damage1, 'maleFight');
 
     const male1Dying = final1 <= 0;
     const male2Dying = final2 <= 0;
@@ -161,9 +168,10 @@ export class CombatSystem {
         loser = male1;
       }
       const loserInitial = loser === male1 ? initial1 : initial2;
-      loser.health = 0;
+      loser.kill('maleFight');
       survivor.heal(loserInitial, survivor.maxHealth);
       if (survivor.health <= 0) survivor.health = 1;
+      survivor.deathCause = null; // the lethal blow was undone: he lives on
     } else if (male1Dying) {
       male2.heal(initial1, male2.maxHealth);
     } else if (male2Dying) {

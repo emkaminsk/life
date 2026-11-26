@@ -507,15 +507,43 @@
       padding: 20px;
     }
 
+    /* Header | scrolling settings | always-visible footer with Start (F3) */
     .config-content {
+      --config-pad: 30px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       background: white;
       border-radius: 12px;
-      padding: 30px;
       max-width: 700px;
       width: 100%;
       max-height: 90vh;
-      overflow-y: auto;
+      max-height: 90dvh;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .config-header {
+      flex-shrink: 0;
+      padding: var(--config-pad) var(--config-pad) 0;
+    }
+
+    .config-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 0 var(--config-pad) 4px;
+    }
+
+    .config-footer {
+      flex-shrink: 0;
+      padding: 12px var(--config-pad) 16px;
+      border-top: 1px solid #e0e0e0;
+      background: white;
+    }
+
+    .config-footer #configValidationSummary {
+      margin: 0 0 10px;
     }
 
     .config-title-row {
@@ -534,25 +562,9 @@
     }
 
     .config-subtitle {
-      margin: 0 0 25px 0;
+      margin: 0 0 15px 0;
       font-size: 14px;
       color: #555;
-    }
-
-    .config-top-actions {
-      margin-bottom: 15px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .config-top-actions button {
-      padding: 14px 20px;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .config-top-actions .btn-primary {
-      flex: 1;
     }
 
     .language-selector {
@@ -571,16 +583,28 @@
       border-color: #2e7d32;
     }
 
+    /* No overflow clipping here: it would break the sticky title and cut off
+       field tooltips at the section edge. Rounded corners come from the title. */
     .config-section {
       margin-bottom: 20px;
       border: 1px solid #ddd;
       border-radius: 8px;
-      overflow: hidden;
     }
 
+    /* The open section's title sticks to the top of the scroll area. */
     .config-section-title {
+      position: sticky;
+      top: 0;
+      z-index: 2;
       margin: 0;
       font-size: 16px;
+      background: #f8f8f8;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .config-section.collapsed .config-section-title,
+    .config-section.collapsed .config-section-header {
+      border-radius: 8px;
     }
 
     .config-section-header {
@@ -591,7 +615,7 @@
       padding: 15px 20px;
       background: #f8f8f8;
       color: #333;
-      border-radius: 0;
+      border-radius: 8px 8px 0 0;
       font-size: 16px;
       font-weight: 600;
       text-align: left;
@@ -624,6 +648,7 @@
     }
 
     .config-row {
+      position: relative; /* anchors the field help tooltip */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -654,6 +679,113 @@
     .config-row input.invalid {
       border: 2px solid #c62828;
       background: #ffebee;
+    }
+
+    .config-row input:disabled {
+      background: #eee;
+      color: #666;
+      border-color: #bbb;
+      cursor: not-allowed;
+    }
+
+    /* ---- Field help (F2): ⓘ button + tooltip on hover / keyboard focus ---- */
+    .field-help-wrap {
+      flex-shrink: 0;
+      display: inline-flex;
+    }
+
+    .field-help-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #1b5e20;
+      font-size: 17px;
+      line-height: 1;
+      cursor: help;
+    }
+
+    .field-help-btn:hover,
+    .field-help-btn:focus-visible {
+      background: #e8f5e9;
+    }
+
+    .field-help {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 3;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #263238;
+      color: white;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .field-help-range {
+      display: block;
+      margin-top: 4px;
+      color: #c8e6c9;
+      font-size: 12px;
+    }
+
+    .field-help-wrap:hover .field-help,
+    .field-help-btn:focus-visible + .field-help,
+    .field-help-wrap.open .field-help {
+      display: block;
+    }
+
+    .field-help-wrap.dismissed .field-help {
+      display: none;
+    }
+
+    /* ---- Setup mode switch (F1) ---- */
+    .setup-mode {
+      margin: 0 0 18px;
+      padding: 10px 14px 12px;
+      border: 1px solid #c8e6c9;
+      border-radius: 6px;
+      background: #f1f8e9;
+    }
+
+    .setup-mode legend {
+      padding: 0 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .setup-mode-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+    }
+
+    .setup-mode-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .setup-mode-options input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .setup-mode-hint {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: #444;
     }
 
     .field-error {
@@ -703,8 +835,10 @@
       border: 1px solid #4CAF50;
     }
 
-    #configValidationSummary {
-      margin: 0 0 20px;
+    .expected-totals {
+      margin-top: 4px;
+      font-weight: 600;
+      color: #333;
     }
 
     .expected-counts {
@@ -720,17 +854,67 @@
     .config-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: 15px;
-      margin-top: 25px;
-      padding-top: 20px;
-      border-top: 1px solid #e0e0e0;
+      gap: 10px;
     }
 
     .config-controls button {
-      flex: 1 1 140px;
-      padding: 12px 20px;
-      font-size: 15px;
+      flex: 1 1 auto;
+      padding: 10px 14px;
+      font-size: 14px;
       font-weight: 600;
+    }
+
+    .config-controls #startGameBtn {
+      flex: 1 1 100%;
+      order: 1;
+      padding: 14px 20px;
+      font-size: 17px;
+    }
+
+    @media (min-width: 640px) {
+      .config-controls #startGameBtn {
+        flex: 2 1 160px;
+      }
+    }
+
+    /* Short screens (landscape phones, small laptops with zoom): keep Start reachable. */
+    @media (max-height: 600px) {
+      .config-modal {
+        padding: 8px;
+      }
+
+      .config-content {
+        --config-pad: 16px;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+
+      .config-subtitle {
+        display: none;
+      }
+
+      .config-content h1 {
+        font-size: 20px;
+      }
+
+      .config-title-row {
+        margin-bottom: 8px;
+      }
+
+      .config-footer {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+
+      .config-controls button,
+      .config-controls #startGameBtn {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      .config-controls #startGameBtn {
+        flex: 2 1 140px;
+      }
     }
 
     /* ---------- Entity Tooltip ---------- */
@@ -792,11 +976,35 @@
       }
 
       .config-content {
-        padding: 20px;
+        --config-pad: 20px;
       }
 
       .config-content h1 {
         font-size: 22px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .config-modal {
+        padding: 8px;
+      }
+
+      .config-content {
+        --config-pad: 14px;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+
+      .config-section-body {
+        padding: 14px;
+      }
+
+      .config-subtitle {
+        display: none;
+      }
+
+      .config-row input {
+        width: 90px;
       }
     }
 
@@ -832,62 +1040,98 @@
   <div id="rulesModal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="rulesTitle" data-i18n="rules.title">📖 Game Rules & Reference</h2>
+        <h2 id="rulesTitle" data-i18n="rules.title">📖 Game Rules</h2>
         <button type="button" class="close-btn" id="closeModal" aria-label="Close" data-i18n-aria-label="a11y.close">&times;</button>
       </div>
-      <div class="modal-tabs" role="tablist">
+      <div class="modal-tabs" role="tablist" aria-labelledby="rulesTitle">
         <button type="button" class="modal-tab active" role="tab" id="tab-rules" aria-controls="rules-tab" aria-selected="true" tabindex="0" data-tab="rules" data-i18n="rules.tabGameRules">Game Rules</button>
         <button type="button" class="modal-tab" role="tab" id="tab-creatures" aria-controls="creatures-tab" aria-selected="false" tabindex="-1" data-tab="creatures" data-i18n="rules.tabCreatures">Creatures</button>
         <button type="button" class="modal-tab" role="tab" id="tab-plants" aria-controls="plants-tab" aria-selected="false" tabindex="-1" data-tab="plants" data-i18n="rules.tabPlants">Plants</button>
+        <button type="button" class="modal-tab" role="tab" id="tab-genetics" aria-controls="genetics-tab" aria-selected="false" tabindex="-1" data-tab="genetics" data-i18n="rules.tabGenetics">Genetics &amp; Energy</button>
         <button type="button" class="modal-tab" role="tab" id="tab-controls" aria-controls="controls-tab" aria-selected="false" tabindex="-1" data-tab="controls" data-i18n="rules.tabControls">Controls</button>
       </div>
       <div class="modal-body">
-        <div class="tab-content active" id="rules-tab" role="tabpanel" aria-labelledby="tab-rules">
+        <div class="tab-content active" id="rules-tab" role="tabpanel" aria-labelledby="tab-rules" tabindex="0">
           <h3 data-i18n="rules.gameRulesTitle">🎮 How the Game Works</h3>
-          <p data-i18n="rules.roundPriorityDesc">This simulator shows how populations interact in an ecosystem. Each round, all creatures follow these phases in order:</p>
-          <ol>
-            <li data-i18n="rules.phase1Movement"><strong>Movement</strong> - Creatures move to nearby cells</li>
-            <li data-i18n="rules.phase2Combat"><strong>Combat</strong> - Males fight each other, wolves attack humans, dogs attack wolves</li>
-            <li data-i18n="rules.phase3Eating"><strong>Eating</strong> - Humans eat fruits and mushrooms</li>
-            <li data-i18n="rules.phase4Reproduction"><strong>Reproduction</strong> - Males and females may reproduce</li>
-            <li data-i18n="rules.phase5Death"><strong>Death</strong> - Creatures age and may die naturally</li>
-            <li data-i18n="rules.phase6Birth"><strong>Birth</strong> - Pregnant females give birth</li>
-            <li data-i18n="rules.phase7Spawn"><strong>Plant Spawning</strong> - New fruits and mushrooms appear</li>
+          <p data-i18n="rules.roundPriorityDesc">Each round, every creature goes through these 7 phases, always in this order:</p>
+          <ol class="rules-phases" style="list-style: none; padding-left: 0;">
+            <li data-i18n="rules.phase1Movement">1. Movement - Creatures step toward what they want (food, prey) or run away</li>
+            <li data-i18n="rules.phase2Combat">2. Combat - Wolves bite humans, dogs bite wolves, males fight each other</li>
+            <li data-i18n="rules.phase3Eating">3. Eating - Humans eat ripe fruits and mushrooms next to them; dogs eat mushrooms</li>
+            <li data-i18n="rules.phase4Reproduction">4. Reproduction - A male next to a female may make her pregnant</li>
+            <li data-i18n="rules.phase5Death">5. Death - Creatures with health ≤ 0 are removed; others may die of old age</li>
+            <li data-i18n="rules.phase6Birth">6. Birth - Pregnant females whose time is up give birth</li>
+            <li data-i18n="rules.phase7Spawn">7. Spawn - New plants and animals appear on empty cells</li>
           </ol>
           <h3 data-i18n="rules.importantRulesTitle">⚡ Important Rules</h3>
           <ul>
-            <li data-i18n="rules.importantRule1">All creatures complete each phase before the next phase begins</li>
-            <li data-i18n="rules.importantRule2">Creatures age every round and may die of old age (Gompertz mortality)</li>
-            <li data-i18n="rules.importantRule3">When populations exceed thresholds, death rates increase (overcrowding)</li>
+            <li data-i18n="rules.importantRule1">Every creature finishes a phase before the next phase begins.</li>
+            <li data-i18n="rules.importantRule2">Creatures get older every round, and the older they are, the more likely they die of old age.</li>
+            <li data-i18n="rules.importantRule3">Only one creature or plant can be on a cell at a time.</li>
+            <li data-i18n="rules.importantRuleMaleFight">👨 vs 👨: when two males fight, the winner gains the loser’s health as a prize. If both would drop to 0, only the weaker one dies.</li>
+            <li data-i18n="rules.importantRuleOvercrowding" data-i18n-args="100,2,50,2">Overcrowding: with more than 100 humans, every human is 2× more likely to die of old age. With more than 50 wolves + dogs, they are 2× more likely.</li>
+            <li data-i18n="rules.importantRuleBirthSpace">If a mother has no empty cell next to her when her baby is due, she dies and the baby takes her place.</li>
           </ul>
+          <h3 data-i18n="rules.orderExamplesTitle">🔁 Why the Order Matters</h3>
+          <p data-i18n="rules.orderExamplesDesc">Because phases run one after another, an early phase can change what happens later:</p>
+          <ul>
+            <li data-i18n="rules.orderExample1">A 👨 male killed in combat in phase 2 cannot father a child in phase 4 — even if a female is right next to him.</li>
+            <li data-i18n="rules.orderExample2">A human who drops to 0 health from a wolf bite in phase 2 is too weak to eat in phase 3, so a ripe fruit next to them cannot save them.</li>
+            <li data-i18n="rules.orderExample3">A pregnant female killed by a wolf is removed in phase 5, before births in phase 6 — so her baby is never born.</li>
+          </ul>
+          <h3 data-i18n="rules.gameEndTitle">🏁 How the Game Ends</h3>
+          <p data-i18n="rules.gameEndDesc">The game ends when all humans have died. Humans win when no wolves and no mushrooms are left (checked from round 10 on). You can also press Finish Game at any time to see the summary.</p>
         </div>
-        <div class="tab-content" id="creatures-tab" role="tabpanel" aria-labelledby="tab-creatures">
+        <div class="tab-content" id="creatures-tab" role="tabpanel" aria-labelledby="tab-creatures" tabindex="0">
           <h3 data-i18n="rules.malesTitle">👨 Male Humans</h3>
-          <p data-i18n="rules.malesDesc">Males can fight each other and wolves. They can reproduce with females. Males move toward nearby fruits when hungry.</p>
+          <p data-i18n="rules.malesDesc">Males walk toward fruits and bite back when a wolf attacks them. Two males next to each other fight. A male next to a female can make her pregnant.</p>
           <h3 data-i18n="rules.femalesTitle">👩 Female Humans</h3>
-          <p data-i18n="rules.femalesDesc">Females can reproduce with males. After mating, females become pregnant for 3 rounds, then give birth. They have a cooldown period before they can reproduce again.</p>
+          <p data-i18n="rules.femalesDesc" data-i18n-args="3,2">Females walk toward fruits and can become pregnant (🤰). A pregnancy lasts 3 rounds; after giving birth she rests for 2 rounds before she can be pregnant again. Females do not fight back against wolves.</p>
           <h3 data-i18n="rules.wolvesTitle">🐺 Wolves</h3>
-          <p data-i18n="rules.wolvesDesc">Wolves hunt humans aggressively. They have a wider perception range than humans and move toward nearby humans. Wolves age and die naturally over time.</p>
+          <p data-i18n="rules.wolvesDesc">Wolves hunt humans and bite them when they are next to them. They can see farther than humans. Males bite back, females do not.</p>
           <h3 data-i18n="rules.dogsTitle">🐕 Dogs</h3>
-          <p data-i18n="rules.dogsDesc">Dogs protect humans by attacking wolves. They move toward nearby wolves and can counter-attack when wolves attack them. Dogs age and die naturally.</p>
+          <p data-i18n="rules.dogsDesc">Dogs protect humans by hunting wolves and biting them. Dogs are immune to mushrooms: they can eat them without getting hurt, which helps clear the poison away.</p>
         </div>
-        <div class="tab-content" id="plants-tab" role="tabpanel" aria-labelledby="tab-plants">
+        <div class="tab-content" id="plants-tab" role="tabpanel" aria-labelledby="tab-plants" tabindex="0">
           <h3 data-i18n="rules.fruitsTitle">🍎 Fruits</h3>
-          <p data-i18n="rules.fruitsDesc">Fruits provide energy to humans. They take 2 rounds to ripen (shown by color change). Only ripe fruits can be eaten. Humans heal when eating fruits.</p>
+          <p data-i18n="rules.fruitsDesc" data-i18n-args="2">Fruits heal humans who eat them. A new fruit is unripe (🍏) and becomes ripe (🍎) after 2 rounds. Only ripe fruits can be eaten, and only by a human who is not at full health.</p>
           <h3 data-i18n="rules.mushroomsTitle">🍄 Mushrooms</h3>
-          <p data-i18n="rules.mushroomsDesc">Mushrooms are poisonous! When humans eat mushrooms, they lose health instead of gaining it. Be careful - mushrooms look similar to fruits but are dangerous.</p>
+          <p data-i18n="rules.mushroomsDesc">Mushrooms are poisonous: a human who eats one loses health. They are dangerous from the moment they appear. Dogs can eat mushrooms safely.</p>
+          <p data-i18n="rules.mushroomsWarning">⚠️ Warning: Mushrooms reduce health!</p>
         </div>
-        <div class="tab-content" id="controls-tab" role="tabpanel" aria-labelledby="tab-controls">
+        <div class="tab-content" id="genetics-tab" role="tabpanel" aria-labelledby="tab-genetics" tabindex="0">
+          <h3 data-i18n="rules.geneticsTitle">🧬 Genes</h3>
+          <p data-i18n="rules.geneticsDesc">Every human has their own genes. A baby gets a mix of both parents’ genes plus a small random change (mutation). Over many rounds, genes that help survival become more common.</p>
+          <ul>
+            <li data-i18n="rules.geneMaxHealth">Max Health - how much health the human can have (and starts with).</li>
+            <li data-i18n="rules.geneStrength">Strength - how hard the human hits in fights with other males and wolves.</li>
+            <li data-i18n="rules.geneMetabolism">Metabolism - how much health every step costs. A fast metabolism means getting hungry quickly.</li>
+            <li data-i18n="rules.geneGreed">Greed - how likely the human is to walk toward a fruit they can see.</li>
+            <li data-i18n="rules.geneCaution">Caution - how likely the human is to run away from a wolf they can see.</li>
+            <li data-i18n="rules.geneLongevity">Longevity - how slowly the human ages. Higher longevity means a longer life on average.</li>
+          </ul>
+          <h3 data-i18n="rules.energyTitle">⚡ Energy</h3>
+          <p data-i18n="rules.energyDesc">Health is also energy. How full a human is changes how they behave:</p>
+          <ul>
+            <li data-i18n="rules.energyDesperate">Desperate (below 30%): hunts for food hard and does not try to have children. A desperate male runs away from other males.</li>
+            <li data-i18n="rules.energyHungry">Hungry (below 50%): looks for food more often, is more careful around wolves, and does not try to have children.</li>
+            <li data-i18n="rules.energyModerate">Moderate (50–80%): normal behaviour.</li>
+            <li data-i18n="rules.energyFull">Full (above 80%): less interested in food, braver, and more likely to have children.</li>
+            <li data-i18n="rules.energySatiated">Satiated (100%): barely interested in food and most likely to have children.</li>
+          </ul>
+          <p data-i18n="rules.energyTip">Tip: hover over a human on the board to see their genes and energy state.</p>
+        </div>
+        <div class="tab-content" id="controls-tab" role="tabpanel" aria-labelledby="tab-controls" tabindex="0">
           <h3 data-i18n="rules.keyboardShortcutsTitle">⌨️ Keyboard Shortcuts</h3>
           <ul>
-            <li data-i18n="rules.keySpace"><strong>Space</strong> - Pause/Resume simulation</li>
-            <li data-i18n="rules.keyRight"><strong>Right Arrow (→)</strong> - Advance 1 round when paused</li>
-            <li data-i18n="rules.keyUp"><strong>Up Arrow (↑)</strong> - Advance 5 rounds when paused</li>
-            <li data-i18n="rules.keyDown"><strong>Down Arrow (↓)</strong> - Pause continuous simulation</li>
-            <li data-i18n="rules.keyLeft"><strong>Left Arrow (←)</strong> - Pause continuous simulation</li>
+            <li data-i18n="rules.keySpace">Space - Pause/Play toggle</li>
+            <li data-i18n="rules.keyRight">Right Arrow - Advance 1 round (when paused)</li>
+            <li data-i18n="rules.keyUp">Up Arrow - Advance 5 rounds (when paused)</li>
+            <li data-i18n="rules.keyDown">Down Arrow - Pause simulation</li>
+            <li data-i18n="rules.keyLeft">Left Arrow - Pause simulation</li>
           </ul>
           <h3 data-i18n="rules.mouseControlsTitle">🖱️ Mouse Controls</h3>
-          <p data-i18n="rules.mouseDesc">Use the control buttons to manage simulation execution. Start Game begins a new simulation, Pause/Resume toggles execution, Step advances one round, Reset clears the board, and Speed controls execution rate.</p>
+          <p data-i18n="rules.mouseDesc">Use the buttons in the control panel: Run One Round, Run Five Rounds, Run Free, Pause and Finish Game. Click "?" to see these rules at any time.</p>
         </div>
       </div>
     </div>
@@ -967,6 +1211,12 @@
           <h3 class="graph-title" data-i18n="stats.populationGraph">Population Graph</h3>
           <canvas id="populationGraph" width="220" height="120" role="img" aria-labelledby="statsTitle"></canvas>
         </section>
+
+        <!-- Genome trait panel (filled by TraitPanel) -->
+        <section id="traitPanel" class="panel"></section>
+
+        <!-- App version (filled at startup) -->
+        <div id="appVersion" class="app-version"></div>
       </aside>
     </main>
   </div>
@@ -974,23 +1224,20 @@
   <!-- Configuration Panel Modal -->
   <div id="configPanel" class="config-modal" role="dialog" aria-modal="true" aria-labelledby="configTitle">
     <div class="config-content">
-      <div class="config-title-row">
-        <h1 id="configTitle" data-i18n="config.configPanel">Game Configuration</h1>
-        <!-- Language Selector -->
-        <select id="languageSelector" class="language-selector" aria-label="Select language" data-i18n-aria-label="a11y.language">
-          <option value="en">🇬🇧 English</option>
-          <option value="pl">🇵🇱 Polski</option>
-        </select>
-      </div>
-      <p class="config-subtitle" data-i18n="config.configSubtitle">Configure parameters before starting the simulation</p>
+      <header class="config-header">
+        <div class="config-title-row">
+          <h1 id="configTitle" data-i18n="config.configPanel">Game Configuration</h1>
+          <!-- Language Selector -->
+          <select id="languageSelector" class="language-selector" aria-label="Select language" data-i18n-aria-label="a11y.language">
+            <option value="en">🇬🇧 English</option>
+            <option value="pl">🇵🇱 Polski</option>
+          </select>
+        </div>
+        <p class="config-subtitle" data-i18n="config.configSubtitle">Configure parameters before starting the simulation</p>
+      </header>
 
-      <!-- Top Action Buttons -->
-      <div class="config-top-actions">
-        <button type="button" id="startGameBtnTop" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
-        <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
-      </div>
-      <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
-
+      <!-- Scrollable settings; header and footer (with Start) stay visible -->
+      <div class="config-scroll">
       <!-- Board & Spawn Section -->
       <section class="config-section">
         <h2 class="config-section-title">
@@ -1000,6 +1247,14 @@
           </button>
         </h2>
         <div class="config-section-body" id="configSection1">
+          <fieldset class="setup-mode" aria-describedby="setupModeHint">
+            <legend data-i18n="configHelp.setupMode.legend">How to fill the board</legend>
+            <div class="setup-mode-options">
+              <label><input type="radio" name="setupMode" value="random" checked> <span data-i18n="configHelp.setupMode.random">🎲 Random</span></label>
+              <label><input type="radio" name="setupMode" value="manual"> <span data-i18n="configHelp.setupMode.manual">✋ Place it myself</span></label>
+            </div>
+            <p id="setupModeHint" class="setup-mode-hint" aria-live="polite"></p>
+          </fieldset>
           <div class="config-row">
             <label for="boardWidth" data-i18n="config.boardWidth">Board Width:</label>
             <input type="number" id="boardWidth" min="10" max="100" value="30">
@@ -1038,7 +1293,11 @@
             <input type="number" id="spawnMushroom" min="0" max="1" step="0.01" value="0.01">
           </div>
           <div id="spawnValidation" class="validation-message"></div>
-          <div id="expectedCounts" class="expected-counts"></div>
+          <div id="expectedSummary" class="expected-counts">
+            <div id="expectedCounts"></div>
+            <div id="expectedTotals" class="expected-totals"></div>
+          </div>
+          <div id="perfWarning" class="validation-message validation-warning" role="status" hidden></div>
         </div>
       </section>
 
@@ -1090,6 +1349,14 @@
           <div class="config-row">
             <label for="humanFruitProb" data-i18n="config.moveTowardFruit">Move Toward Fruit Probability:</label>
             <input type="number" id="humanFruitProb" min="0" max="1" step="0.01" value="0.7">
+          </div>
+          <div class="config-row">
+            <label for="humanCaution" data-i18n="configHelp.labels.humanCaution">Average Caution (initial):</label>
+            <input type="number" id="humanCaution" min="0" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="config-row">
+            <label for="humanMetabolism" data-i18n="configHelp.labels.humanMetabolism">Average Metabolism (initial):</label>
+            <input type="number" id="humanMetabolism" min="0" max="1" step="0.01" value="0.5">
           </div>
         </div>
       </section>
@@ -1237,7 +1504,7 @@
         <div class="config-section-body" id="configSection7">
           <div class="config-row">
             <label for="humanThreshold" data-i18n="config.humanThreshold">Human Overcrowding Threshold:</label>
-            <input type="number" id="humanThreshold" min="10" max="1000" value="100">
+            <input type="number" id="humanThreshold" min="10" value="100">
           </div>
           <div class="config-row">
             <label for="humanMultiplier" data-i18n="config.humanMultiplier">Human Overcrowding Multiplier:</label>
@@ -1245,7 +1512,7 @@
           </div>
           <div class="config-row">
             <label for="animalThreshold" data-i18n="config.animalThreshold">Animal Overcrowding Threshold:</label>
-            <input type="number" id="animalThreshold" min="10" max="1000" value="50">
+            <input type="number" id="animalThreshold" min="10" value="50">
           </div>
           <div class="config-row">
             <label for="animalMultiplier" data-i18n="config.animalMultiplier">Animal Overcrowding Multiplier:</label>
@@ -1254,16 +1521,28 @@
         </div>
       </section>
 
-      <!-- Control Buttons -->
-      <div class="config-controls">
-        <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S">Save Configuration</button>
-        <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O">Load Configuration</button>
-        <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
-        <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
-        <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
       </div>
+
+      <!-- Always-visible footer: validation summary, file actions and Start -->
+      <footer class="config-footer">
+        <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
+        <div class="config-controls">
+          <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
+          <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S" aria-keyshortcuts="Control+S">Save Configuration</button>
+          <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O" aria-keyshortcuts="Control+O">Load Configuration</button>
+          <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
+          <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
+          <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame" title="Start the game (Ctrl+Enter)" aria-keyshortcuts="Control+Enter">Start Game</button>
+        </div>
+      </footer>
     </div>
   </div>
+
+  <!-- Manual board setup view (filled by SetupView) -->
+  <div id="setupView" class="setup-view" hidden></div>
+
+  <!-- End-of-game summary (filled by SummaryDialog) -->
+  <div id="summaryModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"></div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

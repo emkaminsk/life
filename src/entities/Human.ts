@@ -2,6 +2,7 @@ import { Entity } from './Entity';
 import { EntityType, Sex, type Genome } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { GenomeUtils } from '../utils/GenomeUtils';
+import { type EnergyState, getEnergyState } from '../utils/energy';
 
 export class Human extends Entity {
   sex: Sex;
@@ -17,6 +18,8 @@ export class Human extends Entity {
    * @param genome explicit genome (e.g. inherited); when omitted a random one is generated
    * @param avgGreed baseline greed for a randomly generated genome (configured
    *   moveTowardFruitProbability)
+   * @param avgCaution baseline caution for a randomly generated genome (config human.avgCaution)
+   * @param avgMetabolism baseline metabolism for a randomly generated genome (config human.avgMetabolism)
    */
   constructor(
     x: number,
@@ -26,14 +29,19 @@ export class Human extends Entity {
     gompertzA?: number,
     gompertzB?: number,
     genome?: Genome,
-    avgGreed?: number
+    avgGreed?: number,
+    avgCaution?: number,
+    avgMetabolism?: number,
   ) {
-    const activeGenome = genome ?? GenomeUtils.createRandomGenome(
-      startingHealth ?? DEFAULT_CONFIG.human.startingHealth, // Avg Max Health
-      1.0, // Avg Strength (multiplier)
-      avgGreed ?? DEFAULT_CONFIG.human.moveTowardFruitProbability, // Avg Greed
-      0.0 // Avg Caution (default doesn't run from wolves)
-    );
+    const activeGenome =
+      genome ??
+      GenomeUtils.createRandomGenome(
+        startingHealth ?? DEFAULT_CONFIG.human.startingHealth, // Avg Max Health
+        1.0, // Avg Strength (multiplier)
+        avgGreed ?? DEFAULT_CONFIG.human.moveTowardFruitProbability, // Avg Greed
+        avgCaution ?? DEFAULT_CONFIG.human.avgCaution,
+        avgMetabolism ?? DEFAULT_CONFIG.human.avgMetabolism,
+      );
 
     super(
       x,
@@ -42,7 +50,7 @@ export class Human extends Entity {
       sex === Sex.MALE ? EntityType.MALE : EntityType.FEMALE,
       gompertzA ?? DEFAULT_CONFIG.human.gompertzA,
       gompertzB ?? DEFAULT_CONFIG.human.gompertzB,
-      activeGenome.maxHealth
+      activeGenome.maxHealth,
     );
 
     this.sex = sex;
@@ -92,6 +100,11 @@ export class Human extends Entity {
     if (this.reproductionCooldown > 0) {
       this.reproductionCooldown--;
     }
+  }
+
+  /** Current energy state (PRD 3.16.2): health relative to max health. */
+  getEnergyState(): EnergyState {
+    return getEnergyState(this.health, this.maxHealth);
   }
 
   isMale(): boolean {

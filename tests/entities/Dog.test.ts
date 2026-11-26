@@ -1,104 +1,61 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { Dog } from '../../src/entities/Dog'
-import { createConfig, createDog, getConfigByPath } from '../setup'
-import { DEFAULT_CONFIG } from '../../src/config'
+import { describe, it, expect } from 'vitest';
+import { Dog } from '../../src/entities/Dog';
+import { Board } from '../../src/core/Board';
+import { DeathSystem } from '../../src/systems/DeathSystem';
+import { SpawnSystem } from '../../src/systems/SpawnSystem';
+import { createConfig, createMockRenderer } from '../setup';
 
 /**
- * Dog Entity Unit Tests
- *
- * Tests dog-specific behavioral mechanics:
- * - Health management and initialization
- * - Age advancement and position tracking
- *
- * Focuses on behavior verification rather than config storage
+ * Dog entity behaviour: construction from configured stats, damage and healing
+ * limits, and the configured Gompertz parameters actually driving age mortality.
+ * Combat behaviour lives in tests/systems/CombatSystem.test.ts.
  */
 
 describe('Dog Entity', () => {
-  describe('Health Management', () => {
-    it('should initialize with starting health', () => {
-      const dog = createDog(15, 15)
-      expect(dog.health).toBeGreaterThan(0)
-    })
+  it('takes its starting health, max health and Gompertz parameters from the constructor', () => {
+    const dog = new Dog(4, 5, 61, 0.003, 0.3);
+    expect([dog.x, dog.y, dog.health, dog.maxHealth]).toEqual([4, 5, 61, 61]);
+    expect([dog.gompertzA, dog.gompertzB]).toEqual([0.003, 0.3]);
+  });
 
-    it('should track health changes independently', () => {
-      const dog1 = createDog(5, 5)
-      const dog2 = createDog(10, 10)
+  it('spawns with the configured dog stats', () => {
+    const board = new Board(1, 1);
+    new SpawnSystem(createMockRenderer()).execute(
+      board,
+      createConfig({
+        fruit: { spawnProbability: 0 },
+        mushroom: { spawnProbability: 0 },
+        wolf: { spawnProbability: 0 },
+        dog: { spawnProbability: 1, startingHealth: 33 },
+      }),
+    );
+    const spawned = board.getEntity(0, 0);
+    expect(spawned).toBeInstanceOf(Dog);
+    expect(spawned?.health).toBe(33);
+  });
 
-      const initial1 = dog1.health
-      const initial2 = dog2.health
+  it('dies once damage reaches its health, and healing is capped at its starting health', () => {
+    const dog = new Dog(0, 0, 40);
+    dog.takeDamage(15);
+    dog.heal(100);
+    expect(dog.health).toBe(40);
+    dog.takeDamage(40);
+    expect(dog.isDead()).toBe(true);
+  });
 
-      dog1.health -= 20
+  it('is immortal with Gompertz A = 0 and certain to die with a huge A', () => {
+    const renderer = createMockRenderer();
+    const board = new Board(2, 1);
+    const immortal = new Dog(0, 0, 50, 0, 0.1);
+    immortal.age = 1000;
+    const doomed = new Dog(1, 0, 50, 1000, 0.1);
+    board.setEntity(0, 0, immortal);
+    board.setEntity(1, 0, doomed);
 
-      expect(dog1.health).toBe(initial1 - 20)
-      expect(dog2.health).toBe(initial2)
-    })
+    const deaths = new DeathSystem(renderer).execute(board, createConfig());
 
-    it('should allow health to reach zero', () => {
-      const dog = createDog(15, 15)
-      dog.health = 0
-
-      expect(dog.health).toBe(0)
-    })
-
-    it('should support health healing', () => {
-      const dog = createDog(15, 15)
-      const initial = dog.health
-
-      dog.health += 30
-
-      expect(dog.health).toBe(initial + 30)
-    })
-
-    it('should allow health to go negative', () => {
-      const dog = createDog(15, 15)
-      dog.health = -40
-
-      expect(dog.health).toBe(-40)
-    })
-  })
-
-  describe('Age Advancement', () => {
-    it('should track age correctly', () => {
-      const dog = createDog(15, 15)
-      expect(dog.age).toBe(0)
-
-      dog.incrementAge()
-      expect(dog.age).toBe(1)
-
-      dog.incrementAge()
-      expect(dog.age).toBe(2)
-    })
-
-    it('should accumulate age over time', () => {
-      const dog = createDog(15, 15)
-
-      for (let i = 0; i < 10; i++) {
-        dog.incrementAge()
-      }
-
-      expect(dog.age).toBe(10)
-    })
-  })
-
-  describe('Position Management', () => {
-    it('should update position', () => {
-      const dog = createDog(15, 15)
-
-      dog.x = 20
-      dog.y = 25
-
-      expect(dog.x).toBe(20)
-      expect(dog.y).toBe(25)
-    })
-
-    it('should maintain independent positions for multiple dogs', () => {
-      const dog1 = createDog(5, 5)
-      const dog2 = createDog(10, 10)
-
-      dog1.x = 15
-      expect(dog1.x).toBe(15)
-      expect(dog2.x).toBe(10)
-    })
-  })
-
-})
+    expect(board.getEntity(0, 0)).toBe(immortal);
+    expect(board.getEntity(1, 0)).toBeNull();
+    expect(deaths).toEqual([{ species: 'dog', cause: 'oldAge', age: 1 }]);
+  });
+});

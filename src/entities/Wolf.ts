@@ -10,7 +10,7 @@ export class Wolf extends Entity {
       startingHealth ?? DEFAULT_CONFIG.wolf.startingHealth,
       EntityType.WOLF,
       gompertzA ?? DEFAULT_CONFIG.wolf.gompertzA,
-      gompertzB ?? DEFAULT_CONFIG.wolf.gompertzB
+      gompertzB ?? DEFAULT_CONFIG.wolf.gompertzB,
     );
   }
 }

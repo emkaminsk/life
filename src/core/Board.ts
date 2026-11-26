@@ -117,7 +117,7 @@ export class Board {
   }
 
   getEmptyAdjacentPositions(x: number, y: number): { x: number; y: number }[] {
-    return this.getAdjacentPositions(x, y).filter(pos => this.isEmpty(pos.x, pos.y));
+    return this.getAdjacentPositions(x, y).filter((pos) => this.isEmpty(pos.x, pos.y));
   }
 
   incrementRound(): void {

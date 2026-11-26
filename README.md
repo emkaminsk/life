@@ -37,7 +37,7 @@ Game of Life is an educational simulation that creates a simple ecosystem with h
 
 **Animals**
 - **Wolves**: Hunt humans, deal damage to adjacent humans
-- **Dogs**: Protect humans by attacking wolves
+- **Dogs**: Protect humans by attacking wolves; immune to mushrooms (they eat them safely)
 
 **Plants**
 - **Fruits**: Heal humans (+30 energy default), require ripening period before edible
@@ -50,10 +50,14 @@ Game of Life is an educational simulation that creates a simple ecosystem with h
 - **Visual Feedback**: Color-coded flashes for combat (red), reproduction (green), and eating (yellow) events
 - **Real-Time Statistics**: Live population counts, pregnancy tracking, and population graphs
 - **Interactive Controls**: Pause, step-by-step execution, continuous simulation with adjustable speed
+- **Genetics & Energy**: Every human carries six heritable genes (max health, strength, metabolism, greed, caution, longevity = aging rate); health doubles as energy and changes behaviour (hungry humans seek food, well-fed ones reproduce more)
+- **Automatic End**: The game stops when all humans are gone, or when humans are safe (no wolves and no mushrooms left, from round 10)
+- **End-of-Game Summary**: What happened, when each population halved / vanished / doubled, causes of death, and suggested conclusions to test next
 
 ### Configuration System
 
-- **Board Setup**: Dimensions (10x10 to 100x100), entity spawn probabilities
+- **Board Setup**: Dimensions (10x10 to 100x100), random spawn probabilities **or** manual placement in a board editor (mouse or keyboard)
+- **Field Help**: Every setting has a "?" tooltip explaining what bigger/smaller values do (English and Polish)
 - **Creature Parameters**: Health, damage values, movement behavior, age mortality curves
 - **Population Control**: Overcrowding thresholds and death multipliers
 - **Real-Time Validation**: Immediate feedback on invalid configurations with helpful tooltips
@@ -61,7 +65,9 @@ Game of Life is an educational simulation that creates a simple ecosystem with h
 ### User Interface
 
 - Canvas-based grid rendering with emoji or sprite visualization
-- Statistics panel with population graphs over time
+- Statistics panel with population graph and overcrowding indicator
+- Genetic-traits chart (average ♂/♀ gene values per round, toggleable traits)
+- Version label (`1.0.<commit hash>`) in the bottom-right corner
 - Comprehensive rules reference modal
 - Keyboard shortcuts for efficient control
 - Non-intrusive notification system
@@ -194,7 +200,7 @@ See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation detail
 - Comprehensive rules documentation accessible during gameplay
 - Keyboard and mouse controls
 - Real-time configuration validation
-- Performance optimization for up to 1,000 creatures
+- Performance optimization for up to 1,000 creatures (soft warning above that, no hard cap)
 
 ### ❌ Out of Scope (Future Enhancements)
 
@@ -223,14 +229,20 @@ See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation detail
 ### Controls
 
 **Buttons:**
-- **Start Game** - Initialize the board with random entities
+- **Start Game** (or **Ctrl+Enter**) - Fill the board randomly, or open the board editor in "Place it myself" mode; the game starts automatically
 - **Pause/Resume** - Toggle continuous simulation
-- **Step** - Execute exactly one round when paused
-- **Run** - Start continuous simulation
-- **Reset** - Clear the board and return to initial state
+- **Run One Round** / **Run Five Rounds** - Step when paused
+- **Run Free** - Continue continuous simulation
+- **Finish Game** - Stop and show the end-of-game summary ("New experiment" returns to the settings)
+- **Reset** - Stop and go straight back to the settings (no summary)
 
 **Keyboard Shortcuts:**
-- **Spacebar** - Toggle pause/resume
+- **Space** - Pause/resume
+- **Right Arrow** - One round (when paused); **Up Arrow** - five rounds (when paused)
+- **Down / Left Arrow** - Pause
+- **Esc** - Close the rules or summary dialog
+
+**Board editor (manual setup):** arrows move the cursor, Shift+arrows select an area, 1–6 fill it with man/woman/dog/wolf/fruit/mushroom, Shift+1–6 sprinkle ~30%, 0 or Delete erase, Ctrl+A select all, Ctrl+Enter start, Esc back to settings. Mouse: drag items onto the board or drag across it to select.
 
 ### Understanding the Simulation
 

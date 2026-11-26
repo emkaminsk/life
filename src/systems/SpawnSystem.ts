@@ -50,7 +50,11 @@ export class SpawnSystem {
           board.setEntity(x, y, new Mushroom(x, y, config.mushroom.energyRemoved));
           mushroomSpawnCount++;
         } else if (Random.chance(config.wolf.spawnProbability)) {
-          board.setEntity(x, y, new Wolf(x, y, config.wolf.startingHealth, config.wolf.gompertzA, config.wolf.gompertzB));
+          board.setEntity(
+            x,
+            y,
+            new Wolf(x, y, config.wolf.startingHealth, config.wolf.gompertzA, config.wolf.gompertzB),
+          );
           wolfSpawnCount++;
         } else if (Random.chance(config.dog.spawnProbability)) {
           board.setEntity(x, y, new Dog(x, y, config.dog.startingHealth, config.dog.gompertzA, config.dog.gompertzB));
@@ -64,7 +68,7 @@ export class SpawnSystem {
 
     if (fruitSpawnCount + mushroomSpawnCount + wolfSpawnCount + dogSpawnCount > 0) {
       debugLog(
-        `[Spawn] Spawned ${fruitSpawnCount} fruits, ${mushroomSpawnCount} mushrooms, ${wolfSpawnCount} wolves, ${dogSpawnCount} dogs`
+        `[Spawn] Spawned ${fruitSpawnCount} fruits, ${mushroomSpawnCount} mushrooms, ${wolfSpawnCount} wolves, ${dogSpawnCount} dogs`,
       );
     }
   }

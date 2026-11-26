@@ -4,12 +4,12 @@ export enum EntityType {
   WOLF = 'WOLF',
   DOG = 'DOG',
   FRUIT = 'FRUIT',
-  MUSHROOM = 'MUSHROOM'
+  MUSHROOM = 'MUSHROOM',
 }
 
 export enum Sex {
   MALE = 'MALE',
-  FEMALE = 'FEMALE'
+  FEMALE = 'FEMALE',
 }
 
 export interface Position {
@@ -26,15 +26,17 @@ export interface VisualEffect {
 }
 
 export interface Genome {
-  maxHealth: number;    // Physical: Determines starting and max health
-  strength: number;     // Physical: Damage multiplier in combat
-  metabolism: number;   // Physical: Energy cost per move (0-1)
-  greed: number;        // Behavioral: Probability to move toward food (0-1)
-  caution: number;      // Behavioral: Probability to run from predators (0-1)
+  maxHealth: number; // Physical: Determines starting and max health
+  strength: number; // Physical: Damage multiplier in combat
+  metabolism: number; // Physical: Energy cost per move (0-1)
+  greed: number; // Behavioral: Probability to move toward food (0-1)
+  caution: number; // Behavioral: Probability to run from predators (0-1)
+  longevity: number; // Physical: Multiplier on the Gompertz ageing rate B (0.5-2.0, mean 1)
 }
 
+/** Average genes of the living males and females in one round (PRD 3.18.2); null when that sex is extinct. */
 export interface GenomeSnapshot {
   round: number;
-  maleAverage: Genome;
-  femaleAverage: Genome;
+  maleAverage: Genome | null;
+  femaleAverage: Genome | null;
 }
