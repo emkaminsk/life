@@ -38,3 +38,6 @@ playwright/.auth/
 supabase/seed-prod.sql
 # test coverage output
 coverage/
+
+# Claude Code agent worktrees
+.claude/worktrees/

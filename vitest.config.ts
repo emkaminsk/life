@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     globals: true,
+    include: ['tests/**/*.test.ts'],
     environment: 'jsdom',
     setupFiles: ['./tests/vitest.setup.ts'],
     // Restore spies (e.g. vi.spyOn(Math, 'random')) after every test so a
