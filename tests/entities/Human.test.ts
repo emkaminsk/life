@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Human } from '../../src/entities/Human';
 import { Sex } from '../../src/types';
 import { Random } from '../../src/utils/Random';
-import { createConfig, createFemale, createMale, getConfigByPath } from '../setup';
+import { createConfig, createFemale, createMale } from '../setup';
 import { DEFAULT_CONFIG } from '../../src/config';
 import { EnergyState } from '../../src/utils/energy';
 
