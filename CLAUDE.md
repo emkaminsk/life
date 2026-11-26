@@ -53,9 +53,16 @@ The core game logic executes in **strict priority order** each round:
 ```
 src/
 ├── core/           # Core engine and rendering
-│   ├── Game.ts           # Main loop, round execution, phase orchestration
+│   ├── Game.ts           # Main loop, round execution, phase orchestration, end of game
 │   ├── Board.ts          # Grid state management, cell lookup
-│   └── Renderer.ts       # Canvas rendering, dirty rectangles, emoji caching
+│   ├── Renderer.ts       # Canvas rendering, dirty rectangles, emoji caching
+│   ├── simulationEvents.ts # Shared types: DeathCause, RoundRecord, EndReason, BoardLayout
+│   ├── GameHistory.ts    # One RoundRecord for round 0 and after every round
+│   ├── endConditions.ts  # humansExtinct / humansSafe (literal rule, round ≥ 10)
+│   ├── gameSummary.ts    # summarize(records, endReason) → facts, thresholds, deaths, conclusions
+│   ├── BoardLayout.ts    # Pure helpers for manual layouts (row-major cells)
+│   ├── entityFactory.ts  # createEntity(kind, x, y, config)
+│   └── genomeStats.ts    # Per-round ♂/♀ gene averages (GenomeHistory)
 ├── entities/       # Entity class hierarchy
 │   ├── Entity.ts         # Base class with health, age, position
 │   ├── Human.ts          # Male/Female, pregnancy, cooldown mechanics
@@ -72,14 +79,25 @@ src/
 │   ├── BirthSystem.ts          # Phase 6: Spawn from pregnancy
 │   └── SpawnSystem.ts     # Phase 7: Probabilistic spawning
 ├── utils/
+│   ├── energy.ts         # Energy states + behaviour modifier table (PRD 3.16)
+│   ├── GenomeUtils.ts    # Random genomes, crossover, mutation, GENE_BOUNDS
 │   ├── Gompertz.ts       # Age-based mortality calculation
 │   ├── Random.ts         # Central, seedable randomness (Random.seed(n)); never call Math.random directly
 │   └── debug.ts          # debugLog gated behind ?debug
 ├── ui/
-│   └── ConfigPanel.ts    # Pre-game configuration interface
+│   ├── ConfigPanel.ts    # Pre-game configuration (+ configValidation, configHelp tooltips, setup-mode switch)
+│   ├── setup/            # Manual board editor (SetupView + pure setupKeyboard reducer)
+│   ├── SummaryDialog.ts  # End-of-game summary modal
+│   ├── controls.ts       # Button state machine: idle / running / paused / stepping / over
+│   ├── statistics.ts     # Counts, PopulationAlerts, overcrowding indicator
+│   ├── TraitPanel.ts     # Genetic-traits chart (TraitChart) + toggles
+│   └── …                 # keyboard, dialog, notifications, initProgress, rulesArgs, appVersion
+├── i18n/           # i18n.ts, translations.ts (core keys) + sections/*.ts (app, rules, setup, summary, genome, configHelp)
 ├── types.ts        # Enums (EntityType, Sex) and interfaces
 ├── config.ts       # DEFAULT_CONFIG with all game parameters
-└── main.ts         # Entry point, initialization, event binding
+├── version.ts      # APP_VERSION "1.0.<commit>" (injected by vite define)
+├── app.ts          # createApp(document): all DOM wiring (tested in tests/app.test.ts)
+└── main.ts         # Two-line bootstrap: createApp(document)
 ```
 
 ### Key Architectural Patterns
@@ -93,6 +111,11 @@ src/
 - Systems are **stateless** - all state lives in entities and board
 - Each system is constructed with the renderer and runs as `execute(board, config)`; systems must read parameters from the passed `GameConfig`, never from `DEFAULT_CONFIG` (that is only a source of defaults)
 - Systems emit visual effects via `Renderer.addVisualEffect()` using `VISUAL_EFFECT_DURATION_MS` from `src/config.ts`
+- Systems report events for the round history: Movement → movements + `deaths`, Eating → `{fruits, mushrooms}`, Reproduction → new pregnancies, Death → `DeathRecord[]`, Birth → `{births, deaths}`. Damage records a cause via `takeDamage(amount, cause)` / `kill(cause)`
+
+**App wiring (`src/app.ts`):**
+- Game callbacks: `onRoundComplete` (stats, alerts, genome snapshot), `onStepComplete` (controls), `onGameOver(reason)` (controls `setOver()` + summary). Finish = `game.finish()`, Reset = `controls.setIdle()` + `game.reset()`
+- New UI goes into `createApp` with listeners registered on its AbortController `signal` (released by `destroy()`), plus a test in `tests/app.test.ts`
 
 **Performance Optimizations:**
 - **Dirty Rectangle Rendering**: Only redraw changed cells + neighbors

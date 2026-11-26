@@ -140,7 +140,7 @@ The solution must enable exploration-based learning where students discover prin
 
 3.7.9 Mushroom configuration includes: energy removed from human, spawn probability per round
 
-3.7.10 Population Control configuration includes: human overcrowding threshold (10-1000, default 100), human overcrowding multiplier (1-10, default 2), animal overcrowding threshold (10-1000, default 50), animal overcrowding multiplier (1-10, default 2)
+3.7.10 Population Control configuration includes: human overcrowding threshold (10 up to the board area, default 100), human overcrowding multiplier (1-10, default 2), animal overcrowding threshold (10 up to the board area, default 50), animal overcrowding multiplier (1-10, default 2)
 
 3.7.11 Real-time validation with visual indicators (red border for invalid values)
 
@@ -166,13 +166,24 @@ The solution must enable exploration-based learning where students discover prin
 
 3.8.4 "Run Free" button starts continuous simulation at configured speed
 
-3.8.5 "Finish Game" button ends current simulation and displays configuration panel
+3.8.5 "Finish Game" button halts the simulation immediately (no extra round when pressed mid-animation) and shows the end-of-game summary (end reason `userFinished`). "New experiment" in the summary returns to the configuration panel; "Back to board" keeps the final board visible (only Reset / Finish stay enabled; Finish reopens the summary)
 
 3.8.6 Speed slider controls simulation speed: Slow (500ms/round), Medium (200ms/round), Fast (50ms/round)
 
 3.8.7 Keyboard shortcuts: Space (pause/play toggle), Right arrow (advance 1 round), Up arrow (advance 5 rounds), Down arrow (pause), Left arrow (pause)
 
 3.8.8 All controls disabled during round execution to prevent state corruption
+
+3.8.9 "Reset" halts immediately and returns straight to the configuration panel, without a summary
+
+3.8.10 Ctrl+Enter (Cmd+Enter) in the configuration panel starts the game
+
+3.8.11 **Automatic end**: after every round the game ends by itself and shows the summary when
+  - `humansExtinct`: there were humans and now there are none (males + females = 0), or
+  - `humansSafe` (literal rule): no wolves, no mushrooms, at least one human, and round ≥ 10.
+  Extinction notifications are not shown in the round the game ends; the summary explains it.
+
+3.8.12 **Summary**: rounds played, first pregnancy, births, peak population, start/end counts per species, the round each human group first reached 50% / 10% / 0% / 200% of its start, causes of death per species, and up to four plain-language conclusions
 
 ### 3.9 Visual Feedback
 
@@ -242,6 +253,8 @@ The solution must enable exploration-based learning where students discover prin
 
 3.13.6 Simulation begins automatically after initialization completes
 
+3.13.7 **Setup mode**: the configuration panel offers "🎲 Random" (spawn probabilities above) or "✋ Place it myself". Manual mode opens a board editor: drag & drop or click items, or use the keyboard (arrows move, Shift+arrows select an area, 1–6 fill with an item, Shift+1–6 sprinkle ~30%, 0/Delete erase, Ctrl+Enter start, Esc back). The last layout is offered again next time; spawn-probability fields are disabled in manual mode
+
 ### 3.14 Performance Requirements
 
 3.14.1 Maintain minimum 30 FPS on default configuration (30x30, approximately 200-300 creatures)
@@ -303,7 +316,9 @@ The solution must enable exploration-based learning where students discover prin
   - metabolism 0.5 → 0.5 energy per move (more efficient)
   - metabolism 1.5 → 1.5 energy per move (less efficient)
 
-3.16.7 **Strategic Implications**: Energy-driven behavior creates emergent strategies. Humans with low metabolism (efficient) can travel farther. Humans with high greed find food faster when hungry. Humans with high caution survive predators better when weak.
+3.16.7 **Implementation decisions**: reproduction modulation uses the *male's* energy state; DESPERATE predator avoidance uses the HUNGRY factor (caution × 1.5, capped at 100%); metabolism is paid only for a move actually made (a human who stays put pays nothing), and dying from it is recorded as cause `metabolism`. Default average metabolism is 0.5 health per move (gene range 0–1).
+
+3.16.8 **Strategic Implications**: Energy-driven behavior creates emergent strategies. Humans with low metabolism (efficient) can travel farther. Humans with high greed find food faster when hungry. Humans with high caution survive predators better when weak.
 
 ### 3.17 Heritable Lifespan
 
@@ -313,6 +328,8 @@ The solution must enable exploration-based learning where students discover prin
   - longevity 0.5: Lives approximately twice as long as baseline
   - longevity 1.0: Lives baseline lifespan
   - longevity 2.0: Lives approximately half as long as baseline
+
+3.17.2a **Wording**: the gene is an *aging rate*; the UI labels it "Longevity (aging rate)" and explains that above 1 means ageing faster.
 
 3.17.3 **Gompertz Modulation**: Effective aging rate = config.human.gompertzB × genome.longevity. This preserves configuration control while allowing genetic variation.
 
@@ -351,6 +368,8 @@ The solution must enable exploration-based learning where students discover prin
 3.19.2 **Eating Behavior**: When dog is adjacent to mushroom during eating phase, dog consumes mushroom (removes from board) but health unchanged.
 
 3.19.3 **Strategic Implications**: Dogs help control mushroom overgrowth, providing additional ecosystem value beyond wolf control.
+
+3.19.4 **Who eats**: each mushroom is eaten by one uniformly random adjacent living human or dog (humans and dogs alike); each ripe fruit by one random adjacent human below full health.
 
 ## 4. Product Boundaries
 
@@ -666,8 +685,9 @@ Title: End simulation and restart
 Description: As a student, I want to end the current simulation so that I can start a new experiment.
 Acceptance Criteria:
 - "Finish Game" button visible during simulation
-- Clicking button stops simulation immediately
-- Configuration panel displays
+- Clicking button stops simulation immediately (no extra round)
+- End-of-game summary displays (what happened, population thresholds, causes of death, conclusions)
+- "New experiment" in the summary displays the configuration panel; "Back to board" keeps the final board
 - Previous configuration values retained
 - Statistics reset to zero
 - Graph cleared
@@ -751,7 +771,7 @@ Acceptance Criteria:
 - Height configurable from 10 to 100 fields
 - Invalid values (< 10 or > 100) show red border
 - Expected creature count updates based on dimensions
-- Maximum 1000 total creatures enforced
+- No hard creature cap: a soft performance warning appears when more than 1000 creatures are expected
 - Configuration validates dimensions before game start
 
 ### US-031: Visual Event Feedback
