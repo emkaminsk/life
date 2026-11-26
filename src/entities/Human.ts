@@ -2,6 +2,7 @@ import { Entity } from './Entity';
 import { EntityType, Sex, type Genome } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { GenomeUtils } from '../utils/GenomeUtils';
+import { type EnergyState, getEnergyState } from '../utils/energy';
 
 export class Human extends Entity {
   sex: Sex;
@@ -99,6 +100,11 @@ export class Human extends Entity {
     if (this.reproductionCooldown > 0) {
       this.reproductionCooldown--;
     }
+  }
+
+  /** Current energy state (PRD 3.16.2): health relative to max health. */
+  getEnergyState(): EnergyState {
+    return getEnergyState(this.health, this.maxHealth);
   }
 
   isMale(): boolean {

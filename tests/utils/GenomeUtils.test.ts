@@ -56,7 +56,7 @@ describe('GenomeUtils', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0);
       const tiny: Genome = {
         maxHealth: 2,
-        strength: 0.5,
+        strength: 0.25,
         metabolism: 0.01,
         greed: 0.05,
         caution: 0.02,
@@ -64,6 +64,25 @@ describe('GenomeUtils', () => {
       };
       const child = GenomeUtils.crossover(tiny, tiny);
       expect(child).toEqual({ maxHealth: 1, strength: 0.1, metabolism: 0, greed: 0, caution: 0, longevity: 0.5 });
+    });
+
+    it('strength mutation stays within ±20 % of a mean-1 multiplier (seeded, 2000 children)', () => {
+      Random.seed(5);
+      const parent: Genome = { ...mother, strength: 1 };
+      let min = Infinity;
+      let max = -Infinity;
+      let mutated = 0;
+      for (let i = 0; i < 2000; i++) {
+        const s = GenomeUtils.crossover(parent, parent).strength;
+        min = Math.min(min, s);
+        max = Math.max(max, s);
+        if (s !== 1) mutated++;
+      }
+      expect(min).toBeGreaterThanOrEqual(0.8);
+      expect(max).toBeLessThanOrEqual(1.2);
+      // ~MUTATION_CHANCE of children actually mutate, so the bound is exercised
+      expect(mutated).toBeGreaterThan(300);
+      expect(max - min).toBeGreaterThan(0.3);
     });
 
     it('mutation (roll ~1 → +variance) is clamped to the [0,1] genes', () => {
