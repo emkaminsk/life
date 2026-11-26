@@ -58,8 +58,9 @@ src/
 │   ├── Renderer.ts       # Canvas rendering, dirty rectangles, emoji caching
 │   ├── simulationEvents.ts # Shared types: DeathCause, RoundRecord, EndReason, BoardLayout
 │   ├── GameHistory.ts    # One RoundRecord for round 0 and after every round
-│   ├── endConditions.ts  # humansExtinct / humansSafe (literal rule, round ≥ 10)
-│   ├── gameSummary.ts    # summarize(records, endReason) → facts, thresholds, deaths, conclusions
+│   ├── endConditions.ts  # pure checkEnd(record, challengeProgress?): humansExtinct / humansSafe (off during a challenge) / challenge end
+│   ├── challenges.ts     # Data-driven challenges (init/step/progress over RoundRecords), locks, sanitizeLayout
+│   ├── gameSummary.ts    # summarize(records, endReason, challenge?) → facts, thresholds, deaths, conclusions
 │   ├── BoardLayout.ts    # Pure helpers for manual layouts (row-major cells)
 │   ├── entityFactory.ts  # createEntity(kind, x, y, config)
 │   └── genomeStats.ts    # Per-round ♂/♀ gene averages (GenomeHistory)
@@ -78,6 +79,11 @@ src/
 │   ├── DeathSystem.ts          # Phase 5: Health-based removal + Gompertz
 │   ├── BirthSystem.ts          # Phase 6: Spawn from pregnancy
 │   └── SpawnSystem.ts     # Phase 7: Probabilistic spawning
+├── classic/        # Classic Game of Life mode (separate from the 7-phase ecosystem loop)
+│   ├── LifeEngine.ts     # Pure Uint8Array double-buffer engine, toroidal, B/S masks
+│   ├── rules.ts / patterns.ts # parseRule, RULE_PRESETS; pattern presets as .O grids
+│   ├── ClassicSession.ts # ControllableGame: timer, pointer drawing while paused, panel
+│   ├── ClassicRenderer.ts / ClassicConfigForm.ts # canvas fit(w,h); ConfigPanel plugin
 ├── utils/
 │   ├── energy.ts         # Energy states + behaviour modifier table (PRD 3.16)
 │   ├── GenomeUtils.ts    # Random genomes, crossover, mutation, GENE_BOUNDS
@@ -85,8 +91,9 @@ src/
 │   ├── Random.ts         # Central, seedable randomness (Random.seed(n)); never call Math.random directly
 │   └── debug.ts          # debugLog gated behind ?debug
 ├── ui/
-│   ├── ConfigPanel.ts    # Pre-game configuration (+ configValidation, configHelp tooltips, setup-mode switch)
-│   ├── setup/            # Manual board editor (SetupView + pure setupKeyboard reducer)
+│   ├── ConfigPanel.ts    # Pre-game config; mode switch (ecosystem|classic), two start buttons, plugin API (validate/startOptions/lockedFields/save/load)
+│   ├── challenge/        # ChallengePicker (ConfigPanel plugin) + ChallengeHud (progress bar)
+│   ├── setup/            # Manual board editor (SetupView, Pointer Events, setupLayout, pure setupKeyboard reducer)
 │   ├── SummaryDialog.ts  # End-of-game summary modal
 │   ├── controls.ts       # Button state machine: idle / running / paused / stepping / over
 │   ├── statistics.ts     # Counts, PopulationAlerts, overcrowding indicator
@@ -114,7 +121,10 @@ src/
 - Systems report events for the round history: Movement → movements + `deaths`, Eating → `{fruits, mushrooms}`, Reproduction → new pregnancies, Death → `DeathRecord[]`, Birth → `{births, deaths}`. Damage records a cause via `takeDamage(amount, cause)` / `kill(cause)`
 
 **App wiring (`src/app.ts`):**
-- Game callbacks: `onRoundComplete` (stats, alerts, genome snapshot), `onStepComplete` (controls), `onGameOver(reason)` (controls `setOver()` + summary). Finish = `game.finish()`, Reset = `controls.setIdle()` + `game.reset()`
+- Game callbacks: `onRoundComplete` (stats, alerts, genome snapshot, challenge HUD), `onStepComplete` (controls), `onGameOver(reason)` (controls `setOver()` + summary). Finish = `game.finish()`, Reset = `controls.setIdle()` + `game.reset()`
+- One `GameControls` drives both engines through a proxy (`mode === 'classic' ? classic : game`); `controls.begin(paused)` implements Start paused
+- Config extensions (challenge picker, classic form) are `ConfigPanelPlugin`s registered in `createApp`; `index.html` holds only their mount points. Mode-specific markup uses `.ecosystem-only` / `.classic-only` with `body[data-mode]`
+- Board sizing: `boardCellSize(availW, availH, …)` fits width *and* height; on phones the control panel is a fixed bottom bar
 - New UI goes into `createApp` with listeners registered on its AbortController `signal` (released by `destroy()`), plus a test in `tests/app.test.ts`
 
 **Performance Optimizations:**
