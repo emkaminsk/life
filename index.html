@@ -507,15 +507,43 @@
       padding: 20px;
     }
 
+    /* Header | scrolling settings | always-visible footer with Start (F3) */
     .config-content {
+      --config-pad: 30px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       background: white;
       border-radius: 12px;
-      padding: 30px;
       max-width: 700px;
       width: 100%;
       max-height: 90vh;
-      overflow-y: auto;
+      max-height: 90dvh;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .config-header {
+      flex-shrink: 0;
+      padding: var(--config-pad) var(--config-pad) 0;
+    }
+
+    .config-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 0 var(--config-pad) 4px;
+    }
+
+    .config-footer {
+      flex-shrink: 0;
+      padding: 12px var(--config-pad) 16px;
+      border-top: 1px solid #e0e0e0;
+      background: white;
+    }
+
+    .config-footer #configValidationSummary {
+      margin: 0 0 10px;
     }
 
     .config-title-row {
@@ -534,25 +562,9 @@
     }
 
     .config-subtitle {
-      margin: 0 0 25px 0;
+      margin: 0 0 15px 0;
       font-size: 14px;
       color: #555;
-    }
-
-    .config-top-actions {
-      margin-bottom: 15px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .config-top-actions button {
-      padding: 14px 20px;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .config-top-actions .btn-primary {
-      flex: 1;
     }
 
     .language-selector {
@@ -571,16 +583,28 @@
       border-color: #2e7d32;
     }
 
+    /* No overflow clipping here: it would break the sticky title and cut off
+       field tooltips at the section edge. Rounded corners come from the title. */
     .config-section {
       margin-bottom: 20px;
       border: 1px solid #ddd;
       border-radius: 8px;
-      overflow: hidden;
     }
 
+    /* The open section's title sticks to the top of the scroll area. */
     .config-section-title {
+      position: sticky;
+      top: 0;
+      z-index: 2;
       margin: 0;
       font-size: 16px;
+      background: #f8f8f8;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .config-section.collapsed .config-section-title,
+    .config-section.collapsed .config-section-header {
+      border-radius: 8px;
     }
 
     .config-section-header {
@@ -591,7 +615,7 @@
       padding: 15px 20px;
       background: #f8f8f8;
       color: #333;
-      border-radius: 0;
+      border-radius: 8px 8px 0 0;
       font-size: 16px;
       font-weight: 600;
       text-align: left;
@@ -624,6 +648,7 @@
     }
 
     .config-row {
+      position: relative; /* anchors the field help tooltip */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -654,6 +679,113 @@
     .config-row input.invalid {
       border: 2px solid #c62828;
       background: #ffebee;
+    }
+
+    .config-row input:disabled {
+      background: #eee;
+      color: #666;
+      border-color: #bbb;
+      cursor: not-allowed;
+    }
+
+    /* ---- Field help (F2): ⓘ button + tooltip on hover / keyboard focus ---- */
+    .field-help-wrap {
+      flex-shrink: 0;
+      display: inline-flex;
+    }
+
+    .field-help-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #1b5e20;
+      font-size: 17px;
+      line-height: 1;
+      cursor: help;
+    }
+
+    .field-help-btn:hover,
+    .field-help-btn:focus-visible {
+      background: #e8f5e9;
+    }
+
+    .field-help {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 3;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #263238;
+      color: white;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: left;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .field-help-range {
+      display: block;
+      margin-top: 4px;
+      color: #c8e6c9;
+      font-size: 12px;
+    }
+
+    .field-help-wrap:hover .field-help,
+    .field-help-btn:focus-visible + .field-help,
+    .field-help-wrap.open .field-help {
+      display: block;
+    }
+
+    .field-help-wrap.dismissed .field-help {
+      display: none;
+    }
+
+    /* ---- Setup mode switch (F1) ---- */
+    .setup-mode {
+      margin: 0 0 18px;
+      padding: 10px 14px 12px;
+      border: 1px solid #c8e6c9;
+      border-radius: 6px;
+      background: #f1f8e9;
+    }
+
+    .setup-mode legend {
+      padding: 0 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .setup-mode-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+    }
+
+    .setup-mode-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .setup-mode-options input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    .setup-mode-hint {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: #444;
     }
 
     .field-error {
@@ -703,8 +835,10 @@
       border: 1px solid #4CAF50;
     }
 
-    #configValidationSummary {
-      margin: 0 0 20px;
+    .expected-totals {
+      margin-top: 4px;
+      font-weight: 600;
+      color: #333;
     }
 
     .expected-counts {
@@ -720,17 +854,67 @@
     .config-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: 15px;
-      margin-top: 25px;
-      padding-top: 20px;
-      border-top: 1px solid #e0e0e0;
+      gap: 10px;
     }
 
     .config-controls button {
-      flex: 1 1 140px;
-      padding: 12px 20px;
-      font-size: 15px;
+      flex: 1 1 auto;
+      padding: 10px 14px;
+      font-size: 14px;
       font-weight: 600;
+    }
+
+    .config-controls #startGameBtn {
+      flex: 1 1 100%;
+      order: 1;
+      padding: 14px 20px;
+      font-size: 17px;
+    }
+
+    @media (min-width: 640px) {
+      .config-controls #startGameBtn {
+        flex: 2 1 160px;
+      }
+    }
+
+    /* Short screens (landscape phones, small laptops with zoom): keep Start reachable. */
+    @media (max-height: 600px) {
+      .config-modal {
+        padding: 8px;
+      }
+
+      .config-content {
+        --config-pad: 16px;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+
+      .config-subtitle {
+        display: none;
+      }
+
+      .config-content h1 {
+        font-size: 20px;
+      }
+
+      .config-title-row {
+        margin-bottom: 8px;
+      }
+
+      .config-footer {
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+
+      .config-controls button,
+      .config-controls #startGameBtn {
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      .config-controls #startGameBtn {
+        flex: 2 1 140px;
+      }
     }
 
     /* ---------- Entity Tooltip ---------- */
@@ -792,11 +976,35 @@
       }
 
       .config-content {
-        padding: 20px;
+        --config-pad: 20px;
       }
 
       .config-content h1 {
         font-size: 22px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .config-modal {
+        padding: 8px;
+      }
+
+      .config-content {
+        --config-pad: 14px;
+        max-height: 100vh;
+        max-height: 100dvh;
+      }
+
+      .config-section-body {
+        padding: 14px;
+      }
+
+      .config-subtitle {
+        display: none;
+      }
+
+      .config-row input {
+        width: 90px;
       }
     }
 
@@ -980,23 +1188,20 @@
   <!-- Configuration Panel Modal -->
   <div id="configPanel" class="config-modal" role="dialog" aria-modal="true" aria-labelledby="configTitle">
     <div class="config-content">
-      <div class="config-title-row">
-        <h1 id="configTitle" data-i18n="config.configPanel">Game Configuration</h1>
-        <!-- Language Selector -->
-        <select id="languageSelector" class="language-selector" aria-label="Select language" data-i18n-aria-label="a11y.language">
-          <option value="en">🇬🇧 English</option>
-          <option value="pl">🇵🇱 Polski</option>
-        </select>
-      </div>
-      <p class="config-subtitle" data-i18n="config.configSubtitle">Configure parameters before starting the simulation</p>
+      <header class="config-header">
+        <div class="config-title-row">
+          <h1 id="configTitle" data-i18n="config.configPanel">Game Configuration</h1>
+          <!-- Language Selector -->
+          <select id="languageSelector" class="language-selector" aria-label="Select language" data-i18n-aria-label="a11y.language">
+            <option value="en">🇬🇧 English</option>
+            <option value="pl">🇵🇱 Polski</option>
+          </select>
+        </div>
+        <p class="config-subtitle" data-i18n="config.configSubtitle">Configure parameters before starting the simulation</p>
+      </header>
 
-      <!-- Top Action Buttons -->
-      <div class="config-top-actions">
-        <button type="button" id="startGameBtnTop" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
-        <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
-      </div>
-      <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
-
+      <!-- Scrollable settings; header and footer (with Start) stay visible -->
+      <div class="config-scroll">
       <!-- Board & Spawn Section -->
       <section class="config-section">
         <h2 class="config-section-title">
@@ -1006,6 +1211,14 @@
           </button>
         </h2>
         <div class="config-section-body" id="configSection1">
+          <fieldset class="setup-mode" aria-describedby="setupModeHint">
+            <legend data-i18n="configHelp.setupMode.legend">How to fill the board</legend>
+            <div class="setup-mode-options">
+              <label><input type="radio" name="setupMode" value="random" checked> <span data-i18n="configHelp.setupMode.random">🎲 Random</span></label>
+              <label><input type="radio" name="setupMode" value="manual"> <span data-i18n="configHelp.setupMode.manual">✋ Place it myself</span></label>
+            </div>
+            <p id="setupModeHint" class="setup-mode-hint" aria-live="polite"></p>
+          </fieldset>
           <div class="config-row">
             <label for="boardWidth" data-i18n="config.boardWidth">Board Width:</label>
             <input type="number" id="boardWidth" min="10" max="100" value="30">
@@ -1044,7 +1257,11 @@
             <input type="number" id="spawnMushroom" min="0" max="1" step="0.01" value="0.01">
           </div>
           <div id="spawnValidation" class="validation-message"></div>
-          <div id="expectedCounts" class="expected-counts"></div>
+          <div id="expectedSummary" class="expected-counts">
+            <div id="expectedCounts"></div>
+            <div id="expectedTotals" class="expected-totals"></div>
+          </div>
+          <div id="perfWarning" class="validation-message validation-warning" role="status" hidden></div>
         </div>
       </section>
 
@@ -1096,6 +1313,14 @@
           <div class="config-row">
             <label for="humanFruitProb" data-i18n="config.moveTowardFruit">Move Toward Fruit Probability:</label>
             <input type="number" id="humanFruitProb" min="0" max="1" step="0.01" value="0.7">
+          </div>
+          <div class="config-row">
+            <label for="humanCaution" data-i18n="configHelp.labels.humanCaution">Average Caution (initial):</label>
+            <input type="number" id="humanCaution" min="0" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="config-row">
+            <label for="humanMetabolism" data-i18n="configHelp.labels.humanMetabolism">Average Metabolism (initial):</label>
+            <input type="number" id="humanMetabolism" min="0" step="0.01" value="0.1">
           </div>
         </div>
       </section>
@@ -1243,7 +1468,7 @@
         <div class="config-section-body" id="configSection7">
           <div class="config-row">
             <label for="humanThreshold" data-i18n="config.humanThreshold">Human Overcrowding Threshold:</label>
-            <input type="number" id="humanThreshold" min="10" max="1000" value="100">
+            <input type="number" id="humanThreshold" min="10" value="100">
           </div>
           <div class="config-row">
             <label for="humanMultiplier" data-i18n="config.humanMultiplier">Human Overcrowding Multiplier:</label>
@@ -1251,7 +1476,7 @@
           </div>
           <div class="config-row">
             <label for="animalThreshold" data-i18n="config.animalThreshold">Animal Overcrowding Threshold:</label>
-            <input type="number" id="animalThreshold" min="10" max="1000" value="50">
+            <input type="number" id="animalThreshold" min="10" value="50">
           </div>
           <div class="config-row">
             <label for="animalMultiplier" data-i18n="config.animalMultiplier">Animal Overcrowding Multiplier:</label>
@@ -1260,14 +1485,20 @@
         </div>
       </section>
 
-      <!-- Control Buttons -->
-      <div class="config-controls">
-        <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S">Save Configuration</button>
-        <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O">Load Configuration</button>
-        <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
-        <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
-        <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame">Start Game</button>
       </div>
+
+      <!-- Always-visible footer: validation summary, file actions and Start -->
+      <footer class="config-footer">
+        <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
+        <div class="config-controls">
+          <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
+          <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S" aria-keyshortcuts="Control+S">Save Configuration</button>
+          <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O" aria-keyshortcuts="Control+O">Load Configuration</button>
+          <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
+          <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
+          <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame" title="Start the game (Ctrl+Enter)" aria-keyshortcuts="Control+Enter">Start Game</button>
+        </div>
+      </footer>
     </div>
   </div>
 
