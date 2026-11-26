@@ -135,12 +135,27 @@ export class SummaryDialog {
       return;
     }
     this.body.replaceChildren(
+      ...this.renderChallenge(s),
       el('p', 'summary-outcome', this.t(`endReason.${s.endReason}`)),
       this.renderFacts(s),
       this.renderThresholds(s),
       this.renderDeaths(s),
       this.renderConclusions(s),
     );
+  }
+
+  /** "🏆 Baby boom — complete ✓, 100/100" (nothing in free play). */
+  private renderChallenge(s: GameSummary): HTMLElement[] {
+    const c = s.challenge;
+    if (!c) return [];
+    let status = this.t(`challengeStatus.${c.status}`);
+    if (c.failReason) {
+      status = this.t('challengeWithReason', status, this.i18n.t(`challenges.failReason.${c.failReason}`));
+    }
+    const name = this.i18n.t(`challenges.${c.id}.name`);
+    const line = el('p', 'summary-challenge', this.t('challengeLine', name, status, c.value, c.target));
+    line.dataset.status = c.status;
+    return [line];
   }
 
   private section(name: string, titleKey: string, hintKey?: string): { section: HTMLElement; headingId: string } {
@@ -191,13 +206,20 @@ export class SummaryDialog {
       const tr = el('tr');
       const th = el('th', undefined, label);
       th.scope = 'row';
-      tr.append(th, ...cells.map((c) => el('td', undefined, c)));
+      tr.append(
+        th,
+        ...cells.map((c, i) => {
+          const td = el('td', undefined, c);
+          td.dataset.label = headers[i + 1]; // shown before the value when rows stack on phones
+          return td;
+        }),
+      );
       tbody.append(tr);
     }
     const thead = el('thead');
     thead.append(headRow);
     table.append(thead, tbody);
-    // Narrow screens: the table scrolls inside its wrapper, never the page.
+    // Phones: the rows stack (summary.css), so nothing scrolls sideways.
     const wrap = el('div', 'summary-table-wrap');
     wrap.append(table);
     return wrap;
