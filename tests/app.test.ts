@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/ui/notifications', () => ({ showNotification: vi.fn() }));
+vi.mock('../src/core/challenges', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/core/challenges')>();
+  return { ...original, getChallenge: vi.fn(original.getChallenge) };
+});
 
 import { type App, createApp } from '../src/app';
 import { createEmptyLayout, setCell } from '../src/core/BoardLayout';
+import { type ChallengeDef, getChallenge } from '../src/core/challenges';
 import { i18n } from '../src/i18n/i18n';
 import { Language } from '../src/i18n/types';
 import type { GameConfig } from '../src/ui/ConfigPanel';
@@ -211,5 +216,128 @@ describe('createApp', () => {
     app.destroy();
     click('helpBtn');
     expect(byId('rulesModal').classList.contains('active')).toBe(false);
+  });
+});
+
+describe('createApp: start paused, classic mode, challenges', () => {
+  it('Start paused: round 0 paused with Step focused; Step runs round 1', async () => {
+    byId<HTMLButtonElement>('startPausedBtn').click();
+    await vi.waitFor(() => expect(app.controls.getState()).toBe('paused'));
+    expect(app.board.round).toBe(0);
+    expect(app.game.running()).toBe(false);
+    expect(app.game.isConfigLocked()).toBe(true);
+    expect(document.activeElement).toBe(byId('stepBtn'));
+    app.game.setAnimationDuration(0); // rounds complete synchronously
+    click('stepBtn');
+    expect(app.board.round).toBe(1);
+    expect(app.controls.getState()).toBe('paused');
+    expect(byId('round').textContent).toBe('Round: 1');
+  });
+
+  it('manual setup confirm honours Start paused', async () => {
+    await app.startGame(smallConfig(4, 4), { setupMode: 'manual', startPaused: true });
+    app.setupView.onConfirm?.(setCell(createEmptyLayout(4, 4), 0, 0, 'male'));
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.board.round).toBe(0);
+  });
+
+  it('a start error after the controls began puts them back to idle', async () => {
+    vi.spyOn(app.game, 'start').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    await app.startGame(getDefaultConfig());
+    expect(showNotification).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('boom'), 'error');
+    expect(app.controls.getState()).toBe('idle');
+    expect(configVisible()).toBe(true);
+    expect(app.game.isConfigLocked()).toBe(false);
+  });
+
+  it('classic mode: the buttons drive the classic session, the header shows the generation', async () => {
+    await app.startGame(getDefaultConfig(), { setupMode: 'random', mode: 'classic', startPaused: true });
+    expect(app.getMode()).toBe('classic');
+    expect(document.body.dataset.mode).toBe('classic');
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.game.isConfigLocked()).toBe(false); // the ecosystem game is untouched
+    expect(byId('round').textContent).toBe('Generation: 0');
+
+    click('stepBtn');
+    expect(app.classic.getGeneration()).toBe(1);
+    expect(byId('round').textContent).toBe('Generation: 1');
+    expect(app.controls.getState()).toBe('paused');
+
+    click('runBtn');
+    expect(app.classic.running()).toBe(true);
+    key('Space');
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.classic.running()).toBe(false);
+
+    app.classic.onGameOver?.();
+    expect(app.controls.getState()).toBe('over');
+
+    click('resetBtn');
+    expect(configVisible()).toBe(true);
+    expect(app.controls.getState()).toBe('idle');
+    expect(app.classic.getGeneration()).toBe(0);
+  });
+
+  it('classic mode from the config panel auto-starts; Finish halts without a summary', async () => {
+    const radio = document.querySelector<HTMLInputElement>('input[name="gameMode"][value="classic"]')!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change'));
+    startBtn().click();
+    await vi.waitFor(() => expect(app.controls.getState()).toBe('running'));
+    expect(app.classic.running()).toBe(true);
+    click('finishBtn');
+    expect(app.classic.running()).toBe(false);
+    expect(app.controls.getState()).toBe('over');
+    expect(summaryOpen()).toBe(false);
+    click('resetBtn');
+    expect(configVisible()).toBe(true);
+    expect(document.body.dataset.mode).toBe('classic'); // the panel's radios decide
+  });
+
+  it('a challenge is set before init; the HUD shows its progress until Reset', async () => {
+    const def: ChallengeDef<number> = {
+      id: 'babyBoom',
+      emoji: '👶',
+      locks: {},
+      init: () => 0,
+      step: (n, r) => n + r.events.births,
+      progress: (n, round) => ({ value: n, target: 100, status: 'inProgress', round }),
+    };
+    vi.mocked(getChallenge).mockImplementation((id) => (id === 'babyBoom' ? def : null));
+    try {
+      await app.startGame(getDefaultConfig(), { setupMode: 'random', challengeId: 'babyBoom', startPaused: true });
+      expect(app.game.getChallengeProgress()).toMatchObject({ id: 'babyBoom', round: 0 });
+      expect(byId('challengePanel').hidden).toBe(false);
+      app.game.setAnimationDuration(0);
+      click('stepBtn');
+      expect(app.game.getChallengeProgress()?.round).toBe(1);
+      click('resetBtn');
+      expect(byId('challengePanel').hidden).toBe(true);
+
+      await app.startGame(getDefaultConfig()); // free play
+      expect(app.game.getChallengeProgress()).toBeNull();
+      expect(byId('challengePanel').hidden).toBe(true);
+    } finally {
+      vi.mocked(getChallenge).mockRestore(); // back to the real getChallenge
+    }
+  });
+
+  it('the speed select drives both engines', () => {
+    const classicSpeed = vi.spyOn(app.classic, 'setSpeed');
+    const select = byId<HTMLSelectElement>('speedSelect');
+    select.value = '50';
+    select.dispatchEvent(new Event('change'));
+    expect(app.game.getSpeed()).toBe(50);
+    expect(classicSpeed).toHaveBeenCalledWith(50);
+  });
+
+  it('destroy() releases the rules dialog listeners', () => {
+    click('helpBtn');
+    expect(byId('rulesModal').classList.contains('active')).toBe(true);
+    app.destroy();
+    click('closeModal');
+    expect(byId('rulesModal').classList.contains('active')).toBe(true);
   });
 });
