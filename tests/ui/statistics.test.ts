@@ -8,7 +8,6 @@ import { Mushroom } from '../../src/entities/Mushroom';
 import { Sex } from '../../src/types';
 import {
   ALERT_MESSAGES,
-  AlertTracker,
   countPopulation,
   notifyAlerts,
   OVERCROWDING_ID,
@@ -214,16 +213,6 @@ describe('PopulationAlerts', () => {
       ['T(notifications.maleExtinctionTitle)', 'T(summary.alerts.allMalesDiedUnlessBoy)', 'warning'],
       ['T(summary.alerts.dogsExtinctTitle)', 'T(summary.alerts.dogsExtinct)', 'info'],
     ]);
-  });
-
-  it('legacy AlertTracker re-arms too but drops kinds main.ts cannot show yet', () => {
-    const alerts = new AlertTracker();
-    alerts.check(counts({ males: 1, females: 1, pregnant: 1, wolves: 1 }));
-    expect(alerts.check(counts({ males: 0, females: 1, pregnant: 1, wolves: 0 }))).toEqual([]);
-    expect(alerts.check(counts({ males: 0, females: 2, pregnant: 0 }))).toEqual(['maleExtinction']);
-    alerts.reset();
-    alerts.check(counts({ females: 1 }));
-    expect(alerts.check(counts({ females: 0 }))).toEqual(['femaleExtinction']);
   });
 });
 

@@ -248,33 +248,6 @@ export class PopulationAlerts {
   }
 }
 
-/** @deprecated Legacy three-kind view kept only until main.ts switches to PopulationAlerts + notifyAlerts. */
-export type AlertKind = 'maleExtinction' | 'femaleExtinction' | 'boardNearlyFull';
-
-const LEGACY_KINDS: readonly PopulationAlertKind[] = ['maleExtinction', 'femaleExtinction', 'boardNearlyFull'];
-
-/**
- * @deprecated Adapter over PopulationAlerts for the current main.ts wiring. It
- * re-arms like PopulationAlerts but drops the kinds main.ts has no message for
- * (so a provisional male extinction no longer shows the misleading "no longer
- * possible" text). Delete once main.ts uses PopulationAlerts.
- */
-export class AlertTracker {
-  private readonly inner: PopulationAlerts;
-
-  constructor(capacityThreshold = 0.9) {
-    this.inner = new PopulationAlerts(capacityThreshold);
-  }
-
-  reset(): void {
-    this.inner.reset();
-  }
-
-  check(counts: PopulationCounts): AlertKind[] {
-    return this.inner.check(counts).filter((k): k is AlertKind => LEGACY_KINDS.includes(k));
-  }
-}
-
 function setText(root: ParentNode, id: string, text: string): void {
   const el = root.querySelector(`#${id}`);
   if (el) el.textContent = text;

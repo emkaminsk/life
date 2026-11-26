@@ -15,7 +15,7 @@ export default defineConfig({
       reporter: ['text', 'json-summary', 'html'],
       include: ['src/**/*.ts'],
       exclude: [
-        'src/main.ts', // DOM bootstrap / wiring only; logic lives in tested modules
+        'src/main.ts', // two-line bootstrap; the wiring in src/app.ts is covered by tests/app.test.ts
         'src/i18n/types.ts',
         'src/i18n/translations.ts',
       ],

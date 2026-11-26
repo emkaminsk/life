@@ -36,6 +36,7 @@ export interface StubContext {
   lineTo: ReturnType<typeof vi.fn>;
   stroke: ReturnType<typeof vi.fn>;
   measureText: ReturnType<typeof vi.fn>;
+  setLineDash: ReturnType<typeof vi.fn>;
 }
 
 export function createStubContext(canvas: HTMLCanvasElement): StubContext {
@@ -56,6 +57,7 @@ export function createStubContext(canvas: HTMLCanvasElement): StubContext {
     setTransform: vi.fn(),
     save: vi.fn(),
     restore: vi.fn(),
+    setLineDash: vi.fn(),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
