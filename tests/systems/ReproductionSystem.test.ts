@@ -4,6 +4,7 @@ import { BirthSystem } from '../../src/systems/BirthSystem';
 import { Board } from '../../src/core/Board';
 import { Human } from '../../src/entities/Human';
 import { Sex } from '../../src/types';
+import { Random } from '../../src/utils/Random';
 import { VISUAL_EFFECT_DURATION_MS } from '../../src/config';
 import { createConfig, createMockRenderer } from '../setup';
 
@@ -12,9 +13,11 @@ import { createConfig, createMockRenderer } from '../setup';
  * the BirthSystem (Phase 6).
  */
 
-function human(x: number, y: number, sex: Sex, health = 100): Human {
-  const h = new Human(x, y, sex);
-  h.health = Math.min(health, h.maxHealth);
+/** Human with max health 100; default health 65 is MODERATE energy (reproduction modifier ×1). */
+function human(x: number, y: number, sex: Sex, health = 65): Human {
+  const genome = { maxHealth: 100, strength: 1, metabolism: 0, greed: 0, caution: 0, longevity: 1 };
+  const h = new Human(x, y, sex, 100, undefined, undefined, genome);
+  h.health = health;
   return h;
 }
 
@@ -118,6 +121,122 @@ describe('ReproductionSystem', () => {
       expect(pregnant.pregnancyCounter).toBe(2); // advanced, not restarted
       expect(resting.isPregnant()).toBe(false);
       expect(resting.reproductionCooldown).toBe(1);
+    });
+  });
+
+  describe('male energy modifier (PRD 3.16.4, US-045)', () => {
+    it.each([
+      [20, 'DESPERATE'],
+      [40, 'HUNGRY'],
+    ])('a male at health %i (%s) never fathers, even with probability 1', (health) => {
+      const female = place(human(5, 5, Sex.FEMALE));
+      place(human(6, 5, Sex.MALE, health));
+
+      for (let i = 0; i < 10; i++) system.execute(board, createConfig({ human: { reproductionProbability: 1 } }));
+
+      expect(female.isPregnant()).toBe(false);
+    });
+
+    it('FULL and SATIATED males get ×1.5 (roll 0.7 vs p 0.5: MODERATE fails, FULL/SATIATED succeed)', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.7);
+      const config = createConfig({ human: { reproductionProbability: 0.5 } });
+      const conceives = (maleHealth: number): boolean => {
+        board = new Board(12, 12);
+        const female = place(human(5, 5, Sex.FEMALE));
+        place(human(6, 5, Sex.MALE, maleHealth));
+        return system.execute(board, config) === 1 && female.isPregnant();
+      };
+      expect(conceives(65)).toBe(false);
+      expect(conceives(90)).toBe(true);
+      expect(conceives(100)).toBe(true);
+    });
+
+    it('the boosted probability is capped at 1 (p 0.8 × 1.5): every try succeeds', () => {
+      Random.seed(3);
+      let pregnancies = 0;
+      for (let i = 0; i < 100; i++) {
+        board = new Board(12, 12);
+        place(human(5, 5, Sex.FEMALE));
+        place(human(6, 5, Sex.MALE, 100));
+        pregnancies += system.execute(board, createConfig({ human: { reproductionProbability: 0.8 } }));
+      }
+      expect(pregnancies).toBe(100);
+    });
+
+    it("uses the male's energy, not the female's", () => {
+      const female = place(human(5, 5, Sex.FEMALE, 20)); // desperate female
+      place(human(6, 5, Sex.MALE, 65));
+      system.execute(board, createConfig({ human: { reproductionProbability: 1 } }));
+      expect(female.isPregnant()).toBe(true);
+    });
+  });
+
+  describe('per-male tries (PRD 3.3.3, US-032)', () => {
+    const MALE_CELLS: [number, number][] = [
+      [4, 4],
+      [6, 5],
+      [5, 6],
+    ];
+
+    function conceptionRate(maleCount: number, trials = 600): number {
+      Random.seed(21);
+      let pregnancies = 0;
+      const config = createConfig({ human: { reproductionProbability: 0.3 } });
+      for (let i = 0; i < trials; i++) {
+        board = new Board(12, 12);
+        place(human(5, 5, Sex.FEMALE));
+        for (const [x, y] of MALE_CELLS.slice(0, maleCount)) place(human(x, y, Sex.MALE));
+        pregnancies += system.execute(board, config);
+      }
+      return pregnancies / trials;
+    }
+
+    it('three adjacent males give a higher conception rate: 1 − (1 − p)³ instead of p', () => {
+      const one = conceptionRate(1); // expected 0.3
+      const three = conceptionRate(3); // expected 0.657
+      expect(one).toBeGreaterThan(0.24);
+      expect(one).toBeLessThan(0.36);
+      expect(three).toBeGreaterThan(0.6);
+      expect(three).toBeLessThan(0.72);
+    });
+
+    it('the father is chosen among all adjacent males in random order, not scan order', () => {
+      Random.seed(8);
+      const fathers = new Map<string, number>();
+      for (let i = 0; i < 300; i++) {
+        board = new Board(12, 12);
+        const female = place(human(5, 5, Sex.FEMALE));
+        const males = MALE_CELLS.map(([x, y]) => place(human(x, y, Sex.MALE)));
+        system.execute(board, createConfig({ human: { reproductionProbability: 1 } }));
+        const father = males.find((m) => m.genome === female.fatherGenome);
+        expect(father).toBeDefined();
+        const key = `${father?.x},${father?.y}`;
+        fathers.set(key, (fathers.get(key) ?? 0) + 1);
+      }
+      expect(fathers.size).toBe(3);
+      for (const count of fathers.values()) expect(count).toBeGreaterThan(70);
+    });
+
+    it('males that cannot reproduce (hungry) are skipped in favour of an eligible one', () => {
+      Random.seed(4);
+      for (let i = 0; i < 20; i++) {
+        board = new Board(12, 12);
+        const female = place(human(5, 5, Sex.FEMALE));
+        place(human(4, 4, Sex.MALE, 40));
+        const eligible = place(human(6, 5, Sex.MALE));
+        place(human(5, 6, Sex.MALE, 20));
+        system.execute(board, createConfig({ human: { reproductionProbability: 1 } }));
+        expect(female.fatherGenome).toBe(eligible.genome);
+      }
+    });
+
+    it('returns the number of new pregnancies', () => {
+      place(human(5, 5, Sex.MALE));
+      place(human(4, 5, Sex.FEMALE));
+      place(human(6, 5, Sex.FEMALE));
+      const pregnantAlready = place(human(5, 4, Sex.FEMALE));
+      pregnantAlready.pregnancyCounter = 2;
+      expect(system.execute(board, createConfig({ human: { reproductionProbability: 1 } }))).toBe(2);
     });
   });
 

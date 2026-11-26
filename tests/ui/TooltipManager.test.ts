@@ -77,6 +77,43 @@ describe('TooltipManager', () => {
     expect(el().style.display).toBe('none');
   });
 
+  describe('energy and longevity rows', () => {
+    // Labels are compared through i18n.t so the test holds whatever the translation text is
+    beforeEach(() => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    const human = (health: number): Human => {
+      const genome = { maxHealth: 100, strength: 1, metabolism: 0.35, greed: 0.5, caution: 0.5, longevity: 1.25 };
+      const h = new Human(0, 0, Sex.MALE, 100, undefined, undefined, genome);
+      h.health = health;
+      return h;
+    };
+    const energyOf = (health: number) =>
+      formatEntityInfo(human(health)).rows.find((r) => r.label === i18n.t('tooltip.energy'));
+
+    it('shows the current energy state, which follows health', () => {
+      expect(energyOf(100)?.value).toBe(i18n.t('tooltip.energyStates.satiated'));
+      expect(energyOf(90)?.value).toBe(i18n.t('tooltip.energyStates.full'));
+      expect(energyOf(65)?.value).toBe(i18n.t('tooltip.energyStates.moderate'));
+      expect(energyOf(40)?.value).toBe(i18n.t('tooltip.energyStates.hungry'));
+      expect(energyOf(10)?.value).toBe(i18n.t('tooltip.energyStates.desperate'));
+      expect(new Set([100, 90, 65, 40, 10].map((h) => energyOf(h)?.value)).size).toBe(5);
+    });
+
+    it('shows the longevity gene and the metabolism cost per move in the genetics section', () => {
+      const { sectionRows } = formatEntityInfo(human(50));
+      expect(sectionRows.find((r) => r.label === i18n.t('tooltip.geneLongevity'))?.value).toBe('1.25x');
+      expect(sectionRows.find((r) => r.label === i18n.t('tooltip.geneMetabolism'))?.value).toBe(
+        `0.35 ${i18n.t('tooltip.perMove')}`,
+      );
+    });
+
+    it('is not shown for animals', () => {
+      expect(formatEntityInfo(new Wolf(0, 0)).rows.map((r) => r.label)).not.toContain(i18n.t('tooltip.energy'));
+    });
+  });
+
   it('uses the current language', () => {
     i18n.setLanguage(Language.PL);
     tooltip.show(new Wolf(0, 0), 1, 1);

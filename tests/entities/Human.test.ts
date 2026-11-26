@@ -4,6 +4,7 @@ import { Sex } from '../../src/types';
 import { Random } from '../../src/utils/Random';
 import { createConfig, createFemale, createMale, getConfigByPath } from '../setup';
 import { DEFAULT_CONFIG } from '../../src/config';
+import { EnergyState } from '../../src/utils/energy';
 
 /**
  * Human Entity Unit Tests
@@ -259,5 +260,23 @@ describe('Human (config-driven behaviour)', () => {
     const m = new Human(0, 0, Sex.MALE);
     m.startPregnancy(undefined, 3);
     expect(m.isPregnant()).toBe(false);
+  });
+
+  it('getEnergyState follows health relative to the genome max health, updating as health changes', () => {
+    const genome = { maxHealth: 120, strength: 1, metabolism: 0, greed: 0, caution: 0, longevity: 1 };
+    const h = new Human(0, 0, Sex.MALE, 120, undefined, undefined, genome);
+    expect(h.getEnergyState()).toBe(EnergyState.SATIATED);
+    h.takeDamage(1); // 119 / 120
+    expect(h.getEnergyState()).toBe(EnergyState.FULL);
+    h.takeDamage(23); // 96 = exactly 80 %
+    expect(h.getEnergyState()).toBe(EnergyState.MODERATE);
+    h.takeDamage(37); // 59 < 60 (50 %)
+    expect(h.getEnergyState()).toBe(EnergyState.HUNGRY);
+    h.takeDamage(23); // 36 = exactly 30 %
+    expect(h.getEnergyState()).toBe(EnergyState.HUNGRY);
+    h.takeDamage(1);
+    expect(h.getEnergyState()).toBe(EnergyState.DESPERATE);
+    h.heal(1000);
+    expect(h.getEnergyState()).toBe(EnergyState.SATIATED);
   });
 });

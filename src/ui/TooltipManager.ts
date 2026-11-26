@@ -90,14 +90,19 @@ export function formatEntityInfo(entity: Entity): TooltipContent {
           value: `${entity.pregnancyCounter} ${t('tooltip.roundsRemaining')}`,
         });
       }
+      rows.push({
+        label: t('tooltip.energy'),
+        value: t(`tooltip.energyStates.${entity.getEnergyState()}`),
+      });
       const g = entity.genome;
       sectionTitle = t('tooltip.genetics');
       sectionRows.push(
         { label: t('tooltip.geneMaxHealth'), value: String(Math.round(g.maxHealth)) },
         { label: t('tooltip.geneStrength'), value: `${g.strength.toFixed(2)}x` },
-        { label: t('tooltip.geneMetabolism'), value: g.metabolism.toFixed(2) },
+        { label: t('tooltip.geneMetabolism'), value: `${g.metabolism.toFixed(2)} ${t('tooltip.perMove')}` },
         { label: t('tooltip.geneGreed'), value: `${(g.greed * 100).toFixed(0)}%` },
         { label: t('tooltip.geneCaution'), value: `${(g.caution * 100).toFixed(0)}%` },
+        { label: t('tooltip.geneLongevity'), value: `${g.longevity.toFixed(2)}x` },
       );
     }
   }

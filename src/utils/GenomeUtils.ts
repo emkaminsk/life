@@ -22,10 +22,14 @@ export const DEFAULT_AVG_METABOLISM = 0.1;
 export class GenomeUtils {
   static readonly MUTATION_CHANCE = 0.2; // 20% chance per gene
 
-  /** Mutation variance per gene (uniform in [-variance, +variance]). */
+  /**
+   * Mutation variance per gene (uniform in [-variance, +variance]). Strength is a
+   * damage multiplier with mean 1, so ±0.2 (20 %) keeps one mutation from
+   * multiplying a male's damage several times over.
+   */
   static readonly MUTATION_VARIANCE: Readonly<Record<keyof Genome, number>> = {
     maxHealth: 10,
-    strength: 2,
+    strength: 0.2,
     metabolism: 0.05,
     greed: 0.1,
     caution: 0.1,
