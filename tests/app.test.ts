@@ -242,6 +242,15 @@ describe('createApp: start paused, classic mode, challenges', () => {
     expect(app.board.round).toBe(0);
   });
 
+  it('a constraint challenge hides its forbidden item in manual setup and never places it', async () => {
+    await app.startGame(smallConfig(4, 4), { setupMode: 'manual', challengeId: 'noDogs', startPaused: true });
+    const dogTool = document.querySelector<HTMLButtonElement>('.setup-tool[data-tool="dog"]')!;
+    expect(dogTool.hidden).toBe(true);
+    app.setupView.onConfirm?.(setCell(setCell(createEmptyLayout(4, 4), 0, 0, 'male'), 1, 1, 'dog'));
+    expect(app.board.getEntity(1, 1)).toBeNull();
+    expect(app.board.getEntity(0, 0)).not.toBeNull();
+  });
+
   it('a start error after the controls began puts them back to idle', async () => {
     vi.spyOn(app.game, 'start').mockImplementation(() => {
       throw new Error('boom');

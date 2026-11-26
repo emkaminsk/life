@@ -40,6 +40,10 @@ export interface RulesKeys {
   orderExample3: string;
   gameEndTitle: string;
   gameEndDesc: string;
+  challengesTitle: string;
+  challengesDesc: string;
+  classicTitle: string;
+  classicDesc: string;
 
   // Creatures tab content
   creaturesTitle: string;
@@ -129,6 +133,12 @@ export const en: RulesKeys = {
   gameEndTitle: '🏁 How the Game Ends',
   gameEndDesc:
     'The game ends when all humans have died. Humans win when no wolves and no mushrooms are left (checked from round 10 on). You can also press Finish Game at any time to see the summary.',
+  challengesTitle: '🏆 Challenges',
+  challengesDesc:
+    'Pick a challenge in the settings to play for a goal, e.g. 100 babies born or 200 rounds without dogs. A bar shows your progress. You win when you reach the goal, and lose if all humans die first. Some challenges lock settings (🔒). During a challenge, the "no wolves and no mushrooms" win is switched off.',
+  classicTitle: '🔲 Classic Game of Life',
+  classicDesc:
+    'Switch the mode to Classic to play the famous cellular automaton. Each cell is alive or dead. Every generation, a cell looks at its 8 neighbours: B3/S23 means a dead cell with exactly 3 living neighbours is born, and a living cell with 2 or 3 survives; all others die. Edges wrap around. Try other rules, patterns like the glider gun, or draw your own cells while paused.',
 
   creaturesTitle: 'Creature Types',
   malesTitle: '👨 Male Humans',
@@ -225,6 +235,12 @@ export const pl: RulesKeys = {
   gameEndTitle: '🏁 Jak Kończy Się Gra',
   gameEndDesc:
     'Gra kończy się, gdy zginą wszyscy ludzie. Ludzie wygrywają, gdy nie zostanie żaden wilk ani muchomor (sprawdzane od rundy 10). Możesz też w każdej chwili nacisnąć Zakończ Grę, by zobaczyć podsumowanie.',
+  challengesTitle: '🏆 Wyzwania',
+  challengesDesc:
+    'Wybierz wyzwanie w ustawieniach, aby grać o konkretny cel, np. 100 narodzonych dzieci albo 200 rund bez psów. Pasek pokazuje postęp. Wygrywasz, gdy osiągniesz cel, a przegrywasz, jeśli wcześniej zginą wszyscy ludzie. Niektóre wyzwania blokują ustawienia (🔒). Podczas wyzwania wygrana „brak wilków i muchomorów” jest wyłączona.',
+  classicTitle: '🔲 Klasyczna Gra w Życie',
+  classicDesc:
+    'Przełącz tryb na Klasyczny, aby zagrać w słynny automat komórkowy. Każda komórka jest żywa albo martwa. W każdym pokoleniu komórka patrzy na 8 sąsiadów: B3/S23 oznacza, że martwa komórka z dokładnie 3 żywymi sąsiadami ożywa, a żywa z 2 lub 3 sąsiadami przeżywa; pozostałe umierają. Krawędzie planszy łączą się ze sobą. Wypróbuj inne reguły, wzory takie jak działo szybowców albo narysuj własne komórki podczas pauzy.',
 
   creaturesTitle: 'Typy Stworzeń',
   malesTitle: '👨 Mężczyźni',

@@ -228,4 +228,33 @@ describe('SetupView', () => {
     expect(button('setup-start').textContent).toBe('Rozpocznij grę');
     expect(canvas().getAttribute('aria-label')).toBe('Plansza do ustawiania, 6 na 4 pól');
   });
+
+  describe('disabledKinds (challenge constraints)', () => {
+    const openWithout = (initial?: BoardLayout) =>
+      view.open({ width: 6, height: 4, config: DEFAULT_CONFIG, initial, disabledKinds: ['dog'] });
+
+    it('hides the forbidden item and strips it from the initial layout', () => {
+      const initial = setCell(setCell(createEmptyLayout(6, 4), 0, 0, 'dog'), 1, 0, 'male');
+      openWithout(initial);
+      expect(tool('dog').hidden).toBe(true);
+      expect(tool('wolf').hidden).toBe(false);
+      expect(countKinds(view.getLayout()).dog).toBe(0);
+      expect(getCell(view.getLayout(), 1, 0)).toBe('male');
+    });
+
+    it('never places a forbidden item, by keyboard or by pointer', () => {
+      openWithout();
+      tool('dog').click(); // hidden, but still reachable programmatically
+      pointer('pointerdown', 2, 2);
+      pointer('pointerup', 2, 2, 'mouse', window);
+      press('Digit3'); // 3 = dog
+      expect(countKinds(view.getLayout()).dog).toBe(0);
+    });
+
+    it('re-opening without constraints shows the item again', () => {
+      openWithout();
+      open();
+      expect(tool('dog').hidden).toBe(false);
+    });
+  });
 });

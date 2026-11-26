@@ -2,7 +2,10 @@ import indexHtml from '../../index.html?raw';
 
 /** Body of the real index.html without scripts, so UI tests exercise the actual config form. */
 export const bodyHtml = indexHtml
-  .slice(indexHtml.indexOf('<body>') + 6, indexHtml.indexOf('</body>'))
+  .slice(
+    indexHtml.search(/<body[^>]*>/) + (indexHtml.match(/<body[^>]*>/)?.[0].length ?? 0),
+    indexHtml.indexOf('</body>'),
+  )
   .replace(/<script[\s\S]*?<\/script>/g, '');
 
 export const input = (id: string) => document.getElementById(id) as HTMLInputElement;

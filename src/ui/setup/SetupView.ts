@@ -32,6 +32,8 @@ export interface SetupOpenOptions {
   config: GameConfig;
   /** Layout to start from (e.g. the previous one); resized to width × height if needed. */
   initial?: BoardLayout;
+  /** Kinds that may not be placed (e.g. dogs in the "win without dogs" challenge): hidden from the palette, never placed. */
+  disabledKinds?: readonly PlaceableKind[];
 }
 
 /** Palette tool id: a placeable kind or the eraser. */
@@ -107,6 +109,7 @@ export class SetupView {
   /** Board press in progress; null when no pointer is down. */
   private press: Press | null = null;
   private draggedTool: ToolId | null = null;
+  private disabled = new Set<PlaceableKind>();
 
   constructor(root: HTMLElement, t: Translate = i18n.t.bind(i18n)) {
     this.root = root;
@@ -221,6 +224,9 @@ export class SetupView {
     const width = Math.max(1, Math.floor(opts.width));
     const height = Math.max(1, Math.floor(opts.height));
     this.config = opts.config;
+    this.disabled = new Set(opts.disabledKinds ?? []);
+    for (const [tool, { button }] of this.toolButtons) button.hidden = tool !== 'eraser' && this.disabled.has(tool);
+    const tool = this.state.tool && this.disabled.has(this.state.tool) ? 'male' : this.state.tool;
     const initial = opts.initial
       ? opts.initial.width === width && opts.initial.height === height
         ? opts.initial
@@ -230,7 +236,7 @@ export class SetupView {
     this.board.resize(width, height);
     this.layout = createEmptyLayout(width, height);
     this.renderer.resize(width, height, this.fitCell(width, height));
-    this.state = { cursor: { x: 0, y: 0 }, anchor: null, tool: this.state.tool, width, height };
+    this.state = { cursor: { x: 0, y: 0 }, anchor: null, tool, width, height };
     this.active = true;
     this.root.hidden = false;
     this.relabel();
@@ -290,7 +296,10 @@ export class SetupView {
   }
 
   /** Swap in a new layout: update only the changed preview cells, counts and overlay. */
-  private applyLayout(next: BoardLayout): void {
+  private applyLayout(requested: BoardLayout): void {
+    const next = this.disabled.size
+      ? { ...requested, cells: requested.cells.map((k) => (k && this.disabled.has(k) ? null : k)) }
+      : requested;
     const prev = this.layout;
     const config = this.config;
     if (config) {

@@ -441,7 +441,13 @@ export function createApp(doc: Document = document): App {
       }
       prepareGame(config, options);
       if (options.setupMode === 'manual') {
-        setupView.open({ width: board.width, height: board.height, config, initial: lastLayout });
+        setupView.open({
+          width: board.width,
+          height: board.height,
+          config,
+          initial: lastLayout,
+          disabledKinds: getChallenge(options.challengeId)?.forbiddenKinds,
+        });
         return;
       }
       let completed = true;
