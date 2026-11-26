@@ -214,3 +214,30 @@ describe('GameControls', () => {
     expect(controls.getState()).toBe('idle');
   });
 });
+
+describe('GameControls when the game ends inside start()', () => {
+  // A round without movement runs synchronously inside Game.start(), so the
+  // game can end (onGameOver → setOver) before start() returns.
+  function endingOnStart() {
+    const s = setup();
+    s.game.start = vi.fn(() => s.controls.setOver());
+    return s;
+  }
+
+  it('begin() keeps the over state', () => {
+    const { controls } = endingOnStart();
+    controls.begin();
+    expect(controls.getState()).toBe('over');
+  });
+
+  it('runFree() keeps the over state', () => {
+    const { controls, game } = endingOnStart();
+    const start = game.start;
+    game.start = vi.fn();
+    controls.begin();
+    controls.pause();
+    game.start = start;
+    controls.runFree();
+    expect(controls.getState()).toBe('over');
+  });
+});

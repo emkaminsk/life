@@ -59,10 +59,14 @@ export class GameControls {
     return this.state === 'paused';
   }
 
-  /** A new game has been initialized: start it automatically (PRD 3.13.6). */
+  /**
+   * A new game has been initialized: start it automatically (PRD 3.13.6).
+   * The state is set before start(): a round without movement runs synchronously
+   * and may end the game (setOver) before start() returns.
+   */
   begin(): void {
-    this.game.start();
     this.setState('running');
+    this.game.start();
   }
 
   /**
@@ -95,8 +99,8 @@ export class GameControls {
 
   runFree(): void {
     if (this.state !== 'paused') return;
+    this.setState('running'); // before start(): see begin()
     this.game.start();
-    this.setState('running');
   }
 
   step(): void {
