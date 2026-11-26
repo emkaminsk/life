@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Game, CONFIG_LOCKED_MESSAGE } from '../../src/core/Game';
 import { Board } from '../../src/core/Board';
 import { Human, Wolf, Fruit } from '../../src/entities';
-import { Sex } from '../../src/types';
+import { EntityType, Sex } from '../../src/types';
+import { Random } from '../../src/utils/Random';
+import type { BoardLayout, PlaceableKind } from '../../src/core/simulationEvents';
 import type { GameConfig } from '../../src/ui/ConfigPanel';
 import { createConfig, createMockRenderer, type ConfigOverrides } from '../setup';
 
@@ -83,6 +85,16 @@ describe('Game', () => {
     const wolf = new Wolf(x, y, 80, 0, 0);
     board.setEntity(x, y, wolf);
     return wolf;
+  }
+
+  /** 2×1 board started with a wolf next to a weak female; the female dies in round 1. */
+  function doomedHumans(): void {
+    board.resize(2, 1);
+    game.initializeFromLayout(
+      { width: 2, height: 1, cells: ['wolf', 'female'] },
+      quietConfig({ human: { startingHealth: 10, gompertzA: 0 } }),
+    );
+    game.setAnimationDuration(0);
   }
 
   function spyPhases(): string[] {
@@ -398,6 +410,488 @@ describe('Game', () => {
 
       vi.advanceTimersByTime(5000);
       expect(board.round).toBe(0);
+    });
+
+    it('during stepRounds mid-animation fires no onStepComplete and leaves no pending timer or frame', () => {
+      newGame();
+      wanderingWolf();
+      const onStep = vi.fn();
+      game.onStepComplete = onStep;
+      game.stepRounds(3);
+      expect(game.isAnimatingNow()).toBe(true);
+
+      game.reset();
+
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(10_000);
+      expect(onStep).not.toHaveBeenCalled();
+      expect(board.round).toBe(0);
+    });
+  });
+
+  describe('control guard branches', () => {
+    it('start() twice schedules only one round loop', () => {
+      newGame();
+      const movement = vi.spyOn((game as any).movementSystem, 'execute');
+      game.start();
+      game.start();
+      expect(movement).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(1);
+      vi.advanceTimersByTime(game.getSpeed() + 1);
+      expect(board.round).toBe(2);
+      game.pause();
+    });
+
+    it('start() during an animated step waits for the animation, then keeps running', () => {
+      newGame();
+      wanderingWolf();
+      const onStep = vi.fn();
+      game.onStepComplete = onStep;
+      const movement = vi.spyOn((game as any).movementSystem, 'execute');
+
+      game.step();
+      game.start();
+      expect(movement).toHaveBeenCalledTimes(1); // no second round while animating
+      expect(board.round).toBe(0);
+
+      vi.advanceTimersByTime(game.getAnimationDuration() * 3 + 100);
+      expect(board.round).toBeGreaterThanOrEqual(2);
+      expect(game.running()).toBe(true);
+      expect(onStep).not.toHaveBeenCalled();
+      game.pause();
+    });
+
+    it('pause() when not running is a no-op (an animated step keeps animating)', () => {
+      newGame();
+      wanderingWolf();
+      game.step();
+      game.pause();
+      expect(game.isAnimatingNow()).toBe(true);
+      expect(board.round).toBe(0);
+      vi.advanceTimersByTime(game.getAnimationDuration() + 50);
+      expect(board.round).toBe(1);
+    });
+
+    it.each([
+      [0, 0],
+      [-1, 0],
+      [Number.NaN, 0],
+      [2.7, 2],
+    ])('stepRounds(%s) runs %i rounds', (n, expected) => {
+      newGame();
+      game.setAnimationDuration(0);
+      const onStep = vi.fn();
+      game.onStepComplete = onStep;
+      game.stepRounds(n);
+      vi.advanceTimersByTime(20_000);
+      expect(board.round).toBe(expected);
+      expect(onStep).toHaveBeenCalledTimes(expected > 0 ? 1 : 0);
+    });
+
+    it('a stale animation frame delivered after pause does nothing', () => {
+      const frames: FrameRequestCallback[] = [];
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+      vi.stubGlobal('cancelAnimationFrame', () => {}); // keep the stale callback deliverable
+      newGame();
+      wanderingWolf();
+      const onRound = vi.fn();
+      game.onRoundComplete = onRound;
+
+      game.start();
+      expect(frames).toHaveLength(1);
+      game.pause();
+      expect(board.round).toBe(1);
+      renderer.renderAnimationFrame.mockClear();
+
+      frames[0](performance.now());
+
+      expect(renderer.renderAnimationFrame).not.toHaveBeenCalled();
+      expect(board.round).toBe(1);
+      expect(onRound).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('history (RoundRecord per round)', () => {
+    it('records round 0 and one record per round with board counts', () => {
+      newGame();
+      game.setAnimationDuration(0);
+      const female = new Human(0, 0, Sex.FEMALE, 50, 0, 0);
+      female.pregnancyCounter = 5;
+      board.setEntity(0, 0, female);
+      board.setEntity(9, 9, new Human(9, 9, Sex.MALE, 50, 0, 0));
+
+      game.step();
+
+      const records = game.getHistory().getRecords();
+      expect(records).toHaveLength(2);
+      expect(records[0].round).toBe(0);
+      expect(records[0].males + records[0].females).toBe(0); // board was empty at initialization
+      expect(records[1]).toMatchObject({
+        round: 1,
+        males: 1,
+        females: 1,
+        pregnant: 1,
+        wolves: 0,
+        dogs: 0,
+        fruits: 0,
+        mushrooms: 0,
+      });
+      expect(game.getPopulationHistory()).toEqual([0, 2]);
+    });
+
+    it('aggregates the events reported by the systems into the round record', () => {
+      newGame();
+      game.setAnimationDuration(0);
+      const metabolismDeath = { species: 'male', cause: 'metabolism', age: 4 } as const;
+      const combatDeath = { species: 'female', cause: 'wolfAttack', age: 2 } as const;
+      const childbirth = { species: 'female', cause: 'childbirth', age: 9 } as const;
+      vi.spyOn((game as any).movementSystem, 'execute').mockReturnValue(
+        Object.assign([], { deaths: [metabolismDeath] }),
+      );
+      vi.spyOn((game as any).eatingSystem, 'execute').mockReturnValue({ fruits: 4, mushrooms: 1 });
+      vi.spyOn((game as any).reproductionSystem, 'execute').mockReturnValue(3);
+      vi.spyOn((game as any).deathSystem, 'execute').mockReturnValue([combatDeath]);
+      vi.spyOn((game as any).birthSystem, 'execute').mockReturnValue({ births: 2, deaths: [childbirth] });
+
+      game.step();
+
+      expect(game.getHistory().getLatest()?.events).toEqual({
+        deaths: [metabolismDeath, combatDeath, childbirth],
+        births: 2,
+        newPregnancies: 3,
+        fruitsEaten: 4,
+        mushroomsEaten: 1,
+      });
+    });
+
+    it('accepts a movement result of the form { movements, deaths }', () => {
+      newGame();
+      game.setAnimationDuration(0);
+      const death = { species: 'wolf', cause: 'metabolism', age: 1 } as const;
+      vi.spyOn((game as any).movementSystem, 'execute').mockReturnValue({ movements: [], deaths: [death] });
+      game.step();
+      expect(game.getHistory().getLatest()?.events.deaths).toEqual([death]);
+      expect(board.round).toBe(1);
+    });
+
+    it('tolerates systems that return nothing (empty events)', () => {
+      newGame();
+      game.setAnimationDuration(0);
+      for (const phase of PHASES) {
+        vi.spyOn((game as any)[SYSTEM_FIELDS[phase]], 'execute').mockReturnValue(undefined);
+      }
+      game.step();
+      expect(board.round).toBe(1);
+      expect(game.getHistory().getLatest()?.events).toEqual({
+        deaths: [],
+        births: 0,
+        newPregnancies: 0,
+        fruitsEaten: 0,
+        mushroomsEaten: 0,
+      });
+    });
+  });
+
+  describe('end conditions (auto-stop)', () => {
+    it('stops with humansExtinct when the last human dies, firing onRoundComplete then onGameOver once', () => {
+      doomedHumans();
+      const calls: string[] = [];
+      game.onRoundComplete = () => calls.push('round');
+      game.onGameOver = (reason) => calls.push(`over:${reason}`);
+      game.onStepComplete = () => calls.push('step');
+
+      game.start();
+
+      expect(calls).toEqual(['round', 'over:humansExtinct']);
+      expect(game.running()).toBe(false);
+      expect(game.isOver()).toBe(true);
+      expect(game.getEndReason()).toBe('humansExtinct');
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(10_000);
+      expect(board.round).toBe(1);
+    });
+
+    it('when over: start() and step() are no-ops, config stays locked until reset()', () => {
+      doomedHumans();
+      game.step();
+      expect(game.isOver()).toBe(true);
+
+      game.start();
+      game.step();
+      game.stepRounds(5);
+      vi.advanceTimersByTime(10_000);
+      expect(board.round).toBe(1);
+      expect(game.running()).toBe(false);
+      expect(game.isConfigLocked()).toBe(true);
+
+      game.reset();
+      expect(game.isOver()).toBe(false);
+      expect(game.getEndReason()).toBeNull();
+      expect(game.isConfigLocked()).toBe(false);
+    });
+
+    it('stepRounds ends early on game over without onStepComplete', () => {
+      doomedHumans();
+      const onStep = vi.fn();
+      game.onStepComplete = onStep;
+      game.stepRounds(5);
+      vi.advanceTimersByTime(10_000);
+      expect(board.round).toBe(1);
+      expect(game.isStepping()).toBe(false);
+      expect(onStep).not.toHaveBeenCalled();
+    });
+
+    it('stops with humansSafe at round 10 when no wolves or mushrooms remain', () => {
+      newGame();
+      game.setAnimationDuration(0);
+      board.setEntity(4, 4, new Human(4, 4, Sex.MALE, 100, 0, 0));
+      const onOver = vi.fn();
+      game.onGameOver = onOver;
+
+      game.start();
+      vi.advanceTimersByTime(game.getSpeed() * 20);
+
+      expect(board.round).toBe(10);
+      expect(onOver).toHaveBeenCalledTimes(1);
+      expect(onOver).toHaveBeenCalledWith('humansSafe');
+      expect(game.getHistory().getRecords()).toHaveLength(11);
+    });
+
+    it('a new initialization clears the end reason', () => {
+      doomedHumans();
+      game.step();
+      expect(game.isOver()).toBe(true);
+      game.initializeBoard();
+      expect(game.isOver()).toBe(false);
+    });
+  });
+
+  describe('stop() and finish()', () => {
+    it('stop() mid-animation halts without finishing the round (no extra round, R12)', () => {
+      newGame();
+      const wolf = wanderingWolf();
+      const combat = vi.spyOn((game as any).combatSystem, 'execute');
+      const onRound = vi.fn();
+      game.onRoundComplete = onRound;
+      game.start();
+      vi.advanceTimersByTime(game.getAnimationDuration() / 2);
+
+      game.stop();
+
+      expect(game.running()).toBe(false);
+      expect(game.isAnimatingNow()).toBe(false);
+      expect([wolf.visualX, wolf.visualY]).toEqual([wolf.x, wolf.y]);
+      expect(board.round).toBe(0);
+      expect(combat).not.toHaveBeenCalled();
+      expect(onRound).not.toHaveBeenCalled();
+      expect(game.getHistory().length).toBe(1);
+      expect(game.isConfigLocked()).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(10_000);
+      expect(board.round).toBe(0);
+    });
+
+    it('stop() during a step sequence fires no onStepComplete', () => {
+      newGame();
+      wanderingWolf();
+      const onStep = vi.fn();
+      game.onStepComplete = onStep;
+      game.stepRounds(3);
+      game.stop();
+      vi.advanceTimersByTime(10_000);
+      expect(onStep).not.toHaveBeenCalled();
+      expect(game.isStepping()).toBe(false);
+    });
+
+    it('finish() stops and records userFinished once', () => {
+      newGame();
+      wanderingWolf();
+      const onOver = vi.fn();
+      game.onGameOver = onOver;
+      game.start();
+
+      expect(game.finish()).toBe('userFinished');
+      expect(game.finish()).toBe('userFinished');
+
+      expect(onOver).toHaveBeenCalledTimes(1);
+      expect(onOver).toHaveBeenCalledWith('userFinished');
+      expect(game.running()).toBe(false);
+      expect(board.round).toBe(0);
+      expect(game.isOver()).toBe(true);
+      expect(game.isConfigLocked()).toBe(true);
+    });
+
+    it('finish() after an automatic end keeps the earlier reason and does not fire again', () => {
+      doomedHumans();
+      const onOver = vi.fn();
+      game.onGameOver = onOver;
+      game.step();
+
+      expect(game.finish()).toBe('humansExtinct');
+      expect(onOver).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('initializeFromLayout', () => {
+    function layoutOf(width: number, height: number, cells: Record<number, PlaceableKind>): BoardLayout {
+      const layout: BoardLayout = { width, height, cells: new Array(width * height).fill(null) };
+      for (const [index, kind] of Object.entries(cells)) layout.cells[Number(index)] = kind;
+      return layout;
+    }
+
+    it('places one entity per non-null cell using the given config, locks it and records round 0', () => {
+      board.resize(3, 2);
+      const config = quietConfig({ wolf: { startingHealth: 77 } });
+      game.initializeFromLayout(
+        layoutOf(3, 2, { 0: 'male', 2: 'female', 3: 'wolf', 4: 'dog', 5: 'fruit', 1: 'mushroom' }),
+        config,
+      );
+
+      expect(board.getEntity(0, 0)?.type).toBe(EntityType.MALE);
+      expect(board.getEntity(1, 0)?.type).toBe(EntityType.MUSHROOM);
+      expect(board.getEntity(2, 0)?.type).toBe(EntityType.FEMALE);
+      expect(board.getEntity(0, 1)).toBeInstanceOf(Wolf);
+      expect(board.getEntity(0, 1)?.health).toBe(77);
+      expect(board.getEntity(1, 1)?.type).toBe(EntityType.DOG);
+      expect((board.getEntity(2, 1) as Fruit).isRipe()).toBe(false);
+      expect(game.isConfigLocked()).toBe(true);
+      expect(game.getConfig().wolf.startingHealth).toBe(77);
+      expect(game.getHistory().getRecords()).toEqual([
+        {
+          round: 0,
+          males: 1,
+          females: 1,
+          pregnant: 0,
+          wolves: 1,
+          dogs: 1,
+          fruits: 1,
+          mushrooms: 1,
+          events: { deaths: [], births: 0, newPregnancies: 0, fruitsEaten: 0, mushroomsEaten: 0 },
+        },
+      ]);
+      expect(renderer.render).toHaveBeenCalled();
+    });
+
+    it('replaces whatever was on the board before', () => {
+      board.resize(2, 1);
+      game.initializeFromLayout(layoutOf(2, 1, { 0: 'wolf', 1: 'wolf' }), quietConfig());
+      game.reset();
+      game.initializeFromLayout(layoutOf(2, 1, { 1: 'dog' }));
+      expect(board.getEntity(0, 0)).toBeNull();
+      expect(board.getEntity(1, 0)?.type).toBe(EntityType.DOG);
+    });
+
+    it('throws on a size mismatch and changes nothing', () => {
+      board.resize(2, 2);
+      board.setEntity(0, 0, new Wolf(0, 0, 80, 0, 0));
+      expect(() => game.initializeFromLayout(layoutOf(3, 2, {}))).toThrow(/does not match board size 2x2/);
+      expect(() => game.initializeFromLayout({ width: 2, height: 2, cells: [null] })).toThrow();
+      expect(game.isConfigLocked()).toBe(false);
+      expect(board.getEntity(0, 0)).toBeInstanceOf(Wolf);
+    });
+  });
+
+  describe('initializeBoardAsync', () => {
+    const spawnConfig = () =>
+      createConfig({
+        spawn: {
+          maleHumanProbability: 0.1,
+          femaleHumanProbability: 0.1,
+          wolfProbability: 0.05,
+          dogProbability: 0.05,
+          fruitProbability: 0.1,
+          mushroomProbability: 0.05,
+        },
+      });
+    const serialize = (b: Board) => b.getAllEntities().map((e) => `${e.type}@${e.x},${e.y}:${e.health}`);
+    const immediate = () => Promise.resolve();
+
+    it('produces the same board as initializeBoard for the same seed and reports progress', async () => {
+      Random.seed(11);
+      game.initializeBoard(spawnConfig());
+      const expected = serialize(board);
+      game.reset();
+
+      Random.seed(11);
+      const progress: number[] = [];
+      const done = await game.initializeBoardAsync(spawnConfig(), {
+        chunks: 4,
+        onProgress: (f) => progress.push(f),
+        yieldToEventLoop: immediate,
+      });
+
+      expect(done).toBe(true);
+      expect(serialize(board)).toEqual(expected);
+      expect(expected.length).toBeGreaterThan(0);
+      expect(progress[0]).toBe(0);
+      expect(progress[progress.length - 1]).toBe(1);
+      expect(progress).toHaveLength(5); // 0 + one per chunk (10 rows / 4 chunks → 3,3,3,1 rows)
+      expect([...progress].sort((a, b) => a - b)).toEqual(progress);
+      expect(game.isConfigLocked()).toBe(true);
+      expect(game.isInitializing()).toBe(false);
+      expect(game.getHistory().length).toBe(1);
+    });
+
+    it('uses a 0 ms timeout to yield by default', async () => {
+      const promise = game.initializeBoardAsync(spawnConfig());
+      expect(game.isInitializing()).toBe(true);
+      await vi.runAllTimersAsync();
+      expect(await promise).toBe(true);
+      expect(game.getHistory().length).toBe(1);
+    });
+
+    it('reset() during initialization aborts it: board empty, config unlocked, no history', async () => {
+      let release: () => void = () => {};
+      const promise = game.initializeBoardAsync(spawnConfig(), {
+        chunks: 5,
+        yieldToEventLoop: () => new Promise<void>((resolve) => (release = resolve)),
+      });
+      expect(board.getAllEntities().length).toBeGreaterThan(0); // first chunk already placed
+      expect(game.isConfigLocked()).toBe(true);
+
+      game.reset();
+      release();
+
+      expect(await promise).toBe(false);
+      expect(board.getAllEntities()).toHaveLength(0);
+      expect(game.isConfigLocked()).toBe(false);
+      expect(game.getHistory().length).toBe(0);
+      expect(game.isInitializing()).toBe(false);
+    });
+
+    it('rounds cannot start while the board is being populated', async () => {
+      let release: () => void = () => {};
+      const promise = game.initializeBoardAsync(quietConfig(), {
+        yieldToEventLoop: () => new Promise<void>((resolve) => (release = resolve)),
+      });
+      game.start();
+      game.step();
+      expect(game.running()).toBe(false);
+      expect(board.round).toBe(0);
+
+      for (let i = 0; i < 20 && game.isInitializing(); i++) {
+        release();
+        await Promise.resolve();
+        await Promise.resolve();
+      }
+      expect(await promise).toBe(true);
+      game.setAnimationDuration(0);
+      game.step();
+      expect(board.round).toBe(1);
+    });
+
+    it('a newer initialization aborts the pending one, which leaves the board alone', async () => {
+      let release: () => void = () => {};
+      const promise = game.initializeBoardAsync(spawnConfig(), {
+        yieldToEventLoop: () => new Promise<void>((resolve) => (release = resolve)),
+      });
+      board.resize(2, 1);
+      game.initializeFromLayout({ width: 2, height: 1, cells: ['wolf', null] });
+      release();
+
+      expect(await promise).toBe(false);
+      expect(serialize(board)).toEqual([`${EntityType.WOLF}@0,0:${game.getConfig().wolf.startingHealth}`]);
+      expect(game.getHistory().length).toBe(1);
     });
   });
 });
