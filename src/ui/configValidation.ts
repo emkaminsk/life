@@ -9,7 +9,8 @@ type Section = keyof GameConfig;
  * Upper limits exist only where the PRD specifies them or the quantity is
  * bounded by definition (CLAUDE.md "Parameter Range Freedom"):
  *  - board width/height 10–100 (PRD 3.7.4, US-030)
- *  - overcrowding thresholds 10–1000, multipliers 1–10 (PRD 3.7.10)
+ *  - overcrowding thresholds 10 up to the board area (more creatures than
+ *    cells cannot exist; R14 replaced the old fixed 1000), multipliers 1–10 (PRD 3.7.10)
  *  - probabilities 0–1 and the injured threshold percentage 0–100
  * Everything else only has a sensible minimum.
  */
@@ -23,7 +24,15 @@ export interface FieldRule {
   integer?: boolean;
   /** Legacy property name accepted when loading older config files. */
   legacyKey?: string;
+  /** The upper bound is the board area (width × height) instead of a fixed `max`. */
+  maxIsBoardArea?: boolean;
 }
+
+/** Allowed board width/height (PRD 3.7.4, US-030). */
+const BOARD_SIZE = { min: 10, max: 100 } as const;
+
+/** Largest board the rules allow. Fallback area while the size is invalid. */
+export const MAX_BOARD_AREA = BOARD_SIZE.max * BOARD_SIZE.max;
 
 const probability = (id: string, section: Section, key: string): FieldRule => ({
   id,
@@ -34,8 +43,8 @@ const probability = (id: string, section: Section, key: string): FieldRule => ({
 });
 
 export const FIELD_RULES: readonly FieldRule[] = [
-  { id: 'boardWidth', section: 'board', key: 'width', min: 10, max: 100, integer: true },
-  { id: 'boardHeight', section: 'board', key: 'height', min: 10, max: 100, integer: true },
+  { id: 'boardWidth', section: 'board', key: 'width', ...BOARD_SIZE, integer: true },
+  { id: 'boardHeight', section: 'board', key: 'height', ...BOARD_SIZE, integer: true },
   { id: 'injuredThreshold', section: 'board', key: 'injuredThreshold', min: 0, max: 100 },
 
   probability('spawnMaleHuman', 'spawn', 'maleHumanProbability'),
@@ -55,6 +64,8 @@ export const FIELD_RULES: readonly FieldRule[] = [
   { id: 'humanGompertzB', section: 'human', key: 'gompertzB', min: 0 },
   { id: 'humanPerception', section: 'human', key: 'perceptionRange', min: 0, integer: true },
   probability('humanFruitProb', 'human', 'moveTowardFruitProbability'),
+  probability('humanCaution', 'human', 'avgCaution'),
+  { id: 'humanMetabolism', section: 'human', key: 'avgMetabolism', min: 0 },
 
   { id: 'wolfHealth', section: 'wolf', key: 'startingHealth', min: 1 },
   { id: 'wolfDamageToMale', section: 'wolf', key: 'damageToMale', min: 0 },
@@ -87,9 +98,9 @@ export const FIELD_RULES: readonly FieldRule[] = [
   },
   probability('mushroomSpawn', 'mushroom', 'spawnProbability'),
 
-  { id: 'humanThreshold', section: 'overcrowding', key: 'humanThreshold', min: 10, max: 1000 },
+  { id: 'humanThreshold', section: 'overcrowding', key: 'humanThreshold', min: 10, maxIsBoardArea: true },
   { id: 'humanMultiplier', section: 'overcrowding', key: 'humanMultiplier', min: 1, max: 10 },
-  { id: 'animalThreshold', section: 'overcrowding', key: 'animalThreshold', min: 10, max: 1000 },
+  { id: 'animalThreshold', section: 'overcrowding', key: 'animalThreshold', min: 10, maxIsBoardArea: true },
   { id: 'animalMultiplier', section: 'overcrowding', key: 'animalMultiplier', min: 1, max: 10 },
 ];
 
@@ -109,6 +120,21 @@ export function validateValue(rule: FieldRule, value: number): FieldError | null
   if (rule.max !== undefined && value > rule.max) return { rule, code: 'tooHigh', arg: rule.max };
   if (rule.integer && !Number.isInteger(value)) return { rule, code: 'notInteger' };
   return null;
+}
+
+/**
+ * Board area used for board-area bounds: width × height when both are valid
+ * board sizes, otherwise MAX_BOARD_AREA (so a half-typed size never makes the
+ * thresholds look invalid).
+ */
+export function boardAreaOf(width: number, height: number): number {
+  const valid = (n: number) => Number.isInteger(n) && n >= BOARD_SIZE.min && n <= BOARD_SIZE.max;
+  return valid(width) && valid(height) ? width * height : MAX_BOARD_AREA;
+}
+
+/** The rule with its dynamic bound applied (identity for fixed rules). */
+export function resolveRule(rule: FieldRule, boardArea: number): FieldRule {
+  return rule.maxIsBoardArea ? { ...rule, max: boardArea } : rule;
 }
 
 export function getValue(config: GameConfig, rule: FieldRule): number {
@@ -135,8 +161,9 @@ export function spawnTotal(config: GameConfig): number {
 /** Validate every field of a config. An empty array means the config is valid. */
 export function validateConfig(config: GameConfig): FieldError[] {
   const errors: FieldError[] = [];
+  const area = boardAreaOf(config.board.width, config.board.height);
   for (const rule of FIELD_RULES) {
-    const error = validateValue(rule, getValue(config, rule));
+    const error = validateValue(resolveRule(rule, area), getValue(config, rule));
     if (error) errors.push(error);
   }
   return errors;
