@@ -134,7 +134,9 @@ export class GameControls {
 
   /** Re-apply translated labels (Pause vs Resume) after a language change. */
   refreshLabels(): void {
-    this.buttons.pause.textContent = this.t(this.state === 'paused' ? 'controls.resume' : 'controls.pause');
+    const resume = this.state === 'paused';
+    this.buttons.pause.textContent = this.t(resume ? 'controls.resume' : 'controls.pause');
+    this.buttons.pause.dataset.action = resume ? 'resume' : 'pause'; // picks the ⏸ / ▶ icon (CSS)
   }
 
   private setState(state: ControlState): void {

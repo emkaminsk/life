@@ -24,7 +24,7 @@ import { getChallenge, sanitizeLayout } from './core/challenges';
 import { Game } from './core/Game';
 import { summarize } from './core/gameSummary';
 import { computeGenomeSnapshot, GenomeHistory } from './core/genomeStats';
-import { Renderer } from './core/Renderer';
+import { MAX_CELL_SIZE, MIN_CELL_SIZE, Renderer } from './core/Renderer';
 import type { EndReason } from './core/simulationEvents';
 import { domRenderer } from './i18n/DOMRenderer';
 import { i18n } from './i18n/i18n';
@@ -72,6 +72,28 @@ export interface App {
 }
 
 const t = (key: string, ...args: (string | number)[]) => i18n.t(key, ...args);
+
+/** Gap (CSS px) kept free below the board so its bottom border never touches the viewport edge. */
+const BOARD_BOTTOM_GAP = 12;
+/** Debounce of window resize → refit (ms). */
+const RESIZE_DEBOUNCE_MS = 150;
+
+/**
+ * Cell size (CSS px) at which a boardWidth × boardHeight board fits inside
+ * availWidth × availHeight: the smaller of the width and height fits, clamped
+ * to [MIN_CELL_SIZE, MAX_CELL_SIZE]. A non-positive height (no room left on a
+ * very short screen) falls back to the minimum cell.
+ */
+export function boardCellSize(
+  availWidth: number,
+  availHeight: number,
+  boardWidth: number,
+  boardHeight: number,
+): number {
+  if (boardWidth <= 0 || boardHeight <= 0) return MIN_CELL_SIZE;
+  const raw = Math.floor(Math.min(availWidth / boardWidth, availHeight / boardHeight));
+  return Number.isFinite(raw) ? Math.min(MAX_CELL_SIZE, Math.max(MIN_CELL_SIZE, raw)) : MIN_CELL_SIZE;
+}
 
 /** Arrow / Home / End navigation between the rules modal tabs (WAI-ARIA tabs pattern). */
 function bindTabs(tabs: HTMLElement[], signal: AbortSignal): void {
@@ -295,21 +317,43 @@ export function createApp(doc: Document = document): App {
   };
 
   // ---------------------------------------------------------------- layout (M12)
+  const classicCanvas = byId<HTMLCanvasElement>('classicCanvas');
+  /** Control panel; on phones it is a bar fixed to the bottom of the viewport (index.html CSS). */
+  const controlBar = doc.querySelector<HTMLElement>('.controls-panel');
+
+  /**
+   * CSS px available to the active board: the game area's inner width, and the
+   * viewport height below the game area's top (page scrolled to the top) minus
+   * a fixed bottom control bar, so board and controls are visible together.
+   */
+  function boardArea(): { width: number; height: number } | null {
+    if (!gameArea) return null;
+    const style = win.getComputedStyle(gameArea);
+    const px = (v: string) => Number.parseFloat(v || '0') || 0;
+    const active = mode === 'classic' ? classicCanvas : canvas;
+    const border = active.offsetWidth - active.clientWidth; // CSS border, both sides
+    const width = gameArea.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - border;
+    if (width <= 0) return null;
+    const top = gameArea.getBoundingClientRect().top + win.scrollY;
+    const bar = controlBar && win.getComputedStyle(controlBar).position === 'fixed' ? controlBar.offsetHeight : 0;
+    const height =
+      win.innerHeight - top - px(style.paddingTop) - px(style.paddingBottom) - border - bar - BOARD_BOTTOM_GAP;
+    return { width, height };
+  }
+
   function fitCanvas(): void {
-    if (!gameArea) return;
-    const style = getComputedStyle(gameArea);
-    const canvasBorder = canvas.offsetWidth - canvas.clientWidth; // 2px border each side
-    const available =
-      gameArea.clientWidth -
-      Number.parseFloat(style.paddingLeft || '0') -
-      Number.parseFloat(style.paddingRight || '0') -
-      canvasBorder;
-    if (available <= 0) return;
-    renderer.fitToWidth(available, board.width, board.height);
+    const area = boardArea();
+    if (!area) return;
+    if (mode === 'classic') {
+      classic.fit(area.width, area.height);
+      return;
+    }
+    renderer.resize(board.width, board.height, boardCellSize(area.width, area.height, board.width, board.height));
     renderer.renderFull(board);
   }
 
-  win.addEventListener('resize', debounce(fitCanvas, 150), { signal });
+  const refitOnResize = debounce(fitCanvas, RESIZE_DEBOUNCE_MS);
+  win.addEventListener('resize', refitOnResize, { signal });
 
   // ---------------------------------------------------------------- start / finish / reset
   const progressElements = {
@@ -376,7 +420,7 @@ export function createApp(doc: Document = document): App {
     clearTooltip();
     challengeHud.hide();
     classic.setSpeed(Number.parseInt(speedSelect.value, 10));
-    if (gameArea) classic.fit(gameArea.clientWidth, gameArea.clientHeight);
+    fitCanvas(); // mode is 'classic' here: fits the classic canvas
     classic.begin(options.classic ?? classicForm.read(), { startPaused: !!options.startPaused });
     const paused = !classic.running();
     controls.begin(paused);
@@ -542,6 +586,8 @@ export function createApp(doc: Document = document): App {
       classicForm.destroy();
       if (fpsTimer !== null) clearInterval(fpsTimer);
       clearTooltip();
+      tooltip.destroy();
+      refitOnResize.cancel();
       i18n.offLanguageChange(updateDOM);
       i18n.offLanguageChange(onLanguage);
       configPanel.destroy();

@@ -6,9 +6,10 @@ vi.mock('../src/core/challenges', async (importOriginal) => {
   return { ...original, getChallenge: vi.fn(original.getChallenge) };
 });
 
-import { type App, createApp } from '../src/app';
+import { type App, boardCellSize, createApp } from '../src/app';
 import { createEmptyLayout, setCell } from '../src/core/BoardLayout';
 import { type ChallengeDef, getChallenge } from '../src/core/challenges';
+import { MAX_CELL_SIZE, MIN_CELL_SIZE } from '../src/core/Renderer';
 import { i18n } from '../src/i18n/i18n';
 import { Language } from '../src/i18n/types';
 import type { GameConfig } from '../src/ui/ConfigPanel';
@@ -339,5 +340,98 @@ describe('createApp: start paused, classic mode, challenges', () => {
     app.destroy();
     click('closeModal');
     expect(byId('rulesModal').classList.contains('active')).toBe(true);
+  });
+});
+
+describe('boardCellSize', () => {
+  it('uses the tighter of width and height', () => {
+    expect(boardCellSize(600, 1000, 30, 30)).toBe(20); // width-bound
+    expect(boardCellSize(1000, 300, 30, 30)).toBe(10); // height-bound
+    expect(boardCellSize(1000, 300, 50, 10)).toBe(20); // wide board: width-bound
+  });
+
+  it('clamps to the renderer limits', () => {
+    expect(boardCellSize(5000, 5000, 10, 10)).toBe(MAX_CELL_SIZE);
+    expect(boardCellSize(100, 100, 100, 100)).toBe(MIN_CELL_SIZE);
+    expect(boardCellSize(800, -50, 30, 30)).toBe(MIN_CELL_SIZE); // no room left below the header
+    expect(boardCellSize(800, 600, 0, 30)).toBe(MIN_CELL_SIZE);
+  });
+});
+
+describe('createApp: board fit and teardown', () => {
+  const innerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+  const gameCanvas = () => byId<HTMLCanvasElement>('gameCanvas');
+  const cssPx = (value: string) => Number.parseFloat(value);
+
+  /** Pretend the game area is `width` px wide, starts `top` px down the page and the viewport is `height` px tall. */
+  function mockViewport(width: number, top: number, height: number): void {
+    const area = document.querySelector<HTMLElement>('.game-area') as HTMLElement;
+    Object.defineProperty(area, 'clientWidth', { configurable: true, value: width });
+    vi.spyOn(area, 'getBoundingClientRect').mockReturnValue({ top } as DOMRect);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+  }
+
+  function resize(): void {
+    window.dispatchEvent(new Event('resize'));
+    vi.advanceTimersByTime(200);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    if (innerHeight) Object.defineProperty(window, 'innerHeight', innerHeight);
+  });
+
+  it('a wide but short viewport limits the board by its height', () => {
+    mockViewport(1400, 100, 500); // the width alone would allow the maximum cell
+    resize();
+    const height = cssPx(gameCanvas().style.height);
+    expect(height).toBeGreaterThan(0);
+    expect(height).toBeLessThanOrEqual(500 - 100);
+    expect(cssPx(gameCanvas().style.width)).toBeLessThan(MAX_CELL_SIZE * app.board.width);
+  });
+
+  it('a narrow, tall viewport limits the board by its width', () => {
+    mockViewport(330, 60, 2000);
+    resize();
+    expect(cssPx(gameCanvas().style.width)).toBeLessThanOrEqual(330);
+    // At most padding + border + one cell of slack per column is lost.
+    expect(cssPx(gameCanvas().style.width)).toBeGreaterThanOrEqual(330 - 60 - app.board.width);
+  });
+
+  it('classic mode fits the classic canvas into the same area', async () => {
+    mockViewport(900, 80, 600);
+    const fit = vi.spyOn(app.classic, 'fit');
+    await app.startGame(getDefaultConfig(), { setupMode: 'random', mode: 'classic', startPaused: true });
+    expect(fit).toHaveBeenCalled();
+    const [w, h] = fit.mock.calls[fit.mock.calls.length - 1];
+    expect(w).toBeGreaterThan(0);
+    expect(w).toBeLessThanOrEqual(900);
+    expect(h).toBeGreaterThan(0);
+    expect(h).toBeLessThanOrEqual(600 - 80);
+    fit.mockClear();
+    resize();
+    expect(fit).toHaveBeenCalledTimes(1);
+  });
+
+  it('destroy() cancels a pending resize refit', () => {
+    mockViewport(1400, 100, 500);
+    const before = gameCanvas().style.height;
+    window.dispatchEvent(new Event('resize'));
+    app.destroy();
+    vi.advanceTimersByTime(1000);
+    expect(gameCanvas().style.height).toBe(before);
+  });
+
+  it('destroy() hides and empties the entity tooltip', () => {
+    const tip = byId('entityTooltip');
+    tip.style.display = 'block';
+    tip.querySelector('.tooltip-header')!.textContent = 'Wolf';
+    tip.querySelector('.tooltip-stats')!.append(document.createElement('div'));
+    app.destroy();
+    expect(tip.style.display).toBe('none');
+    expect(tip.textContent?.trim()).toBe('');
   });
 });
