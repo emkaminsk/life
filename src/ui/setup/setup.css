@@ -40,6 +40,16 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* Flat header: undo the page's global `header` card style. */
+.setup-header {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .setup-header h1 {
   margin: 0;
   font-size: 26px;
@@ -53,10 +63,11 @@
 }
 
 .setup-body {
+  /* Never shrink below the board + palette: the panel scrolls instead of overlapping them. */
+  flex: 0 0 auto;
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  min-height: 0;
 }
 
 .setup-board-scroll {
@@ -122,7 +133,7 @@
 
 .setup-tool {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -162,8 +173,14 @@
   border-radius: 4px;
 }
 
+.setup-tool-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .setup-tool-count {
-  min-width: 2.5em;
+  min-width: 1.5em;
   font-variant-numeric: tabular-nums;
   text-align: right;
   font-weight: 700;
@@ -227,6 +244,7 @@
   padding: 10px 22px;
 }
 
+/* Phones, portrait: board on top, palette below (setupLayout.ts 'stacked'). */
 @media (max-width: 800px) {
   .setup-view,
   #setupView {
@@ -234,12 +252,28 @@
   }
 
   .setup-panel {
+    gap: 10px;
     border-radius: 0;
     padding: 16px;
   }
 
+  .setup-header h1 {
+    font-size: 20px;
+  }
+
+  .setup-subtitle {
+    font-size: 14px;
+  }
+
   .setup-body {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  /* flex-basis 0 + overflow:auto would collapse the board to nothing in a column. */
+  .setup-board-scroll {
+    flex: none;
+    align-self: stretch;
   }
 
   .setup-palette {
@@ -248,11 +282,137 @@
   }
 
   .setup-tools {
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 
   .setup-tool {
-    flex: 1 1 140px;
+    min-height: 44px;
+    padding: 6px 8px;
+  }
+
+  .setup-subtitle {
+    display: none;
+  }
+
+  /* The panel scrolls on small phones: keep the buttons pinned to the bottom edge. */
+  .setup-actions {
+    position: sticky;
+    bottom: -16px;
+    margin: 0 -16px -16px;
+    padding: 10px 16px 16px;
+    background: var(--setup-surface);
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Start first and full width, so it is never wrapped off the bottom of the screen. */
+  .setup-start {
+    order: -1;
+    flex: 1 0 100%;
+  }
+
+  .setup-clear,
+  .setup-back {
+    flex: 1 1 0;
+  }
+}
+
+/* Phones, landscape: board fills the height on the left, the rest in a column on the right
+   (setupLayout.ts 'landscape'). */
+@media (max-height: 500px) and (orientation: landscape) {
+  .setup-view,
+  #setupView {
+    padding: 0;
+  }
+
+  .setup-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: repeat(4, auto) 1fr;
+    gap: 8px 12px;
+    height: 100%;
+    max-width: none;
+    padding: 8px;
+    border-radius: 0;
+  }
+
+  .setup-body {
+    display: contents;
+  }
+
+  .setup-board-scroll {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 16px);
+  }
+
+  .setup-header,
+  .setup-palette,
+  .setup-help,
+  .setup-actions {
+    grid-column: 2;
+  }
+
+  .setup-header h1 {
+    font-size: 18px;
+  }
+
+  .setup-subtitle,
+  .setup-palette h2 {
+    display: none;
+  }
+
+  .setup-tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  .setup-tool {
+    min-height: 44px;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .setup-actions {
+    position: sticky;
+    bottom: -8px;
+    margin: 0 0 -8px;
+    padding: 6px 0 8px;
+    box-shadow: none;
+    background: var(--setup-surface);
+  }
+
+  .setup-start {
+    order: 0;
+    flex: none;
+  }
+
+  .setup-clear,
+  .setup-back {
+    flex: none;
+  }
+
+  .setup-tool-emoji {
+    font-size: 22px;
+  }
+
+  .setup-help {
+    font-size: 12px;
+  }
+}
+
+/* Touch-only screens: no keyboard shortcuts to show, and palette items are tapped, not grabbed. */
+@media (hover: none) and (pointer: coarse) {
+  .setup-help-keys,
+  .setup-tool-key {
+    display: none;
+  }
+
+  .setup-tool {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    cursor: pointer;
   }
 }

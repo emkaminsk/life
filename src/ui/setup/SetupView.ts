@@ -20,6 +20,7 @@ import { Renderer } from '../../core/Renderer';
 import { i18n } from '../../i18n/i18n';
 import type { GameConfig } from '../ConfigPanel';
 import { reduceSetupKey, type SetupKeyAction, type SetupKeyState, selectionRect } from './setupKeyboard';
+import { fitCellSize } from './setupLayout';
 import './setup.css';
 
 /** Translator signature (i18n.t). */
@@ -49,8 +50,18 @@ const TOOL_EMOJI: Record<ToolId, string> = {
 
 const TOOLS: readonly ToolId[] = [...PLACEABLE_KINDS, 'eraser'];
 const DRAG_MIME = 'text/plain';
-const MIN_CELL = 6;
-const MAX_CELL = 32;
+/** A touch/pen press must travel this far (px) before it becomes a drag-select, so a wobbly tap still places. */
+const TOUCH_SLOP_PX = 8;
+
+/** The board press in progress (one pointer at a time). */
+interface Press {
+  pointerId: number;
+  cell: CellPos;
+  clientX: number;
+  clientY: number;
+  slop: number;
+  dragging: boolean;
+}
 
 const toolOf = (kind: PlaceableKind | null): ToolId => kind ?? 'eraser';
 const kindOf = (tool: ToolId): PlaceableKind | null => (tool === 'eraser' ? null : tool);
@@ -93,8 +104,8 @@ export class SetupView {
   private config: GameConfig | null = null;
   private layout: BoardLayout = createEmptyLayout(0, 0);
   private state: SetupKeyState = { cursor: { x: 0, y: 0 }, anchor: null, tool: 'male', width: 0, height: 0 };
-  /** Cell where the current mouse press started; null when not pressing. */
-  private pressStart: CellPos | null = null;
+  /** Board press in progress; null when no pointer is down. */
+  private press: Press | null = null;
   private draggedTool: ToolId | null = null;
 
   constructor(root: HTMLElement, t: Translate = i18n.t.bind(i18n)) {
@@ -148,7 +159,7 @@ export class SetupView {
       keyBadge.setAttribute('aria-hidden', 'true');
       const count = el('span', 'setup-tool-count');
       button.append(keyBadge, emoji, name, count);
-      button.addEventListener('click', () => this.selectTool(kindOf(tool)));
+      button.addEventListener('click', () => this.pickTool(kindOf(tool)));
       button.addEventListener('dragstart', (e) => {
         this.draggedTool = tool;
         e.dataTransfer?.setData(DRAG_MIME, tool);
@@ -170,7 +181,10 @@ export class SetupView {
 
     const help = el('div', 'setup-help');
     help.id = 'setupHelp';
-    help.append(this.text(el('p'), 'setup.help'), this.text(el('p'), 'setup.mouseHelp'));
+    help.append(
+      this.text(el('p', 'setup-help-pointer'), 'setup.pointerHelp'),
+      this.text(el('p', 'setup-help-keys'), 'setup.help'),
+    );
 
     this.live = el('div', 'setup-live');
     this.live.id = 'setupLive';
@@ -215,7 +229,7 @@ export class SetupView {
 
     this.board.resize(width, height);
     this.layout = createEmptyLayout(width, height);
-    this.renderer.resize(width, height, this.fitCellSize(width, height));
+    this.renderer.resize(width, height, this.fitCell(width, height));
     this.state = { cursor: { x: 0, y: 0 }, anchor: null, tool: this.state.tool, width, height };
     this.active = true;
     this.root.hidden = false;
@@ -227,10 +241,8 @@ export class SetupView {
 
   close(): void {
     this.active = false;
-    this.pressStart = null;
+    this.endPress();
     this.root.hidden = true;
-    window.removeEventListener('mousemove', this.handleMouseMove);
-    window.removeEventListener('mouseup', this.handleMouseUp);
   }
 
   /** Close and detach the language listener (the view cannot be reopened). */
@@ -271,13 +283,10 @@ export class SetupView {
     return node;
   }
 
-  private fitCellSize(width: number, height: number): number {
-    const vw = window.innerWidth || 1024;
-    const vh = window.innerHeight || 768;
-    const availW = Math.max(200, vw - 360);
-    const availH = Math.max(200, vh - 300);
-    const size = Math.floor(Math.min(availW / width, availH / height));
-    return Math.min(MAX_CELL, Math.max(MIN_CELL, size));
+  private fitCell(width: number, height: number): number {
+    const viewport = { width: window.innerWidth || 1024, height: window.innerHeight || 768 };
+    const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    return fitCellSize(width, height, viewport, coarse);
   }
 
   /** Swap in a new layout: update only the changed preview cells, counts and overlay. */
@@ -317,8 +326,14 @@ export class SetupView {
     }
   }
 
-  private selectTool(kind: PlaceableKind | null): void {
+  /** Palette click/tap: choose the item; with an area selected, also fill it (the touch way to fill). */
+  private pickTool(kind: PlaceableKind | null): void {
     this.state = { ...this.state, tool: kind };
+    if (this.state.anchor) {
+      this.applyAction({ type: 'fill', rect: selectionRect(this.state), kind });
+      this.announcePosition();
+      return;
+    }
     this.updateCounts();
     this.announce(this.t('setup.toolSelected', this.t(`setup.tool.${toolOf(kind)}`)));
   }
@@ -446,39 +461,72 @@ export class SetupView {
       this.announcePosition();
       c.focus();
     });
-    c.addEventListener('mousedown', (e) => {
-      if (!this.active || e.button !== 0) return;
+    // Pointer Events cover mouse, touch and pen: a tap/click places, a drag selects an area.
+    c.addEventListener('pointerdown', (e) => {
+      if (!this.active || this.press || (e.pointerType === 'mouse' && e.button !== 0)) return;
       e.preventDefault();
       c.focus();
+      try {
+        c.setPointerCapture?.(e.pointerId);
+      } catch {
+        // Capture is an optimisation; the window listeners below still see the events.
+      }
       const cell = this.cellFromEvent(e);
-      this.pressStart = cell;
+      this.press = {
+        pointerId: e.pointerId,
+        cell,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        slop: e.pointerType === 'mouse' ? 0 : TOUCH_SLOP_PX,
+        dragging: false,
+      };
       this.state = { ...this.state, cursor: cell, anchor: null };
       this.updateOverlay();
-      window.addEventListener('mousemove', this.handleMouseMove);
-      window.addEventListener('mouseup', this.handleMouseUp);
+      window.addEventListener('pointermove', this.handlePointerMove);
+      window.addEventListener('pointerup', this.handlePointerUp);
+      window.addEventListener('pointercancel', this.handlePointerCancel);
     });
   }
 
-  private handleMouseMove = (e: MouseEvent): void => {
-    const start = this.pressStart;
-    if (!start) return;
-    const cell = this.cellFromEvent(e);
-    const moved = cell.x !== start.x || cell.y !== start.y;
-    this.state = { ...this.state, cursor: cell, anchor: moved || this.state.anchor ? start : null };
+  private endPress(): void {
+    this.press = null;
+    window.removeEventListener('pointermove', this.handlePointerMove);
+    window.removeEventListener('pointerup', this.handlePointerUp);
+    window.removeEventListener('pointercancel', this.handlePointerCancel);
+  }
+
+  private handlePointerMove = (e: PointerEvent): void => {
+    const press = this.press;
+    if (!press || e.pointerId !== press.pointerId) return;
+    if (!press.dragging) {
+      const travelled = Math.hypot(e.clientX - press.clientX, e.clientY - press.clientY);
+      const cell = this.cellFromEvent(e);
+      const otherCell = cell.x !== press.cell.x || cell.y !== press.cell.y;
+      if (!otherCell || travelled <= press.slop) return;
+      press.dragging = true;
+    }
+    this.state = { ...this.state, cursor: this.cellFromEvent(e), anchor: press.cell };
     this.updateOverlay();
   };
 
-  private handleMouseUp = (e: MouseEvent): void => {
-    window.removeEventListener('mousemove', this.handleMouseMove);
-    window.removeEventListener('mouseup', this.handleMouseUp);
-    if (!this.pressStart) return;
-    this.handleMouseMove(e);
-    this.pressStart = null;
-    // A click (no drag) places the current tool; a drag leaves a selection to fill.
-    if (!this.state.anchor) {
-      const { x, y } = this.state.cursor;
+  private handlePointerUp = (e: PointerEvent): void => {
+    const press = this.press;
+    if (!press || e.pointerId !== press.pointerId) return;
+    this.handlePointerMove(e);
+    this.endPress();
+    // A tap/click (no drag) places the current tool; a drag leaves a selection to fill.
+    if (!press.dragging) {
+      const { x, y } = press.cell;
+      this.state = { ...this.state, cursor: press.cell, anchor: null };
       this.applyLayout(setCell(this.layout, x, y, this.state.tool));
     }
     this.announcePosition();
+  };
+
+  private handlePointerCancel = (e: PointerEvent): void => {
+    if (!this.press || e.pointerId !== this.press.pointerId) return;
+    this.endPress();
+    this.state = { ...this.state, anchor: null };
+    this.updateOverlay();
   };
 }
