@@ -1,11 +1,6 @@
 import type { Board } from './Board';
 import type { Renderer } from './Renderer';
 import { Human } from '../entities/Human';
-import { Wolf } from '../entities/Wolf';
-import { Dog } from '../entities/Dog';
-import { Fruit } from '../entities/Fruit';
-import { Mushroom } from '../entities/Mushroom';
-import { Sex } from '../types';
 import { DEFAULT_CONFIG } from '../config';
 import { MovementSystem } from '../systems/MovementSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -15,6 +10,8 @@ import { DeathSystem } from '../systems/DeathSystem';
 import { BirthSystem } from '../systems/BirthSystem';
 import { SpawnSystem } from '../systems/SpawnSystem';
 import { AnimationSystem, type MovementRecord } from './AnimationSystem';
+import { createEntity } from './entityFactory';
+import type { PlaceableKind } from './simulationEvents';
 import { Random } from '../utils/Random';
 import { debugLog } from '../utils/debug';
 
@@ -147,7 +144,7 @@ export class Game {
     this.renderer.clearVisualEffects();
     debugLog('[Game] Initializing board with entities...');
 
-    const { spawn, human, wolf, dog, fruit, mushroom } = gameConfig;
+    const { spawn } = gameConfig;
     const cumulativeMale = spawn.maleHumanProbability;
     const cumulativeFemale = cumulativeMale + spawn.femaleHumanProbability;
     const cumulativeWolf = cumulativeFemale + spawn.wolfProbability;
@@ -157,33 +154,16 @@ export class Game {
 
     for (let y = 0; y < this.board.height; y++) {
       for (let x = 0; x < this.board.width; x++) {
-        // Weighted random selection using cumulative probabilities
+        // Weighted random selection using cumulative probabilities (one draw per cell)
         const rand = Random.next();
-        if (rand < cumulativeFemale) {
-          const sex = rand < cumulativeMale ? Sex.MALE : Sex.FEMALE;
-          this.board.setEntity(
-            x,
-            y,
-            new Human(
-              x,
-              y,
-              sex,
-              human.startingHealth,
-              human.gompertzA,
-              human.gompertzB,
-              undefined,
-              human.moveTowardFruitProbability,
-            ),
-          );
-        } else if (rand < cumulativeWolf) {
-          this.board.setEntity(x, y, new Wolf(x, y, wolf.startingHealth, wolf.gompertzA, wolf.gompertzB));
-        } else if (rand < cumulativeDog) {
-          this.board.setEntity(x, y, new Dog(x, y, dog.startingHealth, dog.gompertzA, dog.gompertzB));
-        } else if (rand < cumulativeFruit) {
-          this.board.setEntity(x, y, new Fruit(x, y, fruit.energyHealed, fruit.roundsToRipen));
-        } else if (rand < cumulativeMushroom) {
-          this.board.setEntity(x, y, new Mushroom(x, y, mushroom.energyRemoved));
-        }
+        let kind: PlaceableKind | null = null;
+        if (rand < cumulativeMale) kind = 'male';
+        else if (rand < cumulativeFemale) kind = 'female';
+        else if (rand < cumulativeWolf) kind = 'wolf';
+        else if (rand < cumulativeDog) kind = 'dog';
+        else if (rand < cumulativeFruit) kind = 'fruit';
+        else if (rand < cumulativeMushroom) kind = 'mushroom';
+        if (kind) this.board.setEntity(x, y, createEntity(kind, x, y, gameConfig));
         // else: cell remains empty
       }
     }

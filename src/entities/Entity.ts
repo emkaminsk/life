@@ -1,3 +1,4 @@
+import type { DeathCause } from '../core/simulationEvents';
 import type { EntityType } from '../types';
 
 export abstract class Entity {
@@ -12,6 +13,8 @@ export abstract class Entity {
   type: EntityType;
   gompertzA: number;
   gompertzB: number;
+  /** Why this entity died; null while alive (or when the killing blow gave no cause). */
+  deathCause: DeathCause | null = null;
 
   constructor(
     x: number,
@@ -50,8 +53,23 @@ export abstract class Entity {
     this.age++;
   }
 
-  takeDamage(amount: number): void {
+  /**
+   * Reduce health (never below 0). When `cause` is given it is recorded as the
+   * deathCause only on the transition from alive (health > 0) to dead (≤ 0), so
+   * the first lethal blow wins and later damage does not overwrite it.
+   */
+  takeDamage(amount: number, cause?: DeathCause): void {
+    const wasAlive = this.health > 0;
     this.health = Math.max(0, this.health - amount);
+    if (cause !== undefined && wasAlive && this.health <= 0) {
+      this.deathCause = cause;
+    }
+  }
+
+  /** Kill outright (health 0) and record the cause (e.g. old age, overcrowding, childbirth). */
+  kill(cause: DeathCause): void {
+    this.health = 0;
+    this.deathCause = cause;
   }
 
   heal(amount: number, maxHealth: number = this.maxHealth): void {

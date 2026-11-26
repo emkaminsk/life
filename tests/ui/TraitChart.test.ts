@@ -11,6 +11,7 @@ const genome = (v: number): Genome => ({
   metabolism: v / 2,
   greed: v / 3,
   caution: v / 4,
+  longevity: v,
 });
 const snapshot = (round: number, m: number, f: number): GenomeSnapshot => ({
   round,

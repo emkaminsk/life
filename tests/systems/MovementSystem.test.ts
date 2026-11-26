@@ -17,7 +17,7 @@ import { createConfig, createMockRenderer, type ConfigOverrides } from '../setup
 
 function calmHuman(x: number, y: number, sex: Sex = Sex.MALE): Human {
   const human = new Human(x, y, sex);
-  human.genome = { maxHealth: 100, strength: 1, metabolism: 0, greed: 0, caution: 0 };
+  human.genome = { maxHealth: 100, strength: 1, metabolism: 0, greed: 0, caution: 0, longevity: 1 };
   human.maxHealth = 100;
   human.health = 100;
   return human;

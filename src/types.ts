@@ -31,6 +31,7 @@ export interface Genome {
   metabolism: number; // Physical: Energy cost per move (0-1)
   greed: number; // Behavioral: Probability to move toward food (0-1)
   caution: number; // Behavioral: Probability to run from predators (0-1)
+  longevity: number; // Physical: Multiplier on the Gompertz ageing rate B (0.5-2.0, mean 1)
 }
 
 export interface GenomeSnapshot {

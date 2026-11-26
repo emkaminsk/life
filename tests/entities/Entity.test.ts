@@ -267,3 +267,46 @@ describe('Entity maxHealth and injured %', () => {
     expect(new Mushroom(0, 0).energyRemoved).toBe(DEFAULT_CONFIG.mushroom.energyRemoved);
   });
 });
+
+describe('Entity death cause', () => {
+  it('starts with no death cause', () => {
+    expect(createWolf(0, 0).deathCause).toBeNull();
+  });
+
+  it('takeDamage without a cause keeps the old behaviour and records nothing', () => {
+    const wolf = new Wolf(0, 0, 10);
+    wolf.takeDamage(25);
+    expect(wolf.health).toBe(0);
+    expect(wolf.deathCause).toBeNull();
+  });
+
+  it('non-lethal damage with a cause does not set deathCause', () => {
+    const wolf = new Wolf(0, 0, 10);
+    wolf.takeDamage(4, 'dogAttack');
+    expect(wolf.health).toBe(6);
+    expect(wolf.deathCause).toBeNull();
+  });
+
+  it('records the cause of the blow that takes health from > 0 to ≤ 0', () => {
+    const wolf = new Wolf(0, 0, 10);
+    wolf.takeDamage(4, 'humanDefense');
+    wolf.takeDamage(6, 'dogAttack');
+    expect(wolf.health).toBe(0);
+    expect(wolf.deathCause).toBe('dogAttack');
+  });
+
+  it('later damage to an already dead entity does not overwrite the cause', () => {
+    const wolf = new Wolf(0, 0, 10);
+    wolf.takeDamage(10, 'dogAttack');
+    wolf.takeDamage(5, 'humanDefense');
+    expect(wolf.deathCause).toBe('dogAttack');
+  });
+
+  it('kill sets health to 0 and records the cause', () => {
+    const human = createHuman(1, 1);
+    human.kill('oldAge');
+    expect(human.health).toBe(0);
+    expect(human.isDead()).toBe(true);
+    expect(human.deathCause).toBe('oldAge');
+  });
+});

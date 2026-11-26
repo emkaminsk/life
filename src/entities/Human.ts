@@ -17,6 +17,8 @@ export class Human extends Entity {
    * @param genome explicit genome (e.g. inherited); when omitted a random one is generated
    * @param avgGreed baseline greed for a randomly generated genome (configured
    *   moveTowardFruitProbability)
+   * @param avgCaution baseline caution for a randomly generated genome (config human.avgCaution)
+   * @param avgMetabolism baseline metabolism for a randomly generated genome (config human.avgMetabolism)
    */
   constructor(
     x: number,
@@ -27,6 +29,8 @@ export class Human extends Entity {
     gompertzB?: number,
     genome?: Genome,
     avgGreed?: number,
+    avgCaution?: number,
+    avgMetabolism?: number,
   ) {
     const activeGenome =
       genome ??
@@ -34,7 +38,8 @@ export class Human extends Entity {
         startingHealth ?? DEFAULT_CONFIG.human.startingHealth, // Avg Max Health
         1.0, // Avg Strength (multiplier)
         avgGreed ?? DEFAULT_CONFIG.human.moveTowardFruitProbability, // Avg Greed
-        0.0, // Avg Caution (default doesn't run from wolves)
+        avgCaution ?? DEFAULT_CONFIG.human.avgCaution,
+        avgMetabolism ?? DEFAULT_CONFIG.human.avgMetabolism,
       );
 
     super(

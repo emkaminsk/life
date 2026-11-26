@@ -34,6 +34,10 @@ export interface GameConfig {
     cooldownPeriod: number;
     perceptionRange: number;
     moveTowardFruitProbability: number;
+    /** Average caution gene of the initial population (0-1). */
+    avgCaution: number;
+    /** Average metabolism gene of the initial population (health cost per round). */
+    avgMetabolism: number;
     gompertzA: number;
     gompertzB: number;
   };

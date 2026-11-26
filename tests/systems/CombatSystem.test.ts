@@ -12,7 +12,7 @@ import { createConfig, createMockRenderer } from '../setup';
 
 function human(x: number, y: number, sex: Sex, health = 100, strength = 1): Human {
   const h = new Human(x, y, sex);
-  h.genome = { maxHealth: 100, strength, metabolism: 0, greed: 0, caution: 0 };
+  h.genome = { maxHealth: 100, strength, metabolism: 0, greed: 0, caution: 0, longevity: 1 };
   h.maxHealth = 100;
   h.health = health;
   return h;

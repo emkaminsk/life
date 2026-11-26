@@ -172,6 +172,8 @@ export function getDefaultConfig(): GameConfig {
       cooldownPeriod: d.human.cooldownPeriod,
       perceptionRange: d.human.perceptionRange,
       moveTowardFruitProbability: d.human.moveTowardFruitProbability,
+      avgCaution: d.human.avgCaution,
+      avgMetabolism: d.human.avgMetabolism,
       gompertzA: d.human.gompertzA,
       gompertzB: d.human.gompertzB,
     },

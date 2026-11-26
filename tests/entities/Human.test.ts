@@ -211,7 +211,7 @@ describe('Human Entity', () => {
 
 describe('Human (config-driven behaviour)', () => {
   it('maxHealth mirrors the genome and caps starting health', () => {
-    const genome = { maxHealth: 80, strength: 1, metabolism: 0.1, greed: 0.5, caution: 0 };
+    const genome = { maxHealth: 80, strength: 1, metabolism: 0.1, greed: 0.5, caution: 0, longevity: 1 };
     const h = new Human(0, 0, Sex.MALE, 150, undefined, undefined, genome);
     expect(h.maxHealth).toBe(80);
     expect(h.health).toBe(80);
@@ -229,6 +229,20 @@ describe('Human (config-driven behaviour)', () => {
     expect(health / 500).toBeGreaterThan(370);
     expect(health / 500).toBeLessThan(430);
     expect(greed / 500).toBeGreaterThan(0.75);
+  });
+
+  it('random genome baseline uses the given average caution and metabolism (seeded)', () => {
+    Random.seed(22);
+    let caution = 0;
+    let metabolism = 0;
+    for (let i = 0; i < 500; i++) {
+      const h = new Human(0, 0, Sex.MALE, 100, undefined, undefined, undefined, 0.5, 0.9, 0.3);
+      caution += h.genome.caution;
+      metabolism += h.genome.metabolism;
+    }
+    expect(caution / 500).toBeGreaterThan(0.8);
+    expect(metabolism / 500).toBeGreaterThan(0.27);
+    expect(metabolism / 500).toBeLessThan(0.33);
   });
 
   it('startPregnancy uses the passed pregnancy period and advancePregnancy the passed cooldown', () => {

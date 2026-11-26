@@ -22,6 +22,7 @@ const motherGenome: Genome = {
   metabolism: 0.1,
   greed: 0.6,
   caution: 0.1,
+  longevity: 0.9,
 };
 const fatherGenome: Genome = {
   maxHealth: 120,
@@ -29,6 +30,7 @@ const fatherGenome: Genome = {
   metabolism: 0.2,
   greed: 0.4,
   caution: 0.3,
+  longevity: 1.2,
 };
 
 function makeMother(x: number, y: number): Human {

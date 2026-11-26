@@ -172,6 +172,7 @@ export class TraitChart {
       metabolism: '#66a3ff', // Light blue
       greed: '#99c2ff', // Pale blue
       caution: '#cce0ff', // Very pale blue
+      longevity: '#003d7a', // Navy (not charted yet)
     };
     return colors[trait] || '#000000';
   }
@@ -183,6 +184,7 @@ export class TraitChart {
       metabolism: '#ff66a3', // Light pink
       greed: '#ff99c2', // Pale pink
       caution: '#ffcce0', // Very pale pink
+      longevity: '#7a003d', // Deep pink (not charted yet)
     };
     return colors[trait] || '#000000';
   }

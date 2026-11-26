@@ -967,6 +967,12 @@
           <h3 class="graph-title" data-i18n="stats.populationGraph">Population Graph</h3>
           <canvas id="populationGraph" width="220" height="120" role="img" aria-labelledby="statsTitle"></canvas>
         </section>
+
+        <!-- Genome trait panel (filled by TraitPanel) -->
+        <section id="traitPanel" class="panel"></section>
+
+        <!-- App version (filled at startup) -->
+        <div id="appVersion" class="app-version"></div>
       </aside>
     </main>
   </div>
@@ -1264,6 +1270,12 @@
       </div>
     </div>
   </div>
+
+  <!-- Manual board setup view (filled by SetupView) -->
+  <div id="setupView" class="setup-view" hidden></div>
+
+  <!-- End-of-game summary (filled by SummaryDialog) -->
+  <div id="summaryModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"></div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
