@@ -39,6 +39,12 @@
   background: white;
 }
 
+/* Selects with long option names: label above, control full width (no truncation on phones). */
+.classic-field-wide > label,
+.classic-field-wide > select {
+  flex: 1 1 100%;
+}
+
 .classic-field input[type="range"] {
   flex: 1 1 100%;
   width: 100%;

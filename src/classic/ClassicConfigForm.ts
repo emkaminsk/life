@@ -96,6 +96,7 @@ export function createClassicConfigForm(
     presetSelect.append(option);
   }
   const presetField = field('classicRulePreset', presetSelect);
+  presetField.row.classList.add('classic-field-wide');
 
   const customInput = el('input');
   customInput.type = 'text';
@@ -142,6 +143,7 @@ export function createClassicConfigForm(
   }
   patternSelect.value = DEFAULT_PATTERN;
   const patternField = field('classicPattern', patternSelect);
+  patternField.row.classList.add('classic-field-wide');
   const patternError = errorEl();
   patternField.row.append(patternError);
 
