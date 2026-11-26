@@ -1,4 +1,6 @@
 import * as app from './sections/app';
+import * as challenges from './sections/challenges';
+import * as classic from './sections/classic';
 import * as configHelp from './sections/configHelp';
 import * as genome from './sections/genome';
 import * as rules from './sections/rules';
@@ -23,6 +25,8 @@ export const translations: Translations = {
     controls: {
       title: 'Controls',
       startGame: 'Start Game',
+      startPaused: '⏸ Start paused',
+      startPausedTitle: 'Start at round 0, paused: advance round by round with Run One Round',
       pause: 'Pause',
       resume: 'Resume',
       runOneRound: 'Run One Round',
@@ -83,6 +87,7 @@ export const translations: Translations = {
       spawnWarning: 'Warning:',
       spawnVeryHigh: 'is very high',
       validationSummary: 'Fix {0} invalid value(s) before starting the game.',
+      lockedByChallenge: '🔒 Set by the challenge',
 
       boardSetup: 'Board Setup',
       boardWidth: 'Board Width',
@@ -169,6 +174,8 @@ export const translations: Translations = {
     summary: summary.en,
     genome: genome.en,
     app: app.en,
+    challenges: challenges.en,
+    classic: classic.en,
 
     errors: {
       invalidRange: 'Value must be between {0} and {1}',
@@ -228,6 +235,8 @@ export const translations: Translations = {
     controls: {
       title: 'Sterowanie',
       startGame: 'Rozpocznij Grę',
+      startPaused: '⏸ Start (pauza)',
+      startPausedTitle: 'Zacznij od rundy 0 z pauzą: przechodź runda po rundzie przyciskiem Jedna Runda',
       pause: 'Pauza',
       resume: 'Wznów',
       runOneRound: 'Jedna Runda',
@@ -288,6 +297,7 @@ export const translations: Translations = {
       spawnWarning: 'Ostrzeżenie:',
       spawnVeryHigh: 'jest bardzo wysokie',
       validationSummary: 'Popraw {0} nieprawidłowych wartości przed rozpoczęciem gry.',
+      lockedByChallenge: '🔒 Ustawione przez wyzwanie',
 
       boardSetup: 'Ustawienia Planszy',
       boardWidth: 'Szerokość Planszy',
@@ -374,6 +384,8 @@ export const translations: Translations = {
     summary: summary.pl,
     genome: genome.pl,
     app: app.pl,
+    challenges: challenges.pl,
+    classic: classic.pl,
 
     errors: {
       invalidRange: 'Wartość musi być między {0} a {1}',
