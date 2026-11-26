@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameControls, type ControlButtons } from '../../src/ui/controls';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { type ControlButtons, GameControls } from '../../src/ui/controls';
 
 interface FakeGame {
   isRunning: boolean;
@@ -83,6 +83,9 @@ describe('GameControls', () => {
       finish: true,
     });
     expect(s.buttons.pause.textContent).toBe('controls.resume');
+    expect(s.buttons.pause.dataset.action).toBe('resume');
+    s.controls.runFree();
+    expect(s.buttons.pause.dataset.action).toBe('pause');
   });
 
   it('step disables controls until onStepComplete, which re-enables them only when paused', () => {

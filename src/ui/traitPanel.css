@@ -116,3 +116,22 @@
   margin: 0;
   cursor: pointer;
 }
+
+/* Touch screens: bigger toggles and a full-height tap row. */
+@media (pointer: coarse) {
+  .trait-panel > summary {
+    min-height: 44px;
+    display: list-item;
+    padding: 8px 0;
+  }
+
+  .trait-toggles label {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .trait-toggles input {
+    width: 22px;
+    height: 22px;
+  }
+}
