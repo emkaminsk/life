@@ -91,6 +91,8 @@ export const en: SummaryKeys = {
     humansExtinct: 'The game is over: all humans have died out.',
     humansSafe: 'The game is over: humans are safe – no wolves and no mushrooms are left.',
     userFinished: 'You finished the game.',
+    challengeComplete: 'The game is over: you completed the challenge!',
+    challengeFailed: 'The game is over: the challenge was not completed.',
   },
 
   factsTitle: 'What happened',
@@ -209,6 +211,8 @@ export const pl: SummaryKeys = {
     humansExtinct: 'Koniec gry: wszyscy ludzie wyginęli.',
     humansSafe: 'Koniec gry: ludzie są bezpieczni – nie ma już wilków ani grzybów.',
     userFinished: 'Gra została zakończona.',
+    challengeComplete: 'Koniec gry: wyzwanie ukończone!',
+    challengeFailed: 'Koniec gry: wyzwanie nie zostało ukończone.',
   },
 
   factsTitle: 'Co się wydarzyło',

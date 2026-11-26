@@ -15,6 +15,7 @@ import { createEntity } from './entityFactory';
 import type { BoardLayout, DeathRecord, EndReason, PlaceableKind, RoundEvents, RoundRecord } from './simulationEvents';
 import { GameHistory, emptyRoundEvents } from './GameHistory';
 import { EndConditionTracker } from './endConditions';
+import { type ChallengeDef, type ChallengeProgress, evaluateChallenge } from './challenges';
 import { Random } from '../utils/Random';
 import { debugLog } from '../utils/debug';
 
@@ -114,6 +115,8 @@ export class Game {
   private pendingSteps: number; // Rounds left in the current step()/stepRounds() sequence
   private config: Readonly<GameConfig>;
   private configLocked: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: each challenge has its own state type
+  private challenge: ChallengeDef<any> | null = null;
 
   /** Fired after every completed round (continuous or stepped), also the final one. */
   public onRoundComplete?: () => void;
@@ -173,6 +176,23 @@ export class Game {
 
   isConfigLocked(): boolean {
     return this.configLocked;
+  }
+
+  /**
+   * Choose the challenge of the next game (null = free play). Kept across reset().
+   * @throws Error while the configuration is locked (a game is in progress)
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: see ChallengeDef
+  setChallenge(def: ChallengeDef<any> | null): void {
+    if (this.configLocked) throw new Error(CONFIG_LOCKED_MESSAGE);
+    this.challenge = def;
+  }
+
+  /** Progress of the active challenge after the last recorded round; null in free play or before init. */
+  getChallengeProgress(): ChallengeProgress | null {
+    const records = this.history.getRecords();
+    if (!this.challenge || records.length === 0) return null;
+    return evaluateChallenge(this.challenge, records);
   }
 
   private applyConfig(config: GameConfig): void {

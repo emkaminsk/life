@@ -122,6 +122,25 @@ describe('createDialog', () => {
     dialog.close();
     expect(document.activeElement).not.toBe(opener);
   });
+
+  it('destroy() and an aborted signal remove the listeners', () => {
+    const overlay = document.getElementById('overlay')!;
+    const close = document.getElementById('close')!;
+    const dialog = createDialog(overlay, { closeButton: close });
+    dialog.open();
+    dialog.destroy();
+    close.click();
+    overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(dialog.isOpen()).toBe(true);
+
+    dialog.close();
+    const owner = new AbortController();
+    const other = createDialog(overlay, { closeButton: close, signal: owner.signal });
+    other.open();
+    owner.abort();
+    close.click();
+    expect(other.isOpen()).toBe(true);
+  });
 });
 
 describe('showNotification', () => {

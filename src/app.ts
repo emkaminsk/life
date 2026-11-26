@@ -4,16 +4,23 @@
  * SetupView, SummaryDialog, TraitPanel…); this file only glues them together.
  *
  * Flows
- * - Start (random): resize → lock config → (large board ? async + progress : sync) init → auto-start.
- * - Start (manual): resize → lock config → SetupView; Confirm → init from layout → auto-start,
+ * - Start (random): resize → challenge → lock config → (large board ? async + progress : sync) init
+ *   → auto-start (or paused at round 0 with "Start paused").
+ * - Start (manual): resize → challenge → SetupView; Confirm → init from layout → auto-start / paused,
  *   Back → config panel (the layout is kept for next time).
+ * - Start (classic mode): ClassicSession.begin() → controls; no ecosystem config, summary or challenge.
+ *   One GameControls drives both engines through a proxy to the active one.
  * - Game over (automatic or Finish): controls 'over' + summary dialog; "New experiment" → config.
  * - Reset: straight back to the config panel, no summary.
  *
  * createApp() returns handles for tests and a destroy() that removes every listener.
  */
-import type { BoardLayout } from './core/BoardLayout';
+import { createClassicConfigForm } from './classic/ClassicConfigForm';
+import { createClassicSession } from './classic/ClassicSession';
+import type { ClassicSession } from './classic/types';
 import { Board } from './core/Board';
+import type { BoardLayout } from './core/BoardLayout';
+import { getChallenge, sanitizeLayout } from './core/challenges';
 import { Game } from './core/Game';
 import { summarize } from './core/gameSummary';
 import { computeGenomeSnapshot, GenomeHistory } from './core/genomeStats';
@@ -23,8 +30,10 @@ import { domRenderer } from './i18n/DOMRenderer';
 import { i18n } from './i18n/i18n';
 import type { Language } from './i18n/types';
 import { renderAppVersion } from './ui/appVersion';
-import { ConfigPanel, type GameConfig, type StartOptions } from './ui/ConfigPanel';
-import { GameControls } from './ui/controls';
+import { ConfigPanel, type GameConfig, type GameMode, type StartOptions } from './ui/ConfigPanel';
+import { createChallengeHud } from './ui/challenge/ChallengeHud';
+import { createChallengePicker } from './ui/challenge/ChallengePicker';
+import { type ControllableGame, GameControls } from './ui/controls';
 import { debounce } from './ui/debounce';
 import { createDialog } from './ui/dialog';
 import { isLargeBoard, runWithProgress } from './ui/initProgress';
@@ -37,8 +46,8 @@ import { SetupView } from './ui/setup/SetupView';
 import {
   countPopulation,
   notifyAlerts,
-  type PopulationCounts,
   PopulationAlerts,
+  type PopulationCounts,
   RoundsPerSecondTracker,
   renderStatistics,
 } from './ui/statistics';
@@ -48,6 +57,7 @@ import { debugLog, isDebug } from './utils/debug';
 
 export interface App {
   readonly game: Game;
+  readonly classic: ClassicSession;
   readonly board: Board;
   readonly controls: GameControls;
   readonly configPanel: ConfigPanel;
@@ -55,6 +65,8 @@ export interface App {
   readonly summaryDialog: SummaryDialog;
   /** Start a game as if the config panel's Start button was pressed (resolves once it runs or the setup view is open). */
   startGame(config: GameConfig, options?: StartOptions): Promise<void>;
+  /** The engine of the current / last game. */
+  getMode(): GameMode;
   /** Remove every listener and stop the game (tests / hot reload). */
   destroy(): void;
 }
@@ -126,6 +138,27 @@ export function createApp(doc: Document = document): App {
   const roundsPerSec = new RoundsPerSecondTracker();
   const versionEl = byId<HTMLElement>('appVersion');
   renderAppVersion(versionEl, t);
+  const classic = createClassicSession(byId<HTMLCanvasElement>('classicCanvas'), byId('classicPanel'));
+  const challengeHud = createChallengeHud(byId('challengePanel'));
+  // Plugins of the config panel (they register themselves).
+  const challengePicker = createChallengePicker(byId('challengeMount'), configPanel);
+  const classicForm = createClassicConfigForm(byId('classicConfigMount'), configPanel);
+
+  /** Engine of the current (or last) game; the buttons and keys drive it through `activeGame`. */
+  let mode: GameMode = 'ecosystem';
+  const active = (): ControllableGame => (mode === 'classic' ? classic : game);
+  const activeGame: ControllableGame = {
+    running: () => active().running(),
+    start: () => active().start(),
+    pause: () => active().pause(),
+    step: () => active().step(),
+    stepRounds: (n) => active().stepRounds(n),
+    stop: () => {
+      const engine = active();
+      if (engine.stop) engine.stop();
+      else if (engine.running()) engine.pause();
+    },
+  };
 
   const buttons = {
     pause: byId<HTMLButtonElement>('pauseBtn'),
@@ -135,7 +168,7 @@ export function createApp(doc: Document = document): App {
     reset: byId<HTMLButtonElement>('resetBtn'),
     finish: byId<HTMLButtonElement>('finishBtn'),
   };
-  const controls = new GameControls(game, buttons);
+  const controls = new GameControls(activeGame, buttons);
   const speedSelect = byId<HTMLSelectElement>('speedSelect');
 
   // ---------------------------------------------------------------- header
@@ -144,7 +177,8 @@ export function createApp(doc: Document = document): App {
   const fpsEl = byId<HTMLElement>('fps');
 
   function renderHeader(): void {
-    roundEl.textContent = t('header.round', board.round);
+    roundEl.textContent =
+      mode === 'classic' ? t('classic.generation', classic.getGeneration()) : t('header.round', board.round);
     roundsPerSecEl.textContent = t('header.roundsPerSec', roundsPerSec.getRate());
   }
 
@@ -232,12 +266,21 @@ export function createApp(doc: Document = document): App {
     refreshStatistics(true);
     recordGenome();
     refreshTooltip();
+    const progress = game.getChallengeProgress();
+    if (progress) challengeHud.update(progress);
   };
 
   game.onStepComplete = () => controls.handleStepComplete();
 
+  classic.onRoundComplete = () => {
+    if (classic.running()) roundsPerSec.record(classic.getGeneration());
+    renderHeader();
+  };
+  classic.onStepComplete = () => controls.handleStepComplete();
+  classic.onGameOver = () => controls.setOver();
+
   function showSummary(reason: EndReason): void {
-    summaryDialog.show(summarize(game.getHistory().getRecords(), reason));
+    summaryDialog.show(summarize(game.getHistory().getRecords(), reason, game.getChallengeProgress()));
   }
 
   game.onGameOver = (reason) => {
@@ -278,21 +321,25 @@ export function createApp(doc: Document = document): App {
   /** Manual layout of the last setup, offered again next time (resized if the board changed). */
   let lastLayout: BoardLayout | undefined;
   let starting = false;
+  /** Options of the game being started (the manual setup confirm needs them). */
+  let pendingOptions: StartOptions = { setupMode: 'random' };
 
   function reportStartError(error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     showNotification(t('notifications.startErrorTitle'), t('notifications.startError', message), 'error');
+    controls.setIdle();
     game.reset();
     configPanel.show();
   }
 
   /** Everything between "config accepted" and "board populated". */
-  function prepareGame(config: GameConfig): void {
+  function prepareGame(config: GameConfig, options: StartOptions): void {
     if (config.board.width !== board.width || config.board.height !== board.height) {
       board.resize(config.board.width, config.board.height);
       renderer.resize(config.board.width, config.board.height);
     }
     game.updateConfig(config); // Game stores a deep-frozen clone (H3)
+    game.setChallenge(getChallenge(options.challengeId));
     game.setSpeed(Number.parseInt(speedSelect.value, 10));
     fitCanvas();
     applyRulesConfigArgs(doc, config);
@@ -306,21 +353,49 @@ export function createApp(doc: Document = document): App {
     clearTooltip();
   }
 
-  /** The board is populated: show round 0 and auto-start (PRD 3.13.6, M7). */
-  function beginGame(): void {
+  /** The board is populated: show round 0 and auto-start (PRD 3.13.6, M7), or stay paused. */
+  function beginGame(paused: boolean): void {
     refreshStatistics(true);
     recordGenome();
-    controls.begin();
+    const progress = game.getChallengeProgress();
+    if (progress) challengeHud.show(progress);
+    else challengeHud.hide();
+    controls.begin(paused); // paused: focuses Step
     // Keep keyboard focus somewhere useful now that the config dialog is gone.
-    buttons.pause.focus({ preventScroll: true });
+    if (!paused) buttons.pause.focus({ preventScroll: true });
+  }
+
+  function setMode(next: GameMode): void {
+    mode = next;
+    doc.body.dataset.mode = next;
+  }
+
+  /** Classic Life: the session runs on its own canvas; begin() starts it unless paused (or drawing). */
+  function startClassic(options: StartOptions): void {
+    roundsPerSec.reset();
+    clearTooltip();
+    challengeHud.hide();
+    classic.setSpeed(Number.parseInt(speedSelect.value, 10));
+    if (gameArea) classic.fit(gameArea.clientWidth, gameArea.clientHeight);
+    classic.begin(options.classic ?? classicForm.read(), { startPaused: !!options.startPaused });
+    const paused = !classic.running();
+    controls.begin(paused);
+    if (!paused) buttons.pause.focus({ preventScroll: true });
+    renderHeader();
   }
 
   async function startGame(config: GameConfig, options: StartOptions = { setupMode: 'random' }): Promise<void> {
     if (starting) return;
     starting = true;
+    pendingOptions = options;
     try {
       configPanel.hide(); // already hidden when started from its Start button
-      prepareGame(config);
+      setMode(options.mode ?? 'ecosystem');
+      if (mode === 'classic') {
+        startClassic(options);
+        return;
+      }
+      prepareGame(config, options);
       if (options.setupMode === 'manual') {
         setupView.open({ width: board.width, height: board.height, config, initial: lastLayout });
         return;
@@ -334,7 +409,7 @@ export function createApp(doc: Document = document): App {
         progressElements,
         t,
       );
-      if (completed) beginGame(); // false: aborted by a reset meanwhile
+      if (completed) beginGame(!!options.startPaused); // false: aborted by a reset meanwhile
     } catch (error) {
       reportStartError(error);
     } finally {
@@ -345,8 +420,8 @@ export function createApp(doc: Document = document): App {
   setupView.onConfirm = (layout) => {
     lastLayout = layout;
     try {
-      game.initializeFromLayout(layout);
-      beginGame();
+      game.initializeFromLayout(sanitizeLayout(getChallenge(pendingOptions.challengeId), layout));
+      beginGame(!!pendingOptions.startPaused);
     } catch (error) {
       reportStartError(error);
     }
@@ -360,6 +435,8 @@ export function createApp(doc: Document = document): App {
   /** Back to the config panel (Reset, or "New experiment" in the summary). */
   function endGame(): void {
     controls.setIdle();
+    classic.end();
+    challengeHud.hide();
     game.reset(); // releases the config lock
     graph.reset();
     alerts.reset();
@@ -373,6 +450,12 @@ export function createApp(doc: Document = document): App {
   /** Finish: halt and show the summary (again, when the game had already ended). */
   function finishGame(): void {
     if (controls.getState() === 'idle') return;
+    if (mode === 'classic') {
+      // No summary in classic mode: halt and keep the board visible until Reset.
+      activeGame.stop?.();
+      controls.setOver();
+      return;
+    }
     const reason = game.getEndReason();
     if (reason) showSummary(reason);
     else game.finish(); // fires onGameOver → controls 'over' + summary
@@ -397,12 +480,13 @@ export function createApp(doc: Document = document): App {
       const speed = Number.parseInt(speedSelect.value, 10);
       debugLog(`[UI] Speed changed to ${speed}ms`);
       game.setSpeed(speed);
+      classic.setSpeed(speed);
     },
     { signal },
   );
 
   // ---------------------------------------------------------------- rules modal
-  const rulesDialog = createDialog(byId('rulesModal'), { closeButton: byId('closeModal') });
+  const rulesDialog = createDialog(byId('rulesModal'), { closeButton: byId('closeModal'), signal });
   byId<HTMLButtonElement>('helpBtn').addEventListener('click', () => rulesDialog.open(), { signal });
   bindTabs(Array.from(doc.querySelectorAll<HTMLElement>('.modal-tab')), signal);
 
@@ -411,7 +495,7 @@ export function createApp(doc: Document = document): App {
     'keydown',
     (e) => {
       handleKeydown(e, {
-        game,
+        game: activeGame,
         controls,
         modal: rulesDialog,
         isBlocked: () => configPanel.isVisible() || setupView.isActive() || summaryDialog.isOpen(),
@@ -441,15 +525,21 @@ export function createApp(doc: Document = document): App {
 
   return {
     game,
+    classic,
     board,
     controls,
     configPanel,
     setupView,
     summaryDialog,
     startGame,
+    getMode: () => mode,
     destroy(): void {
       game.stop();
-      listeners.abort();
+      listeners.abort(); // also releases the rules dialog
+      classic.destroy();
+      challengeHud.destroy();
+      challengePicker.destroy();
+      classicForm.destroy();
       if (fpsTimer !== null) clearInterval(fpsTimer);
       clearTooltip();
       i18n.offLanguageChange(updateDOM);

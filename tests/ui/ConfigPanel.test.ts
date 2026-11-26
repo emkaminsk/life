@@ -445,7 +445,7 @@ describe('ConfigPanel', () => {
       panel.onStart(onStart);
       expect(press('Enter').defaultPrevented).toBe(true);
       expect(onStart).toHaveBeenCalledTimes(1);
-      expect(onStart.mock.calls[0][1]).toEqual({ setupMode: 'random' });
+      expect(onStart.mock.calls[0][1]).toEqual({ setupMode: 'random', startPaused: false, mode: 'ecosystem' });
       expect(panel.isVisible()).toBe(false);
     });
 
@@ -552,7 +552,7 @@ describe('ConfigPanel', () => {
       choose('manual');
       startBtn().click();
       const [config, options] = onStart.mock.calls[0];
-      expect(options).toEqual({ setupMode: 'manual' });
+      expect(options).toEqual({ setupMode: 'manual', startPaused: false, mode: 'ecosystem' });
       expect(config.spawn.wolfProbability).toBe(DEFAULT_CONFIG.spawn.wolfProbability);
       expect(config.spawn.dogProbability).toBe(0.2);
       expect(isConfigStartable(config)).toBe(true);
@@ -655,6 +655,210 @@ describe('ConfigPanel', () => {
       panel.setSetupMode('manual');
       expect(panel.validate().performanceWarning).toBe(false);
       expect(document.getElementById('perfWarning')!.hidden).toBe(true);
+    });
+  });
+});
+
+describe('ConfigPanel: start paused, plugins and game mode', () => {
+  let panel: ConfigPanel;
+  const pausedBtn = () => document.getElementById('startPausedBtn') as HTMLButtonElement;
+  const chooseMode = (mode: string) => {
+    const radio = document.querySelector<HTMLInputElement>(`input[name="gameMode"][value="${mode}"]`)!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change'));
+  };
+
+  beforeEach(() => {
+    i18n.setLanguage(Language.EN);
+    document.body.innerHTML = bodyHtml;
+    vi.mocked(showNotification).mockClear();
+    panel = new ConfigPanel();
+    panel.show();
+  });
+
+  afterEach(() => {
+    panel.destroy();
+    i18n.setLanguage(Language.EN);
+  });
+
+  describe('Start / Start paused', () => {
+    it('both buttons emit the config; Start paused sets startPaused', () => {
+      const onStart = vi.fn();
+      panel.onStart(onStart);
+      expect(pausedBtn().textContent).toBe('⏸ Start paused');
+      pausedBtn().click();
+      expect(onStart.mock.calls[0][1]).toEqual({ setupMode: 'random', startPaused: true, mode: 'ecosystem' });
+      panel.show();
+      startBtn().click();
+      expect(onStart.mock.calls[1][1].startPaused).toBe(false);
+    });
+
+    it('Start paused shares the enabled state of Start and is translated', () => {
+      setInput('humanHealth', '');
+      expect(pausedBtn().disabled).toBe(true);
+      setInput('humanHealth', '100');
+      expect(pausedBtn().disabled).toBe(false);
+      i18n.setLanguage(Language.PL);
+      expect(pausedBtn().title).toBe(i18n.t('controls.startPausedTitle'));
+      expect(i18n.t('controls.startPaused')).toBe('⏸ Start (pauza)');
+    });
+  });
+
+  describe('plugins', () => {
+    it('plugin problems block both Start buttons and are counted in the summary', () => {
+      let problems = 2;
+      const validate = vi.fn(() => problems);
+      panel.registerPlugin({ validate });
+      expect(validate).toHaveBeenCalledWith('ecosystem');
+      expect(startBtn().disabled).toBe(true);
+      expect(pausedBtn().disabled).toBe(true);
+      expect(panel.validate().problemCount).toBe(2);
+      expect(document.getElementById('configValidationSummary')!.textContent).toContain('2');
+      problems = 0;
+      panel.refresh();
+      expect(startBtn().disabled).toBe(false);
+    });
+
+    it('startOptions are merged into the emitted options; core fields win', () => {
+      const onStart = vi.fn();
+      panel.onStart(onStart);
+      panel.registerPlugin({ startOptions: () => ({ challengeId: 'survive', mode: 'classic' }) });
+      startBtn().click();
+      expect(onStart.mock.calls[0][1]).toEqual({
+        setupMode: 'random',
+        startPaused: false,
+        mode: 'ecosystem',
+        challengeId: 'survive',
+      });
+    });
+
+    it('locked fields get the forced value, are disabled with a hint, and are restored when released', () => {
+      let locks: Record<string, number> = { dogSpawn: 0, spawnDog: 0 };
+      panel.registerPlugin({ lockedFields: () => locks });
+      setInput('humanHealth', '120');
+      expect(input('dogSpawn').value).toBe('0');
+      expect(input('dogSpawn').disabled).toBe(true);
+      expect(document.getElementById('dogSpawn-lock')!.textContent).toBe('🔒 Set by the challenge');
+      i18n.setLanguage(Language.PL);
+      expect(document.getElementById('dogSpawn-lock')!.textContent).toBe('🔒 Ustawione przez wyzwanie');
+
+      const onStart = vi.fn();
+      panel.onStart(onStart);
+      startBtn().click();
+      expect(onStart.mock.calls[0][0].dog.spawnProbability).toBe(0);
+
+      // show() re-populates the form but keeps the lock
+      panel.show();
+      expect(input('dogSpawn').value).toBe('0');
+
+      locks = {};
+      panel.refresh();
+      expect(input('dogSpawn').value).toBe(String(DEFAULT_CONFIG.dog.spawnProbability));
+      expect(input('dogSpawn').disabled).toBe(false);
+      expect(input('spawnDog').value).toBe(String(DEFAULT_CONFIG.spawn.dogProbability));
+      expect(document.getElementById('dogSpawn-lock')).toBeNull();
+    });
+
+    it('a released lock of a spawn input stays disabled in manual setup', () => {
+      let locks: Record<string, number> = { spawnDog: 0 };
+      panel.registerPlugin({ lockedFields: () => locks });
+      panel.setSetupMode('manual');
+      locks = {};
+      panel.refresh();
+      expect(input('spawnDog').disabled).toBe(true);
+    });
+
+    it('save → load round-trips plugin data, the mode and the unlocked values', async () => {
+      const blobs: Blob[] = [];
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn((blob: Blob) => {
+        blobs.push(blob);
+        return 'blob:test';
+      });
+      URL.revokeObjectURL = vi.fn();
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      try {
+        let saved: unknown = { pick: 'survive' };
+        const load = vi.fn((data: unknown) => {
+          saved = data;
+        });
+        panel.registerPlugin({ save: () => saved, load, lockedFields: () => ({ dogSpawn: 0 }) }, 'challenge');
+        panel.registerPlugin({ validate: () => 0 }); // no save hook: not in the file
+        setInput('dogSpawn', '0.004'); // locked: the forced value stays
+        chooseMode('classic');
+        document.getElementById('saveConfigBtn')!.click();
+        const text = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsText(blobs[0]);
+        });
+        const file = JSON.parse(text);
+        expect(file.mode).toBe('classic');
+        expect(file.plugins).toEqual({ challenge: { pick: 'survive' } });
+        expect(file.config.dog.spawnProbability).toBe(DEFAULT_CONFIG.dog.spawnProbability); // value before the lock
+
+        chooseMode('ecosystem');
+        panel.applyLoadedData({ ...file, plugins: { challenge: { pick: 'babyBoom' } } }, 'x.json');
+        expect(load).toHaveBeenCalledWith({ pick: 'babyBoom' });
+        expect(panel.getMode()).toBe('classic');
+        expect(input('dogSpawn').value).toBe('0');
+
+        // Old files (no plugins, no mode) leave plugins and mode alone.
+        load.mockClear();
+        panel.applyLoadedData({ version: '1.0', setupMode: 'random', config: {} }, 'old.json');
+        expect(load).not.toHaveBeenCalled();
+        expect(panel.getMode()).toBe('classic');
+      } finally {
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+      }
+    });
+  });
+
+  describe('game mode switch', () => {
+    it('defaults to ecosystem and sets body[data-mode]', () => {
+      expect(panel.getMode()).toBe('ecosystem');
+      expect(document.body.dataset.mode).toBe('ecosystem');
+      for (const section of Array.from(document.querySelectorAll('.config-section'))) {
+        expect(section.classList.contains('ecosystem-only')).toBe(true);
+      }
+      expect(document.getElementById('challengeMount')!.classList.contains('ecosystem-only')).toBe(true);
+      expect(document.getElementById('classicConfigMount')!.classList.contains('classic-only')).toBe(true);
+    });
+
+    it('classic mode hides the ecosystem sections and skips their validation', () => {
+      setInput('humanHealth', '');
+      setInput('spawnFruit', '0.95');
+      expect(startBtn().disabled).toBe(true);
+      const validate = vi.fn(() => 0);
+      panel.registerPlugin({ validate });
+
+      chooseMode('classic');
+      expect(document.body.dataset.mode).toBe('classic');
+      expect(validate).toHaveBeenLastCalledWith('classic');
+      const result = panel.validate();
+      expect(result.valid).toBe(true);
+      expect(result.spawnExceeded).toBe(false);
+      expect(input('humanHealth').classList.contains('invalid')).toBe(false);
+      expect(startBtn().disabled).toBe(false);
+
+      const onStart = vi.fn();
+      panel.onStart(onStart);
+      pausedBtn().click();
+      const [config, options] = onStart.mock.calls[0];
+      expect(options).toMatchObject({ mode: 'classic', startPaused: true });
+      expect(config).toEqual(getDefaultConfig()); // classic games do not use the ecosystem config
+
+      panel.setMode('ecosystem');
+      expect(panel.validate().valid).toBe(false);
+    });
+
+    it('show() re-applies the radios to body[data-mode]', () => {
+      panel.setMode('classic');
+      document.body.dataset.mode = 'ecosystem';
+      panel.show();
+      expect(document.body.dataset.mode).toBe('classic');
     });
   });
 });

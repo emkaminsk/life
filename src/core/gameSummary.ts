@@ -1,3 +1,4 @@
+import type { ChallengeProgress } from './challenges';
 import type { DeathCause, EndReason, RoundRecord, Species } from './simulationEvents';
 
 /**
@@ -48,6 +49,8 @@ export interface GameSummary {
   females: ThresholdRounds;
   deaths: DeathTally;
   conclusions: Conclusion[];
+  /** Final progress of the challenge played, absent in free play. */
+  challenge?: ChallengeProgress;
 }
 
 /** Fixed order used for display and for breaking ties between causes. */
@@ -132,7 +135,11 @@ function totalOf(tally: DeathTally, species: Species): number {
 const percent = (part: number, whole: number) => Math.round((part / whole) * 100);
 
 /** Summarize a finished game. `records[0]` is the starting state (round 0). */
-export function summarize(records: readonly RoundRecord[], endReason: EndReason): GameSummary {
+export function summarize(
+  records: readonly RoundRecord[],
+  endReason: EndReason,
+  challenge?: ChallengeProgress | null,
+): GameSummary {
   const first = records[0];
   const last = records[records.length - 1];
   const rounds = records.map((r) => r.round);
@@ -178,6 +185,7 @@ export function summarize(records: readonly RoundRecord[], endReason: EndReason)
     deaths,
     conclusions: [],
   };
+  if (challenge) summary.challenge = challenge;
   summary.conclusions = buildConclusions(summary);
   return summary;
 }
