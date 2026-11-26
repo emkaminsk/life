@@ -142,6 +142,50 @@ describe('BirthSystem', () => {
     expect(board.getAllEntities().filter((e) => e instanceof Human)).toHaveLength(1);
   });
 
+  it('a mother who dies giving birth is recorded as a childbirth death', () => {
+    const mother = readyMother(0, 0);
+    mother.age = 30;
+    board.setEntity(0, 0, mother);
+    board.setEntity(1, 0, new Fruit(1, 0));
+    board.setEntity(0, 1, new Fruit(0, 1));
+    board.setEntity(1, 1, new Fruit(1, 1));
+
+    const result = system.execute(board, createConfig());
+
+    expect(result).toEqual({ births: 1, deaths: [{ species: 'female', cause: 'childbirth', age: 30 }] });
+    expect(mother.deathCause).toBe('childbirth');
+    expect(mother.isDead()).toBe(true);
+  });
+
+  it('returns the birth count and no deaths when every mother has room', () => {
+    board.setEntity(2, 2, readyMother(2, 2));
+    board.setEntity(8, 8, readyMother(8, 8));
+    board.setEntity(5, 5, new Human(5, 5, Sex.FEMALE)); // not ready
+
+    expect(system.execute(board, createConfig())).toEqual({ births: 2, deaths: [] });
+  });
+
+  it('without a recorded father the genome uses the configured caution and metabolism averages', () => {
+    Random.seed(3);
+    const config = createConfig({ human: { avgCaution: 0.8, avgMetabolism: 0.6 } });
+    let caution = 0;
+    let metabolism = 0;
+    const trials = 50;
+    for (let i = 0; i < trials; i++) {
+      board = new Board(3, 3);
+      const mother = makeMother(1, 1);
+      mother.fatherGenome = undefined;
+      board.setEntity(1, 1, mother);
+      system.execute(board, config);
+      const baby = board.getAllEntities().find((e) => e !== mother) as Human;
+      caution += baby.genome.caution;
+      metabolism += baby.genome.metabolism;
+    }
+    // Defaults are far lower; the means follow the configured averages
+    expect(caution / trials).toBeGreaterThan(0.65);
+    expect(metabolism / trials).toBeGreaterThan(0.45);
+  });
+
   it('handles several mothers in the same round', () => {
     board.setEntity(2, 2, readyMother(2, 2));
     board.setEntity(8, 8, readyMother(8, 8));

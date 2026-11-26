@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EatingSystem } from '../../src/systems/EatingSystem';
 import { SpawnSystem } from '../../src/systems/SpawnSystem';
 import { Board } from '../../src/core/Board';
-import { Human, Wolf, Fruit, Mushroom } from '../../src/entities';
+import { Human, Wolf, Dog, Fruit, Mushroom } from '../../src/entities';
 import { Sex } from '../../src/types';
 import { VISUAL_EFFECT_DURATION_MS } from '../../src/config';
+import { Random } from '../../src/utils/Random';
 import { createConfig, createMockRenderer } from '../setup';
 
 /**
@@ -37,7 +38,7 @@ describe('EatingSystem', () => {
     system = new EatingSystem(renderer);
   });
 
-  function place<T extends Human | Wolf | Fruit | Mushroom>(e: T): T {
+  function place<T extends Human | Wolf | Dog | Fruit | Mushroom>(e: T): T {
     board.setEntity(e.x, e.y, e);
     return e;
   }
@@ -224,6 +225,116 @@ describe('EatingSystem', () => {
       expect(renderer.markDirty).toHaveBeenCalledWith(4, 5);
       expect(renderer.markDirty).toHaveBeenCalledWith(6, 5);
       expect(renderer.markDirty).toHaveBeenCalledWith(h.x, h.y);
+    });
+  });
+
+  describe('death cause and return value', () => {
+    it('a human killed by a mushroom dies of mushroom poisoning', () => {
+      const h = place(human(5, 5, 10));
+      place(new Mushroom(5, 6, 40));
+
+      system.execute(board, config);
+
+      expect(h.deathCause).toBe('mushroom');
+    });
+
+    it('a mushroom that does not kill records no cause', () => {
+      const h = place(human(5, 5, 100));
+      place(new Mushroom(5, 6, 40));
+      system.execute(board, config);
+      expect(h.deathCause).toBeNull();
+    });
+
+    it('a mushroom with energyRemoved 0 leaves health unchanged but is still eaten', () => {
+      const h = place(human(5, 5, 70));
+      place(new Mushroom(5, 6, 0));
+      expect(system.execute(board, config)).toEqual({ fruits: 0, mushrooms: 1 });
+      expect(h.health).toBe(70);
+      expect(board.getEntity(5, 6)).toBeNull();
+    });
+
+    it('returns the number of fruits and mushrooms eaten', () => {
+      place(human(5, 5, 50));
+      place(ripeFruit(4, 5, 10));
+      place(new Mushroom(6, 5, 5));
+      place(new Mushroom(5, 6, 5));
+      place(new Mushroom(0, 11, 5)); // nobody adjacent
+
+      expect(system.execute(board, config)).toEqual({ fruits: 1, mushrooms: 2 });
+    });
+
+    it('returns zero counts when nothing is eaten', () => {
+      expect(system.execute(board, config)).toEqual({ fruits: 0, mushrooms: 0 });
+    });
+  });
+
+  describe('dogs and mushrooms (PRD 3.19, US-050)', () => {
+    it('a dog eats an adjacent mushroom without damage, with a yellow eating flash', () => {
+      const dog = place(new Dog(5, 5, 70));
+      place(new Mushroom(6, 5, 40));
+
+      const eaten = system.execute(board, config);
+
+      expect(eaten).toEqual({ fruits: 0, mushrooms: 1 });
+      expect(board.getEntity(6, 5)).toBeNull();
+      expect(dog.health).toBe(70);
+      expect(dog.deathCause).toBeNull();
+      expect(renderer.addVisualEffect).toHaveBeenCalledWith(expect.objectContaining({ type: 'eating', x: 6, y: 5 }));
+      expect(renderer.addVisualEffect).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'combat' }));
+    });
+
+    it('a dog eats several mushrooms in one round', () => {
+      place(new Dog(5, 5, 70));
+      place(new Mushroom(4, 4, 40));
+      place(new Mushroom(6, 6, 40));
+
+      expect(system.execute(board, config).mushrooms).toBe(2);
+    });
+
+    it('dogs do not eat fruit and dead dogs do not eat mushrooms', () => {
+      const dead = place(new Dog(5, 5, 70));
+      dead.health = 0;
+      const mushroom = place(new Mushroom(6, 5, 40));
+      const fruit = place(ripeFruit(4, 5));
+
+      expect(system.execute(board, config)).toEqual({ fruits: 0, mushrooms: 0 });
+      expect(board.getEntity(6, 5)).toBe(mushroom);
+      expect(board.getEntity(4, 5)).toBe(fruit);
+    });
+
+    it('with a human and a dog adjacent, either may eat (uniform random pick among eaters)', () => {
+      // Neighbours are listed row-major: human at (4,5) first, dog at (6,5) second
+      const outcomes: string[] = [];
+      for (const r of [0, 0.49, 0.5, 0.99]) {
+        board = new Board(12, 12);
+        vi.spyOn(Math, 'random').mockReturnValue(r);
+        const h = place(human(4, 5, 100));
+        const dog = place(new Dog(6, 5, 70));
+        place(new Mushroom(5, 5, 40));
+
+        system.execute(board, config);
+
+        expect(board.getEntity(5, 5)).toBeNull();
+        expect(dog.health).toBe(70);
+        outcomes.push(h.health === 60 ? 'human' : 'dog');
+      }
+      expect(outcomes).toEqual(['human', 'human', 'dog', 'dog']);
+    });
+
+    it('a dog next to the mushroom protects humans about half the time (seeded)', () => {
+      Random.seed(42);
+      let humanAte = 0;
+      const trials = 2000;
+      for (let i = 0; i < trials; i++) {
+        board = new Board(3, 1);
+        const h = place(human(0, 0, 100));
+        place(new Dog(2, 0, 70));
+        place(new Mushroom(1, 0, 40));
+        system.execute(board, config);
+        if (h.health < 100) humanAte++;
+      }
+      expect(humanAte / trials).toBeGreaterThan(0.45);
+      expect(humanAte / trials).toBeLessThan(0.55);
     });
   });
 });

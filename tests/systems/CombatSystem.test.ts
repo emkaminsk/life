@@ -249,4 +249,88 @@ describe('CombatSystem', () => {
       expect(renderer.addVisualEffect).not.toHaveBeenCalled();
     });
   });
+
+  describe('symmetric male-vs-male outcomes (either argument order)', () => {
+    it('double KO: the first male in scan order dies when his unclamped health is lower', () => {
+      // m1 at (5,5) is entity1 of the pair, m2 at (6,5) is entity2
+      const m1 = place(human(5, 5, Sex.MALE, 15, 1)); // takes 30 → -15
+      const m2 = place(human(6, 5, Sex.MALE, 10, 1.5)); // takes 20 → -10
+
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }));
+
+      expect(m1.health).toBe(0);
+      expect(m1.deathCause).toBe('maleFight');
+      expect(m2.health).toBe(15); // 0 + m1's initial 15
+      expect(m2.deathCause).toBeNull();
+    });
+
+    it('only the first male dies: the second gains his pre-fight health', () => {
+      const m1 = place(human(5, 5, Sex.MALE, 15));
+      const m2 = place(human(6, 5, Sex.MALE, 50));
+
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }));
+
+      expect(m1.health).toBe(0);
+      expect(m2.health).toBe(45); // 50 - 20 + 15
+    });
+
+    it('only the second male dies: the first is healed, capped at max health', () => {
+      const m1 = place(human(5, 5, Sex.MALE, 100));
+      const m2 = place(human(6, 5, Sex.MALE, 15));
+
+      system.execute(board, createConfig({ human: { maleVsMaleDamage: 20 } }));
+
+      expect(m2.health).toBe(0);
+      expect(m1.health).toBe(95); // 100 - 20 + 15 = 95
+    });
+  });
+
+  describe('death causes', () => {
+    const lethal = createConfig({
+      wolf: { damageToMale: 500, damageToFemale: 500, damageToDog: 500 },
+      dog: { damageToWolf: 500 },
+      human: { maleVsWolfDamage: 500, maleVsMaleDamage: 500 },
+    });
+
+    it('a human killed by a wolf dies of wolfAttack', () => {
+      place(new Wolf(5, 5, 80));
+      const female = place(human(6, 5, Sex.FEMALE));
+      system.execute(board, lethal);
+      expect(female.deathCause).toBe('wolfAttack');
+    });
+
+    it('a wolf killed by a male counter-attack dies of humanDefense (and the male of wolfAttack)', () => {
+      const wolf = place(new Wolf(5, 5, 80));
+      const male = place(human(6, 5, Sex.MALE));
+      system.execute(board, lethal);
+      expect(wolf.deathCause).toBe('humanDefense');
+      expect(male.deathCause).toBe('wolfAttack');
+    });
+
+    it('wolf and dog killing each other: dogAttack and wolfAttack', () => {
+      const wolf = place(new Wolf(5, 5, 80));
+      const dog = place(new Dog(6, 5, 70));
+      system.execute(board, lethal);
+      expect(wolf.deathCause).toBe('dogAttack');
+      expect(dog.deathCause).toBe('wolfAttack');
+    });
+
+    it('the loser of a male fight dies of maleFight; a survivor of a double KO has no cause', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0); // tie-break → male1 survives
+      const m1 = place(human(5, 5, Sex.MALE, 10));
+      const m2 = place(human(6, 5, Sex.MALE, 10));
+      system.execute(board, lethal);
+      expect(m2.deathCause).toBe('maleFight');
+      expect(m1.health).toBeGreaterThan(0);
+      expect(m1.deathCause).toBeNull();
+    });
+
+    it('non-lethal damage records no cause', () => {
+      const wolf = place(new Wolf(5, 5, 80));
+      const dog = place(new Dog(6, 5, 70));
+      system.execute(board, createConfig({ dog: { damageToWolf: 1 }, wolf: { damageToDog: 1 } }));
+      expect(wolf.deathCause).toBeNull();
+      expect(dog.deathCause).toBeNull();
+    });
+  });
 });

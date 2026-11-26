@@ -1,4 +1,5 @@
 import type { Board } from '../core/Board';
+import type { DeathRecord } from '../core/simulationEvents';
 import { Human } from '../entities/Human';
 import { Sex, type Genome } from '../types';
 import type { Renderer } from '../core/Renderer';
@@ -13,7 +14,8 @@ import { debugLog } from '../utils/debug';
  *
  * Each female whose pregnancy completed gives birth to a baby (50/50 sex) with a
  * genome crossed over from both parents, placed on a random empty adjacent cell.
- * If there is no room the mother dies and the baby takes her cell. Babies use the
+ * If there is no room the mother dies (cause 'childbirth', recorded here because she
+ * is removed after the death phase) and the baby takes her cell. Babies use the
  * configured Gompertz parameters and start at their genome's max health.
  */
 export class BirthSystem {
@@ -23,8 +25,9 @@ export class BirthSystem {
     this.renderer = renderer;
   }
 
-  execute(board: Board, config: GameConfig): void {
+  execute(board: Board, config: GameConfig): { births: number; deaths: DeathRecord[] } {
     const entities = board.getAllEntities();
+    const deaths: DeathRecord[] = [];
     let birthCount = 0;
 
     for (const entity of entities) {
@@ -33,7 +36,13 @@ export class BirthSystem {
 
       const babyGenome: Genome = female.fatherGenome
         ? GenomeUtils.crossover(female.genome, female.fatherGenome)
-        : GenomeUtils.createRandomGenome(config.human.startingHealth, 1.0, config.human.moveTowardFruitProbability, 0);
+        : GenomeUtils.createRandomGenome(
+            config.human.startingHealth,
+            1.0,
+            config.human.moveTowardFruitProbability,
+            config.human.avgCaution,
+            config.human.avgMetabolism,
+          );
 
       const emptyPositions = board.getEmptyAdjacentPositions(female.x, female.y);
       const birthPosition =
@@ -58,6 +67,8 @@ export class BirthSystem {
 
       if (!birthPosition) {
         // No space available - baby takes the mother's place, mother dies
+        female.kill('childbirth');
+        deaths.push({ species: 'female', cause: 'childbirth', age: female.age });
         board.removeEntity(female.x, female.y);
         debugLog(`[Birth] Mother died giving birth at (${x},${y})`);
       }
@@ -80,5 +91,6 @@ export class BirthSystem {
     if (birthCount > 0) {
       debugLog(`[Birth] Total births this round: ${birthCount}`);
     }
+    return { births: birthCount, deaths };
   }
 }
