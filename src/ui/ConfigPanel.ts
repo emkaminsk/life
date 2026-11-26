@@ -1,3 +1,5 @@
+import type { ClassicConfig } from '../classic/types';
+import type { ChallengeId, ConfigLocks } from '../core/challenges';
 import { i18n } from '../i18n/i18n';
 import { debugLog } from '../utils/debug';
 import { attachFieldHelp } from './configHelp';
@@ -83,8 +85,33 @@ export interface GameConfig {
 /** How the board is filled at start: by spawn probabilities or by hand (F1). */
 export type SetupMode = 'random' | 'manual';
 
+/** Which simulation the config panel sets up. */
+export type GameMode = 'ecosystem' | 'classic';
+
 export interface StartOptions {
   setupMode: SetupMode;
+  /** "Start paused": show round 0 paused instead of auto-starting. */
+  startPaused?: boolean;
+  challengeId?: ChallengeId;
+  mode?: GameMode;
+  classic?: ClassicConfig;
+}
+
+/**
+ * Extension point for parts of the config panel owned by other modules
+ * (challenge picker, classic settings). Every hook is optional.
+ */
+export interface ConfigPanelPlugin {
+  /** Number of problems in the plugin's own inputs for this mode (0 = valid); blocks Start. */
+  validate?(mode: GameMode): number;
+  /** Merged into the StartOptions emitted on Start. */
+  startOptions?(): Partial<StartOptions>;
+  /** Input id → forced value: the input gets the value, is disabled and shows a 🔒 hint. */
+  lockedFields?(): ConfigLocks;
+  /** Plugin data for the saved config file. */
+  save?(): unknown;
+  /** Data this plugin saved (only called when the file has some). */
+  load?(data: unknown): void;
 }
 
 /** The six initial-spawn inputs; disabled and not validated in manual setup mode. */
@@ -104,9 +131,13 @@ export interface ValidationResult {
   expectedCreatures: number;
   /** Soft, non-blocking: expectedCreatures > PERFORMANCE_WARNING_CREATURES. */
   performanceWarning: boolean;
+  /** Field errors + spawn sum + plugin problems; Start needs 0. */
+  problemCount: number;
 }
 
 const isSetupMode = (v: unknown): v is SetupMode => v === 'random' || v === 'manual';
+const isGameMode = (v: unknown): v is GameMode => v === 'ecosystem' || v === 'classic';
+const START_BUTTON_IDS = ['startGameBtn', 'startPausedBtn'];
 
 /**
  * Pre-game configuration form (PRD 3.7, US-007/008).
@@ -124,8 +155,12 @@ export class ConfigPanel {
   private readonly languageListener = (): void => {
     this.updateButtonTexts();
     this.refreshHelp();
+    this.applyInputStates();
     this.validate();
   };
+  private readonly plugins: { plugin: ConfigPanelPlugin; key: string }[] = [];
+  /** Locked input id → its value before the lock (restored when the lock goes away). */
+  private readonly locks = new Map<string, string>();
   /** Board area the dynamic bounds and help texts were last rendered for. */
   private renderedArea = Number.NaN;
 
@@ -136,6 +171,7 @@ export class ConfigPanel {
     this.config = getDefaultConfig();
     this.prepareInputs();
     this.setupEventListeners();
+    this.renderMode();
     this.applySetupMode();
   }
 
@@ -144,6 +180,24 @@ export class ConfigPanel {
     this.listeners.abort();
     i18n.offLanguageChange(this.languageListener);
     this.onStartCallback = null;
+    this.plugins.length = 0;
+  }
+
+  // ---------------------------------------------------------------- plugins
+
+  /**
+   * Add a plugin. `key` names its data in saved files (default: its registration index).
+   * Applies its locks and revalidates.
+   */
+  registerPlugin(plugin: ConfigPanelPlugin, key = String(this.plugins.length)): void {
+    this.plugins.push({ plugin, key });
+    this.refresh();
+  }
+
+  /** Re-apply the plugins' locks and revalidate (call when a plugin's state changes). */
+  refresh(): void {
+    this.applyLocks();
+    this.validate();
   }
 
   // ---------------------------------------------------------------- setup
@@ -177,7 +231,8 @@ export class ConfigPanel {
     on('loadConfigBtn', 'click', () => this.triggerLoadConfiguration());
     on('loadConfigFile', 'change', (e) => this.loadConfiguration(e));
     on('resetConfigBtn', 'click', () => this.resetToDefaults());
-    on('startGameBtn', 'click', () => this.handleStartGame());
+    on('startGameBtn', 'click', () => this.handleStartGame(false));
+    on('startPausedBtn', 'click', () => this.handleStartGame(true));
     on('collapseAllBtn', 'click', () => this.toggleCollapseAll());
 
     for (const header of Array.from(document.querySelectorAll<HTMLElement>('.config-section-header'))) {
@@ -185,6 +240,9 @@ export class ConfigPanel {
     }
     for (const radio of this.setupModeRadios()) {
       radio.addEventListener('change', () => this.applySetupMode(), opts);
+    }
+    for (const radio of this.gameModeRadios()) {
+      radio.addEventListener('change', () => this.applyMode(), opts);
     }
     for (const rule of FIELD_RULES) {
       const input = this.getInput(rule.id);
@@ -208,11 +266,37 @@ export class ConfigPanel {
           this.triggerLoadConfiguration();
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          this.handleStartGame();
+          this.handleStartGame(false);
         }
       },
       opts,
     );
+  }
+
+  // ---------------------------------------------------------------- game mode
+
+  private gameModeRadios(): HTMLInputElement[] {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('input[name="gameMode"]'));
+  }
+
+  getMode(): GameMode {
+    const checked = this.gameModeRadios().find((r) => r.checked)?.value;
+    return checked === 'classic' ? 'classic' : 'ecosystem';
+  }
+
+  setMode(mode: GameMode): void {
+    for (const radio of this.gameModeRadios()) radio.checked = radio.value === mode;
+    this.applyMode();
+  }
+
+  /** body[data-mode] drives the .ecosystem-only / .classic-only CSS. */
+  private renderMode(): void {
+    document.body.dataset.mode = this.getMode();
+  }
+
+  private applyMode(): void {
+    this.renderMode();
+    this.validate();
   }
 
   // ---------------------------------------------------------------- setup mode
@@ -234,10 +318,7 @@ export class ConfigPanel {
   /** Enable/disable the initial-spawn inputs and show the matching hint, then revalidate. */
   private applySetupMode(): void {
     const manual = this.getSetupMode() === 'manual';
-    for (const id of SPAWN_IDS) {
-      const input = this.getInput(id);
-      if (input) input.disabled = manual;
-    }
+    this.applyInputStates();
     const summary = document.getElementById('expectedSummary');
     if (summary) summary.hidden = manual;
     this.updateSetupModeHint();
@@ -251,8 +332,59 @@ export class ConfigPanel {
     hint.textContent = i18n.t(manual ? 'configHelp.setupMode.manualHint' : 'configHelp.setupMode.randomHint');
   }
 
+  /** Not validated (and kept at its default when invalid): every field in classic mode, spawn inputs in manual setup. */
   private isExcluded(id: string): boolean {
-    return this.getSetupMode() === 'manual' && SPAWN_IDS.includes(id);
+    return this.getMode() === 'classic' || (this.getSetupMode() === 'manual' && SPAWN_IDS.includes(id));
+  }
+
+  // ---------------------------------------------------------------- locks
+
+  private wantedLocks(): Record<string, number> {
+    const wanted: Record<string, number> = {};
+    for (const { plugin } of this.plugins) Object.assign(wanted, plugin.lockedFields?.());
+    return wanted;
+  }
+
+  /** Force locked values, restore the previous value of released locks. */
+  private applyLocks(): void {
+    const wanted = this.wantedLocks();
+    for (const [id, previous] of Array.from(this.locks)) {
+      if (id in wanted) continue;
+      const input = this.getInput(id);
+      if (input) input.value = previous;
+      this.locks.delete(id);
+    }
+    for (const [id, value] of Object.entries(wanted)) {
+      const input = this.getInput(id);
+      if (!input) continue;
+      if (!this.locks.has(id)) this.locks.set(id, input.value);
+      input.value = String(value);
+    }
+    this.applyInputStates();
+  }
+
+  /** Disabled state of every field (setup mode + locks) and the 🔒 hints. */
+  private applyInputStates(): void {
+    const manual = this.getSetupMode() === 'manual';
+    for (const rule of FIELD_RULES) {
+      const input = this.getInput(rule.id);
+      if (!input) continue;
+      const locked = this.locks.has(rule.id);
+      input.disabled = locked || (manual && SPAWN_IDS.includes(rule.id));
+      const hintId = `${rule.id}-lock`;
+      let hint = document.getElementById(hintId);
+      if (!locked) {
+        hint?.remove();
+        continue;
+      }
+      if (!hint) {
+        hint = document.createElement('span');
+        hint.id = hintId;
+        hint.className = 'config-lock-hint';
+        input.insertAdjacentElement('afterend', hint);
+      }
+      hint.textContent = i18n.t('config.lockedByChallenge');
+    }
   }
 
   // ---------------------------------------------------------------- inputs
@@ -275,10 +407,14 @@ export class ConfigPanel {
     if (input) input.value = String(value);
   }
 
+  /** Show this.config in the form; a locked field keeps its forced value and remembers the new one. */
   private populateInputs(): void {
     for (const rule of FIELD_RULES) {
-      this.setInputValue(rule.id, getValue(this.config, rule));
+      const value = getValue(this.config, rule);
+      if (this.locks.has(rule.id)) this.locks.set(rule.id, String(value));
+      else this.setInputValue(rule.id, value);
     }
+    this.applyLocks();
     this.validate();
   }
 
@@ -289,14 +425,17 @@ export class ConfigPanel {
   /**
    * Build a brand-new config object from the current form values. Excluded
    * (manual-mode) spawn inputs holding an invalid value keep the default, so
-   * the emitted config is always valid.
+   * the emitted config is always valid. `unlocked` reads the values the locked
+   * fields had before their lock (for saving: the lock is re-applied on load).
    */
-  private readConfigFromInputs(): GameConfig {
+  private readConfigFromInputs(unlocked = false): GameConfig {
     const config = getDefaultConfig();
     const area = this.boardArea();
     for (const rule of FIELD_RULES) {
       if (!this.getInput(rule.id)) continue; // keep default for fields absent from the DOM
-      const value = this.getInputValue(rule.id);
+      const previous = unlocked ? this.locks.get(rule.id)?.trim() : undefined;
+      const value =
+        previous === undefined ? this.getInputValue(rule.id) : previous === '' ? Number.NaN : Number(previous);
       if (this.isExcluded(rule.id) && validateValue(resolveRule(rule, area), value)) continue;
       (config[rule.section] as unknown as Record<string, number>)[rule.key] = value;
     }
@@ -361,29 +500,41 @@ export class ConfigPanel {
       }
     }
 
-    const manual = this.getSetupMode() === 'manual';
-    const total = manual ? 0 : SPAWN_IDS.reduce((sum, id) => sum + this.getInputValue(id), 0);
+    const mode = this.getMode();
+    const noSpawn = this.getSetupMode() === 'manual' || mode === 'classic';
+    const total = noSpawn ? 0 : SPAWN_IDS.reduce((sum, id) => sum + this.getInputValue(id), 0);
     const spawnExceeded = Number.isFinite(total) && total > 1 + 1e-9;
-    this.renderSpawnMessage(manual ? null : total, spawnExceeded);
-    const expectedCreatures = manual ? Number.NaN : this.updateExpectedCounts();
+    this.renderSpawnMessage(noSpawn ? null : total, spawnExceeded);
+    const expectedCreatures = noSpawn ? Number.NaN : this.updateExpectedCounts();
     const performanceWarning = expectedCreatures > PERFORMANCE_WARNING_CREATURES;
     this.renderPerformanceWarning(performanceWarning ? expectedCreatures : null);
 
-    const problemCount = fieldErrors.length + (spawnExceeded ? 1 : 0);
+    const pluginProblems = this.plugins.reduce((sum, { plugin }) => sum + (plugin.validate?.(mode) ?? 0), 0);
+    const problemCount = fieldErrors.length + (spawnExceeded ? 1 : 0) + pluginProblems;
     const valid = problemCount === 0;
 
-    const start = document.getElementById('startGameBtn');
-    if (start instanceof HTMLButtonElement) start.disabled = !valid;
+    for (const id of START_BUTTON_IDS) {
+      const button = document.getElementById(id);
+      if (button instanceof HTMLButtonElement) button.disabled = !valid;
+    }
     const summary = document.getElementById('configValidationSummary');
     if (summary) {
       summary.textContent = valid ? '' : `❌ ${i18n.t('config.validationSummary', problemCount)}`;
       summary.hidden = valid;
     }
 
-    return { valid, fieldErrors, spawnTotal: total, spawnExceeded, expectedCreatures, performanceWarning };
+    return {
+      valid,
+      fieldErrors,
+      spawnTotal: total,
+      spawnExceeded,
+      expectedCreatures,
+      performanceWarning,
+      problemCount,
+    };
   }
 
-  /** total = null clears the message (manual setup mode). */
+  /** total = null clears the message (manual setup or classic mode). */
   private renderSpawnMessage(total: number | null, exceeded: boolean): void {
     const msg = document.getElementById('spawnValidation');
     if (!msg) return;
@@ -459,6 +610,7 @@ export class ConfigPanel {
     const btn = document.getElementById('collapseAllBtn');
     if (btn) btn.textContent = this.allCollapsed() ? i18n.t('config.expand') : i18n.t('config.collapse');
     document.getElementById('startGameBtn')?.setAttribute('title', i18n.t('configHelp.startShortcut'));
+    document.getElementById('startPausedBtn')?.setAttribute('title', i18n.t('controls.startPausedTitle'));
     this.updateSetupModeHint();
   }
 
@@ -470,16 +622,25 @@ export class ConfigPanel {
     debugLog('[ConfigPanel] Reset to default values');
   }
 
-  private handleStartGame(): void {
+  /** Start (or Start paused): emit a config clone plus the start options merged with the plugins' ones. */
+  private handleStartGame(startPaused: boolean): void {
     if (!this.validate().valid) return;
-    this.config = this.readConfigFromInputs();
+    const mode = this.getMode();
+    // Remember the user's own values (not the forced ones), so a later lock change restores them.
+    this.config = this.readConfigFromInputs(true);
+    // Classic mode does not use the ecosystem config: emit the (valid) defaults.
+    const config = mode === 'classic' ? getDefaultConfig() : this.readConfigFromInputs();
+    const fromPlugins: Partial<StartOptions> = {};
+    for (const { plugin } of this.plugins) Object.assign(fromPlugins, plugin.startOptions?.());
+    const options: StartOptions = { ...fromPlugins, setupMode: this.getSetupMode(), startPaused, mode };
     this.hide();
-    this.onStartCallback?.(structuredClone(this.config), { setupMode: this.getSetupMode() });
+    this.onStartCallback?.(config, options);
   }
 
   show(): void {
     this.panel.style.display = 'flex';
     this.panel.removeAttribute('aria-hidden');
+    this.renderMode();
     this.populateInputs();
     this.updateButtonTexts();
     document.getElementById('startGameBtn')?.focus();
@@ -507,11 +668,17 @@ export class ConfigPanel {
   // ---------------------------------------------------------------- save / load
 
   private saveConfiguration(): void {
+    const plugins: Record<string, unknown> = {};
+    for (const { plugin, key } of this.plugins) {
+      if (plugin.save) plugins[key] = plugin.save();
+    }
     const configData = {
       version: '1.0',
       timestamp: new Date().toISOString(),
       setupMode: this.getSetupMode(),
-      config: this.readConfigFromInputs(),
+      mode: this.getMode(),
+      config: this.readConfigFromInputs(true),
+      ...(Object.keys(plugins).length > 0 ? { plugins } : {}),
     };
     const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -536,11 +703,18 @@ export class ConfigPanel {
    * Apply parsed JSON from a config file. Missing values take defaults; loaded
    * values go through exactly the same validation as typed ones, so
    * out-of-range numbers are flagged (and block Start) rather than clamped.
-   * A wrapper's `setupMode` is applied; files without one keep the current mode.
-   * Returns the validation result.
+   * A wrapper's `setupMode` and `mode` are applied; files without them keep the
+   * current ones. Plugin data under `plugins[key]` goes to that plugin's load()
+   * (plugins absent from the file are left as they are). Returns the validation result.
    */
   applyLoadedData(data: unknown, fileName: string): ValidationResult {
-    const wrapped = data as { config?: unknown; version?: unknown; setupMode?: unknown } | null;
+    const wrapped = data as {
+      config?: unknown;
+      version?: unknown;
+      setupMode?: unknown;
+      mode?: unknown;
+      plugins?: unknown;
+    } | null;
     const isWrapper = !!wrapped && typeof wrapped === 'object' && 'config' in wrapped;
     const loaded = isWrapper ? wrapped.config : data;
     if (wrapped && typeof wrapped === 'object' && wrapped.version) {
@@ -551,6 +725,13 @@ export class ConfigPanel {
     if (replaced.length > 0) debugLog('[ConfigPanel] Non-numeric values replaced by defaults:', replaced);
     this.config = config;
     if (isWrapper && isSetupMode(wrapped.setupMode)) this.setSetupMode(wrapped.setupMode);
+    if (isWrapper && isGameMode(wrapped.mode)) this.setMode(wrapped.mode);
+    const pluginData = (
+      isWrapper && wrapped.plugins && typeof wrapped.plugins === 'object' ? wrapped.plugins : {}
+    ) as Record<string, unknown>;
+    for (const { plugin, key } of this.plugins) {
+      if (pluginData[key] !== undefined) plugin.load?.(pluginData[key]);
+    }
     this.populateInputs();
     const result = this.validate();
 
@@ -563,7 +744,7 @@ export class ConfigPanel {
     } else {
       showNotification(
         i18n.t('notifications.configLoadInvalidTitle'),
-        i18n.t('notifications.configLoadInvalid', result.fieldErrors.length + (result.spawnExceeded ? 1 : 0)),
+        i18n.t('notifications.configLoadInvalid', result.problemCount),
         'warning',
       );
     }

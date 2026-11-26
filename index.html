@@ -788,6 +788,19 @@
       color: #444;
     }
 
+    /* ---- Game mode (ecosystem | classic): body[data-mode] set by ConfigPanel / app ---- */
+    body[data-mode="classic"] .ecosystem-only,
+    body:not([data-mode="classic"]) .classic-only {
+      display: none !important;
+    }
+
+    .config-lock-hint {
+      margin-left: 6px;
+      font-size: 12px;
+      color: #6d4c41;
+      white-space: nowrap;
+    }
+
     .field-error {
       margin: -10px 0 15px;
       font-size: 13px;
@@ -1016,7 +1029,7 @@
     }
   </style>
 </head>
-<body>
+<body data-mode="ecosystem">
   <div id="notificationContainer" role="status" aria-live="polite" aria-label="Notifications" data-i18n-aria-label="a11y.notifications"></div>
 
   <!-- Entity Tooltip -->
@@ -1150,7 +1163,8 @@
 
     <main class="main-content">
       <div class="game-area">
-        <canvas id="gameCanvas" role="img" aria-label="Ecosystem board"></canvas>
+        <canvas id="gameCanvas" class="ecosystem-only" role="img" aria-label="Ecosystem board"></canvas>
+        <canvas id="classicCanvas" class="classic-only" role="img" aria-label="Classic Life board"></canvas>
       </div>
 
       <aside class="sidebar">
@@ -1174,7 +1188,13 @@
           </div>
         </section>
 
-        <section class="panel" aria-labelledby="statsTitle">
+        <!-- Challenge HUD (filled by ChallengeHud; hidden in free play) -->
+        <section id="challengePanel" class="panel ecosystem-only" hidden></section>
+
+        <!-- Classic Life panel (filled by ClassicSession) -->
+        <section id="classicPanel" class="panel classic-only"></section>
+
+        <section class="panel ecosystem-only" aria-labelledby="statsTitle">
           <h2 id="statsTitle" data-i18n="stats.statistics">Statistics</h2>
           <div class="stats-grid">
             <div class="stat-row">
@@ -1213,7 +1233,7 @@
         </section>
 
         <!-- Genome trait panel (filled by TraitPanel) -->
-        <section id="traitPanel" class="panel"></section>
+        <section id="traitPanel" class="panel ecosystem-only"></section>
 
         <!-- App version (filled at startup) -->
         <div id="appVersion" class="app-version"></div>
@@ -1238,8 +1258,24 @@
 
       <!-- Scrollable settings; header and footer (with Start) stay visible -->
       <div class="config-scroll">
+      <!-- Game mode switch -->
+      <fieldset class="setup-mode game-mode">
+        <legend data-i18n="classic.mode.legend">Game</legend>
+        <div class="setup-mode-options">
+          <label><input type="radio" name="gameMode" value="ecosystem" checked> <span data-i18n="classic.mode.ecosystem">🌳 Ecosystem</span></label>
+          <label><input type="radio" name="gameMode" value="classic"> <span data-i18n="classic.mode.classic">⬛ Classic Life</span></label>
+        </div>
+        <p class="setup-mode-hint classic-only" data-i18n="classic.mode.hint">Classic Life: cells live or die by their neighbours (Conway).</p>
+      </fieldset>
+
+      <!-- Challenge picker (filled by ChallengePicker) -->
+      <div id="challengeMount" class="ecosystem-only"></div>
+
+      <!-- Classic Life settings (filled by ClassicConfigForm) -->
+      <div id="classicConfigMount" class="classic-only"></div>
+
       <!-- Board & Spawn Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection1">
             <span data-i18n="config.boardSetup">📐 Board & Spawn Probabilities</span>
@@ -1302,7 +1338,7 @@
       </section>
 
       <!-- Human Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection2">
             <span data-i18n="config.humanConfig">👨👩 Human Configuration</span>
@@ -1362,7 +1398,7 @@
       </section>
 
       <!-- Wolf Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection3">
             <span data-i18n="config.wolfConfig">🐺 Wolf Configuration</span>
@@ -1410,7 +1446,7 @@
       </section>
 
       <!-- Dog Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection4">
             <span data-i18n="config.dogConfig">🐕 Dog Configuration</span>
@@ -1450,7 +1486,7 @@
       </section>
 
       <!-- Fruit Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection5">
             <span data-i18n="config.fruitConfig">🍎 Fruit Configuration</span>
@@ -1474,7 +1510,7 @@
       </section>
 
       <!-- Mushroom Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection6">
             <span data-i18n="config.mushroomConfig">🍄 Mushroom Configuration</span>
@@ -1494,7 +1530,7 @@
       </section>
 
       <!-- Population Control Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection7">
             <span data-i18n="config.populationControl">⚖️ Population Control</span>
@@ -1527,11 +1563,12 @@
       <footer class="config-footer">
         <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
         <div class="config-controls">
-          <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
+          <button type="button" id="collapseAllBtn" class="btn-secondary ecosystem-only">Collapse</button>
           <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S" aria-keyshortcuts="Control+S">Save Configuration</button>
           <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O" aria-keyshortcuts="Control+O">Load Configuration</button>
           <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
           <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
+          <button type="button" id="startPausedBtn" class="btn-secondary" data-i18n="controls.startPaused" data-i18n-title="controls.startPausedTitle" title="Start at round 0, paused">⏸ Start paused</button>
           <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame" title="Start the game (Ctrl+Enter)" aria-keyshortcuts="Control+Enter">Start Game</button>
         </div>
       </footer>
