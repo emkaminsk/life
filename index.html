@@ -41,6 +41,51 @@
       color: #333;
     }
 
+    /* Home link (top-left, before the title): round button like the other mkhome subpages. */
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .home-link {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      color: #666;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    }
+
+    .home-link:hover,
+    .home-link:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      color: #0056b3;
+    }
+
+    @media (max-width: 900px) {
+      .header-title { gap: 8px; }
+      .home-link { width: 32px; height: 32px; }
+      .home-link svg { width: 18px; height: 18px; }
+    }
+
+    @media (max-height: 500px) {
+      .home-link { width: 28px; height: 28px; }
+      .home-link svg { width: 16px; height: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .home-link { transition: none; }
+      .home-link:hover, .home-link:focus-visible { transform: none; }
+    }
+
     .header-info {
       display: flex;
       flex-wrap: wrap;
@@ -1470,7 +1515,12 @@
 
   <div class="container">
     <header>
-      <h1 data-i18n="header.title">Game of Life Educational Simulator</h1>
+      <div class="header-title">
+        <a class="home-link" href="https://mkhome.byst.re" title="Home page" aria-label="Home page" data-i18n-title="header.homeTitle" data-i18n-aria-label="header.homeTitle">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3.2 2.5 11.4a1 1 0 0 0 1.3 1.5l.7-.6V20a1 1 0 0 0 1 1h4.5v-5.5h4V21h4.5a1 1 0 0 0 1-1v-7.7l.7.6a1 1 0 0 0 1.3-1.5z"/></svg>
+        </a>
+        <h1 data-i18n="header.title">Game of Life Educational Simulator</h1>
+      </div>
       <div class="header-info">
         <div class="round-counter" id="round">Round: 0</div>
         <div class="round-counter" id="roundsPerSec">Rounds/sec: 0</div>

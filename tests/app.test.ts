@@ -65,6 +65,18 @@ describe('createApp', () => {
     expect(byId('traitPanel').querySelector('details')).not.toBeNull();
   });
 
+  it('the header has a home link in its top-left corner, labelled in the current language', () => {
+    const header = document.querySelector('.container > header') as HTMLElement;
+    const home = header.querySelector<HTMLAnchorElement>('a.home-link');
+    expect(home).not.toBeNull();
+    expect(home?.getAttribute('href')).toBe('https://mkhome.byst.re');
+    expect(header.firstElementChild?.contains(home as Node)).toBe(true); // before the title, i.e. top-left
+    expect(home?.getAttribute('aria-label')).toBe('Home page');
+    i18n.setLanguage(Language.PL);
+    expect(home?.getAttribute('aria-label')).toBe('Strona główna');
+    expect(home?.title).toBe('Strona główna');
+  });
+
   it('random start: Start populates the board and auto-starts the game', async () => {
     startBtn().click();
     await vi.waitFor(() => expect(app.controls.getState()).toBe('running'));

@@ -20,6 +20,7 @@ export const translations: Translations = {
       roundsPerSec: 'Rounds/sec: {0}',
       fps: 'FPS: {0}',
       helpTitle: 'View rules',
+      homeTitle: 'Home page',
     },
 
     controls: {
@@ -230,6 +231,7 @@ export const translations: Translations = {
       roundsPerSec: 'Rundy/sek: {0}',
       fps: 'FPS: {0}',
       helpTitle: 'Zobacz zasady',
+      homeTitle: 'Strona główna',
     },
 
     controls: {
