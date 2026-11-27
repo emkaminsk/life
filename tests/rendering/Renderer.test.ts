@@ -108,10 +108,10 @@ describe('Renderer sizing', () => {
     expect(canvas.height).toBe(200);
     expect(canvas.style.width).toBe('200px');
     expect(canvas.style.height).toBe('100px');
-    expect(ctx.setTransform).toHaveBeenLastCalledWith(2, 0, 0, 2, 0, 0);
+    expect(ctx.setTransform).toHaveBeenLastCalledWith(1, 0, 0, 1, 0, 0); // draws in device px
   });
 
-  it('renders the emoji cache at size × DPR and draws it at CSS size', () => {
+  it('renders the emoji cache at size × DPR and draws it 1:1 in device px', () => {
     setDpr(2);
     const board = new Board(4, 4);
     board.setEntity(1, 1, new Wolf(1, 1));
@@ -123,7 +123,7 @@ describe('Renderer sizing', () => {
       (a) => (a[0] as HTMLCanvasElement).dataset?.emoji,
     )?.[0] as HTMLCanvasElement;
     expect(sprite.width).toBe(40);
-    expect(wolf).toMatchObject({ emoji: '🐺', x: 20, y: 20, w: 20 });
+    expect(wolf).toMatchObject({ emoji: '🐺', x: 40, y: 40, w: 40 });
   });
 
   it('fitToWidth clamps cell size to [6, 28] and resizes', () => {
@@ -624,5 +624,103 @@ describe('Renderer FPS', () => {
     expect(r.getCurrentFps()).toBeLessThanOrEqual(31);
     perfNow += 2000;
     expect(r.getCurrentFps()).toBe(0);
+  });
+});
+
+describe('Renderer device-pixel alignment (fractional devicePixelRatio)', () => {
+  /** Scale of the last setTransform (1 when never set). */
+  function scale(): number {
+    const calls = ctx.setTransform.mock.calls;
+    return calls.length > 0 ? (calls[calls.length - 1][0] as number) : 1;
+  }
+
+  /** Every board drawImage / fillRect rectangle, mapped to device px. */
+  function deviceRects(): number[][] {
+    const s = scale();
+    const images = ctx.drawImage.mock.calls.map((args) => (args.slice(1, 5) as number[]).map((v) => v * s));
+    const fills = ctx.fills.map((f) => [f.x, f.y, f.w, f.h].map((v) => v * s));
+    return [...images, ...fills];
+  }
+
+  function expectWholeDevicePixels(): void {
+    const rects = deviceRects();
+    expect(rects.length).toBeGreaterThan(0);
+    for (const rect of rects) {
+      for (const v of rect) expect(Math.abs(v - Math.round(v))).toBeLessThan(1e-6);
+    }
+  }
+
+  it.each([1.25, 1.5, 1.1, 1.75])('cells, sprites and flashes cover whole device pixels at dpr %s', (dpr) => {
+    setDpr(dpr);
+    const board = new Board(6, 6);
+    board.setEntity(1, 1, new Wolf(1, 1));
+    board.setEntity(3, 2, new Human(3, 2, Sex.MALE));
+    const r = newRenderer(board, 22);
+    r.setInjuredThreshold(100); // draw 💔 icons too
+    resetCalls();
+    r.render(board);
+    r.addVisualEffect(effect('combat', 1, 1, 1000));
+    r.addVisualEffect(effect('eating', 4, 4, 1000));
+    r.render(board);
+    vi.setSystemTime(Date.now() + 2000); // flashes expire → cells redrawn clean
+    r.render(board);
+    expectWholeDevicePixels();
+  });
+
+  it('a flash cell is redrawn over exactly the device pixels the flash covered', () => {
+    setDpr(1.25);
+    const board = new Board(4, 4);
+    const r = newRenderer(board, 22);
+    r.render(board);
+    r.addVisualEffect(effect('combat', 2, 1, 1000));
+    resetCalls();
+    r.render(board);
+    const s = scale();
+    const flash = ctx.fills.find((f) => f.fillStyle === 'rgb(255, 0, 0)');
+    expect(flash).toBeDefined();
+    const flashRect = [flash!.x, flash!.y, flash!.w, flash!.h].map((v) => v * s);
+    vi.setSystemTime(Date.now() + 2000);
+    resetCalls();
+    r.render(board);
+    const bg = ctx.drawImage.mock.calls.map((args) => (args.slice(1, 5) as number[]).map((v) => v * s));
+    expect(bg).toContainEqual(flashRect);
+    expectWholeDevicePixels();
+  });
+
+  it('moving sprites mid-animation land on whole device pixels', () => {
+    setDpr(1.25);
+    const board = new Board(5, 5);
+    const wolf = new Wolf(2, 2);
+    board.setEntity(2, 2, wolf);
+    const r = newRenderer(board, 22);
+    r.render(board);
+    const anim = new AnimationSystem();
+    anim.startAnimations([{ entity: wolf, fromX: 1, fromY: 1, toX: 2, toY: 2 }], 100);
+    r.markAnimationPaths(board, anim);
+    perfNow += 37;
+    anim.update();
+    resetCalls();
+    r.renderAnimationFrame(board, anim);
+    expectWholeDevicePixels();
+  });
+
+  it('getCellSize reports the effective CSS cell size matching the canvas CSS width', () => {
+    setDpr(1.25);
+    const board = new Board(10, 4);
+    const r = newRenderer(board, 22);
+    expect(Number.parseFloat(canvas.style.width)).toBeCloseTo(r.getCellSize() * 10, 6);
+    expect(canvas.width).toBe(27 * 10); // floor(22 × 1.25) = 27 device px per cell
+    expect(r.getCellSize()).toBeCloseTo(21.6, 6);
+  });
+
+  it.each([1.1, 1.25, 1.33, 1.5, 1.75, 2.25])('never makes the board wider than requested at dpr %s', (dpr) => {
+    setDpr(dpr);
+    const board = new Board(30, 30);
+    for (const cell of [6, 13, 22, 27, 28]) {
+      const r = newRenderer(board, cell);
+      expect(r.getCellSize()).toBeLessThanOrEqual(cell);
+      expect(r.getCellSize()).toBeGreaterThan(cell - 1 / dpr);
+      expect(Number.isInteger(canvas.width / board.width)).toBe(true); // whole device px per cell
+    }
   });
 });

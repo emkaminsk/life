@@ -46,23 +46,28 @@ function deviceRatio(): number {
 
 /**
  * Canvas renderer with:
- * - HiDPI backing store (CSS size × devicePixelRatio) and DPR-aware emoji cache
+ * - HiDPI backing store drawn in whole device pixels: each cell is exactly
+ *   cellPx = floor(cellSize × devicePixelRatio) device px, so every redraw fully
+ *   replaces the old pixels (no antialiased residue on cell edges at dpr 1.25 / 1.5)
  * - dirty-cell rendering backed by typed arrays (key = y * width + x)
  * - ghost-free movement animation frames
  * - one fading flash per cell, kept alive by its own rAF loop while paused
  *
- * The canvas CSS size is always boardWidth × cellSize by boardHeight × cellSize
- * (excluding any CSS border), so CSS px / cellSize gives the cell coordinate.
+ * The canvas CSS size is always boardWidth × getCellSize() by boardHeight × getCellSize()
+ * (excluding any CSS border), so CSS px / getCellSize() gives the cell coordinate.
  */
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  /** Requested cell size in CSS px. */
   private cellSize: number;
   private dpr: number;
+  /** Cell size in device px (whole number); all board drawing uses device px. */
+  private cellPx = 1;
   private gridWidth = 0;
   private gridHeight = 0;
 
-  /** Sprite cache for the current cell size / DPR, keyed by emoji. */
+  /** Sprite cache (cellPx × cellPx device px), keyed by emoji. */
   private emojiCache: Map<string, HTMLCanvasElement>;
   private heartIcon: HTMLCanvasElement | null = null;
   private heartIconSize = 0;
@@ -138,8 +143,8 @@ export class Renderer {
     this.markAllCells();
 
     debugLog(
-      `[Renderer] Canvas resized to ${this.gridWidth * this.cellSize}x${this.gridHeight * this.cellSize} CSS px ` +
-        `(${this.gridWidth}x${this.gridHeight} cells, cell ${this.cellSize}px, dpr ${this.dpr})`,
+      `[Renderer] Canvas resized to ${this.canvas.width}x${this.canvas.height} device px ` +
+        `(${this.gridWidth}x${this.gridHeight} cells, cell ${this.cellPx} device px = ${this.getCellSize()} CSS px, dpr ${this.dpr})`,
     );
   }
 
@@ -154,8 +159,9 @@ export class Renderer {
     return size;
   }
 
+  /** Effective cell size in CSS px (cellPx / dpr; may be fractional at dpr 1.25 etc.). */
   getCellSize(): number {
-    return this.cellSize;
+    return this.cellPx / this.dpr;
   }
 
   /** Injured indicator threshold, as a percentage of the creature's max health. */
@@ -165,14 +171,14 @@ export class Renderer {
 
   private applyCanvasSize(): void {
     this.dpr = deviceRatio();
-    const cssWidth = this.gridWidth * this.cellSize;
-    const cssHeight = this.gridHeight * this.cellSize;
-    this.canvas.width = Math.round(cssWidth * this.dpr);
-    this.canvas.height = Math.round(cssHeight * this.dpr);
-    this.canvas.style.width = `${cssWidth}px`;
-    this.canvas.style.height = `${cssHeight}px`;
-    // Setting width/height resets the context state, so re-apply the transform.
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    // Floor (not round) so the board never exceeds the CSS area it was fitted to; ε absorbs FP error.
+    this.cellPx = Math.max(1, Math.floor(this.cellSize * this.dpr + 1e-6));
+    this.canvas.width = this.gridWidth * this.cellPx;
+    this.canvas.height = this.gridHeight * this.cellPx;
+    this.canvas.style.width = `${this.canvas.width / this.dpr}px`;
+    this.canvas.style.height = `${this.canvas.height / this.dpr}px`;
+    // Draw in device px (identity transform); setting width/height resets the context state.
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     this.emojiCache.clear();
     this.heartIcon = null;
@@ -214,9 +220,8 @@ export class Renderer {
     }
   }
 
-  /** Render an emoji once into an offscreen canvas at cssSize × dpr device pixels. */
-  private createEmojiSprite(emoji: string, cssSize: number): HTMLCanvasElement {
-    const px = Math.max(1, Math.round(cssSize * this.dpr));
+  /** Render an emoji once into an offscreen canvas of px × px device pixels. */
+  private createEmojiSprite(emoji: string, px: number): HTMLCanvasElement {
     const sprite = document.createElement('canvas');
     sprite.width = px;
     sprite.height = px;
@@ -245,15 +250,16 @@ export class Renderer {
   private getSprite(emoji: string): HTMLCanvasElement {
     let sprite = this.emojiCache.get(emoji);
     if (!sprite) {
-      sprite = this.createEmojiSprite(emoji, this.cellSize);
+      sprite = this.createEmojiSprite(emoji, this.cellPx);
       this.emojiCache.set(emoji, sprite);
     }
     return sprite;
   }
 
-  /** ≈48% of the cell, at least 9 CSS px, but never more than 3/4 of the cell. */
+  /** Device px: ≈48% of the cell, at least 9 CSS px, but never more than 3/4 of the cell. */
   private computeHeartIconSize(): number {
-    return Math.min(this.cellSize * 0.75, Math.max(9, Math.round(this.cellSize * 0.48)));
+    const p = this.cellPx;
+    return Math.max(1, Math.round(Math.min(p * 0.75, Math.max(9 * this.dpr, p * 0.48))));
   }
 
   private getHeartIcon(): HTMLCanvasElement {
@@ -264,7 +270,7 @@ export class Renderer {
   /** One cell of background + crisp 1-device-pixel grid line (top and left edges). */
   private getCellBackground(): HTMLCanvasElement {
     if (this.cellBackground) return this.cellBackground;
-    const px = Math.max(1, Math.round(this.cellSize * this.dpr));
+    const px = this.cellPx;
     const tile = document.createElement('canvas');
     tile.width = px;
     tile.height = px;
@@ -294,13 +300,13 @@ export class Renderer {
   }
 
   private drawBackground(x: number, y: number): void {
-    const s = this.cellSize;
+    const s = this.cellPx;
     this.ctx.drawImage(this.getCellBackground(), x * s, y * s, s, s);
   }
 
-  /** Draw an entity sprite (+ injured icon) with its top-left at CSS px (px, py). */
+  /** Draw an entity sprite (+ injured icon) with its top-left at device px (px, py). */
   private drawSprite(entity: Entity, px: number, py: number): void {
-    const s = this.cellSize;
+    const s = this.cellPx;
     this.ctx.drawImage(this.getSprite(this.getEntityEmoji(entity)), px, py, s, s);
     if (this.isInjured(entity)) {
       const icon = this.heartIconSize;
@@ -310,7 +316,7 @@ export class Renderer {
 
   private drawCell(x: number, y: number, entity: Entity | null): void {
     this.drawBackground(x, y);
-    if (entity) this.drawSprite(entity, x * this.cellSize, y * this.cellSize);
+    if (entity) this.drawSprite(entity, x * this.cellPx, y * this.cellPx);
   }
 
   // ---------------------------------------------------------------------------
@@ -408,7 +414,7 @@ export class Renderer {
   private drawVisualEffects(time: number): void {
     if (this.visualEffects.size === 0) return;
     const ctx = this.ctx;
-    const s = this.cellSize;
+    const s = this.cellPx;
     let lastColor = '';
     for (const effect of this.visualEffects.values()) {
       const elapsed = Math.max(0, time - effect.startTime);
@@ -533,12 +539,8 @@ export class Renderer {
 
   private drawMover = (_path: MovementPath, entity: Entity): void => {
     // Snap to device pixels so moving sprites stay sharp.
-    const scale = this.cellSize * this.dpr;
-    this.drawSprite(
-      entity,
-      Math.round(entity.visualX * scale) / this.dpr,
-      Math.round(entity.visualY * scale) / this.dpr,
-    );
+    const p = this.cellPx;
+    this.drawSprite(entity, Math.round(entity.visualX * p), Math.round(entity.visualY * p));
   };
 
   /**
