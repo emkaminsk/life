@@ -26,6 +26,7 @@ export interface TranslationKeys {
     roundsPerSec: string;
     fps: string;
     helpTitle: string;
+    homeTitle: string;
   };
 
   // Control buttons
