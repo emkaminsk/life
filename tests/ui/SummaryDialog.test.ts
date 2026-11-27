@@ -85,7 +85,11 @@ describe('SummaryDialog', () => {
 
     const [thresholds, deathsTable] = Array.from(mount.querySelectorAll('table'));
     const males = Array.from(thresholds.querySelectorAll('tbody tr')[0].children).map((c) => c.textContent);
-    expect(males).toEqual(['👨 Males', 'round 2', 'round 3', 'round 3', 'not reached']);
+    expect(males).toEqual(['👨 Males', 'round 2', 'round 3', 'round 3', '—']);
+    // every cell carries its column header for the stacked phone layout
+    const maleCells = Array.from(thresholds.querySelectorAll<HTMLElement>('tbody tr:first-child td'));
+    expect(maleCells.map((c) => c.dataset.label)).toEqual(['Half (50%)', '10%', 'None left (0%)', 'Doubled (200%)']);
+    expect(mount.querySelector('.summary-challenge')).toBeNull(); // free play
     expect(thresholds.querySelectorAll('thead th')[0].getAttribute('scope')).toBe('col');
     expect(thresholds.querySelectorAll('tbody th')[0].getAttribute('scope')).toBe('row');
 
@@ -102,6 +106,32 @@ describe('SummaryDialog', () => {
     const conclusions = texts('.summary-conclusions li');
     expect(conclusions[0]).toBe('Humans died out in round 3.');
     expect(conclusions[1]).toMatch(/^Wolves were most likely the biggest danger: 60% of human deaths \(3\)/);
+  });
+
+  it('shows the challenge block at the top: complete, or failed with the reason', () => {
+    const records = [rec(0, { males: 1, females: 1 }), rec(1, { males: 1, females: 1 }, { births: 100 })];
+    const complete = { id: 'babyBoom' as const, value: 100, target: 100, status: 'complete' as const, round: 1 };
+    dialog.show(summarize(records, 'challengeComplete', complete));
+    const block = () => mount.querySelector<HTMLElement>('.summary-challenge')!;
+    expect(mount.querySelector('.summary-body')?.firstElementChild).toBe(block());
+    expect(block().textContent).toBe('🏆 Baby boom — complete ✓, 100/100');
+    expect(block().dataset.status).toBe('complete');
+    expect(texts('.summary-conclusions li')[0]).toBe('You completed the challenge in round 1! 🎉');
+
+    const failed = {
+      id: 'noCrowding' as const,
+      value: 37,
+      target: 150,
+      status: 'failed' as const,
+      failReason: 'overcrowdingDeath' as const,
+      round: 37,
+    };
+    dialog.show(summarize(records, 'challengeFailed', failed));
+    expect(block().textContent).toBe('🏆 Room to breathe — failed ✗ – someone died of overcrowding, 37/150');
+    expect(block().dataset.status).toBe('failed');
+    i18n.setLanguage(Language.PL);
+    expect(block().textContent).toBe('🏆 Bez tłoku — nieudane ✗ – ktoś zginął z powodu przeludnienia, 37/150');
+    expect(texts('.summary-conclusions li')[0]).toMatch(/^Wyzwanie nie udało się w rundzie 1\./);
   });
 
   it('shows n/a for a group that did not exist and a message when nobody died', () => {

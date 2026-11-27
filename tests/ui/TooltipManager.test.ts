@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TooltipManager, formatEntityInfo, getCellAtPoint } from '../../src/ui/TooltipManager';
-import { Human } from '../../src/entities/Human';
-import { Wolf } from '../../src/entities/Wolf';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dog } from '../../src/entities/Dog';
 import { Fruit } from '../../src/entities/Fruit';
+import { Human } from '../../src/entities/Human';
 import { Mushroom } from '../../src/entities/Mushroom';
-import { Sex } from '../../src/types';
+import { Wolf } from '../../src/entities/Wolf';
 import { i18n } from '../../src/i18n/i18n';
 import { Language } from '../../src/i18n/types';
+import { Sex } from '../../src/types';
+import { formatEntityInfo, getCellAtPoint, TooltipManager } from '../../src/ui/TooltipManager';
 
 describe('TooltipManager', () => {
   let tooltip: TooltipManager;
@@ -20,6 +20,15 @@ describe('TooltipManager', () => {
         <div class="tooltip-header"></div><div class="tooltip-stats"></div>
       </div>`;
     tooltip = new TooltipManager();
+  });
+
+  it('destroy() hides the tooltip and drops its content', () => {
+    tooltip.show(new Wolf(0, 0), 10, 10);
+    expect(tooltip.isVisible()).toBe(true);
+    tooltip.destroy();
+    expect(tooltip.isVisible()).toBe(false);
+    expect(el().textContent?.trim()).toBe('');
+    expect(el().style.left).toBe('');
   });
 
   it('throws when the markup is missing', () => {

@@ -14,7 +14,8 @@ import { AnimationSystem, type MovementRecord } from './AnimationSystem';
 import { createEntity } from './entityFactory';
 import type { BoardLayout, DeathRecord, EndReason, PlaceableKind, RoundEvents, RoundRecord } from './simulationEvents';
 import { GameHistory, emptyRoundEvents } from './GameHistory';
-import { EndConditionTracker } from './endConditions';
+import { checkEnd } from './endConditions';
+import { type ChallengeDef, type ChallengeProgress, ChallengeTracker } from './challenges';
 import { Random } from '../utils/Random';
 import { debugLog } from '../utils/debug';
 
@@ -101,7 +102,6 @@ export class Game {
   private isRunning: boolean;
   private nextRoundTimeoutId: number | null; // Next scheduled round (continuous or stepped)
   private history: GameHistory; // One RoundRecord for round 0 and after each round
-  private endConditions: EndConditionTracker;
   private endReason: EndReason | null;
   private roundEvents: RoundEvents; // Events collected during the round in progress
   private initToken: number; // Bumped by every init and reset(); stale async inits abort
@@ -114,6 +114,9 @@ export class Game {
   private pendingSteps: number; // Rounds left in the current step()/stepRounds() sequence
   private config: Readonly<GameConfig>;
   private configLocked: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: each challenge has its own state type
+  private challenge: ChallengeDef<any> | null = null;
+  private challengeTracker: ChallengeTracker | null = null; // Folded once per round; null in free play
 
   /** Fired after every completed round (continuous or stepped), also the final one. */
   public onRoundComplete?: () => void;
@@ -138,7 +141,6 @@ export class Game {
     this.isRunning = false;
     this.nextRoundTimeoutId = null;
     this.history = new GameHistory();
-    this.endConditions = new EndConditionTracker();
     this.endReason = null;
     this.roundEvents = emptyRoundEvents();
     this.initToken = 0;
@@ -173,6 +175,27 @@ export class Game {
 
   isConfigLocked(): boolean {
     return this.configLocked;
+  }
+
+  /**
+   * Choose the challenge of the next game (null = free play). Kept across reset().
+   * @throws Error while the configuration is locked (a game is in progress)
+   */
+  // biome-ignore lint/suspicious/noExplicitAny: see ChallengeDef
+  setChallenge(def: ChallengeDef<any> | null): void {
+    if (this.configLocked) throw new Error(CONFIG_LOCKED_MESSAGE);
+    this.challenge = def; // tracked from the round-0 record of the next initialization
+  }
+
+  /** Progress of the active challenge after the last recorded round; null in free play or before init. */
+  getChallengeProgress(): ChallengeProgress | null {
+    return this.challengeTracker?.progress() ?? null;
+  }
+
+  /** Track the active challenge from the round-0 record (none in free play or without history). */
+  private startChallenge(): void {
+    const initial = this.history.getRecords()[0];
+    this.challengeTracker = this.challenge && initial ? new ChallengeTracker(this.challenge, initial) : null;
   }
 
   private applyConfig(config: GameConfig): void {
@@ -254,6 +277,7 @@ export class Game {
     this.configLocked = true;
     this.board.reset();
     this.history.clear();
+    this.challengeTracker = null;
     this.endReason = null;
     this.renderer.clearVisualEffects();
     debugLog('[Game] Initializing board with entities...');
@@ -292,7 +316,7 @@ export class Game {
   private completeInitialization(): void {
     const initial = this.snapshot(emptyRoundEvents());
     this.history.start(initial);
-    this.endConditions.start(initial);
+    this.startChallenge();
     this.renderer.markAllDirty(this.board);
     this.renderer.render(this.board);
   }
@@ -398,7 +422,8 @@ export class Game {
   private finishRound(wasAnimated: boolean): void {
     const record = this.runRemainingPhases();
 
-    const reason = this.endConditions.check(record);
+    this.challengeTracker?.step(record);
+    const reason = checkEnd(record, this.getChallengeProgress());
     if (reason) {
       this.halt();
       this.endReason = reason;
@@ -642,6 +667,7 @@ export class Game {
     this.initializing = false;
     this.board.reset();
     this.history.clear();
+    this.challengeTracker = null;
     this.endReason = null;
     this.configLocked = false;
     this.renderer.clearVisualEffects();

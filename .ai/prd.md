@@ -176,11 +176,12 @@ The solution must enable exploration-based learning where students discover prin
 
 3.8.9 "Reset" halts immediately and returns straight to the configuration panel, without a summary
 
-3.8.10 Ctrl+Enter (Cmd+Enter) in the configuration panel starts the game
+3.8.10 Ctrl+Enter (Cmd+Enter) in the configuration panel starts the game. Two start buttons: **Start** (runs continuously) and **Start paused** (board ready at round 0, the student steps round by round). Both work for random and manual setup and for classic mode
 
 3.8.11 **Automatic end**: after every round the game ends by itself and shows the summary when
-  - `humansExtinct`: there were humans and now there are none (males + females = 0), or
-  - `humansSafe` (literal rule): no wolves, no mushrooms, at least one human, and round ≥ 10.
+  - `humansExtinct`: there are no humans (males + females = 0) at the end of a round ≥ 1, including a game started without humans, or
+  - `humansSafe` (literal rule): no wolves, no mushrooms, at least one human, and round ≥ 10 (disabled while a challenge is active), or
+  - `challengeComplete` / `challengeFailed`: see 3.20.
   Extinction notifications are not shown in the round the game ends; the summary explains it.
 
 3.8.12 **Summary**: rounds played, first pregnancy, births, peak population, start/end counts per species, the round each human group first reached 50% / 10% / 0% / 200% of its start, causes of death per species, and up to four plain-language conclusions
@@ -370,6 +371,31 @@ The solution must enable exploration-based learning where students discover prin
 3.19.3 **Strategic Implications**: Dogs help control mushroom overgrowth, providing additional ecosystem value beyond wolf control.
 
 3.19.4 **Who eats**: each mushroom is eaten by one uniformly random adjacent living human or dog (humans and dogs alike); each ripe fruit by one random adjacent human below full health.
+
+### 3.20 Challenges
+
+3.20.1 The configuration panel has a **Challenge** picker; default *Free play* (no challenge, 3.8.11 unchanged).
+
+3.20.2 Challenges (definitions in `src/core/challenges.ts`, evaluated from the per-round history):
+survive 300 rounds; clear all wolves and mushrooms at the same time; 100 births; survive 200 rounds without dogs; survive 100 rounds without fruits; double the human population (at least 10); keep humans within ±25% of the start for 100 rounds in a row; survive 150 rounds without an overcrowding death; 25 humans die of old age.
+
+3.20.3 Constraint challenges lock the matching settings (🔒, e.g. dog spawn = 0) and hide the forbidden item in the manual board editor.
+
+3.20.4 During the game a challenge panel shows the goal, a progress bar and the status. The game ends with `challengeComplete` when the goal is reached with at least one human alive, or `challengeFailed` when humans die out (or an overcrowding death happens in the no-crowding challenge). Failure wins over completion in the same round; status is decided from round 1. The summary shows the challenge result.
+
+### 3.21 Classic Game of Life Mode
+
+3.21.1 A mode switch in the configuration panel (Ecosystem | Classic). In classic mode the only settings are board width/height (10–200), the rule and the starting position.
+
+3.21.2 Rules: Conway B3/S23, HighLife B36/S23, Seeds B2/S, Day & Night B3678/S34678, or a custom `B…/S…` rule (validated live). Edges wrap around (toroidal).
+
+3.21.3 Start: random fill with a density slider (5–90%), a centred pattern (glider, LWSS, pulsar, R-pentomino, Gosper glider gun, acorn, diehard, pentadecathlon), or drawing cells by click/tap while paused (drawing always starts paused).
+
+3.21.4 The same controls (step, run, speed, finish, reset) drive the classic board. A panel shows generation, live cells and the rule explained in words. When the population dies out the game ends; still lifes and period-2 oscillators show a notice.
+
+### 3.22 Responsive Layout
+
+3.22.1 The board fits both the width and the height of the window. On phones the controls are a compact bar fixed to the bottom of the screen so board and controls are visible together; on coarse pointers tap targets are at least 44 px. The manual board editor works by touch (tap to place, drag to select, tap a palette item to fill a selection).
 
 ## 4. Product Boundaries
 

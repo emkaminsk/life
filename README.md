@@ -62,9 +62,14 @@ Game of Life is an educational simulation that creates a simple ecosystem with h
 - **Population Control**: Overcrowding thresholds and death multipliers
 - **Real-Time Validation**: Immediate feedback on invalid configurations with helpful tooltips
 
+### Challenges and Classic Life
+
+- **Challenges**: pick a goal in the settings (e.g. 100 babies born, 200 rounds without dogs, keep the population stable). A progress bar shows how close you are; you win or lose, and the summary tells you why. Some challenges lock settings (🔒).
+- **Classic Game of Life**: switch the mode to Classic for Conway's cellular automaton. Choose a rule (Conway, HighLife, Seeds, Day & Night or your own `B…/S…`), then start from a random fill, a famous pattern (glider gun, pulsar…) or draw cells yourself.
+
 ### User Interface
 
-- Canvas-based grid rendering with emoji or sprite visualization
+- Canvas-based grid rendering with emoji or sprite visualization; the board fits the window on PC and phone (compact control bar on phones)
 - Statistics panel with population graph and overcrowding indicator
 - Genetic-traits chart (average ♂/♀ gene values per round, toggleable traits)
 - Version label (`1.0.<commit hash>`) in the bottom-right corner
@@ -230,6 +235,7 @@ See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation detail
 
 **Buttons:**
 - **Start Game** (or **Ctrl+Enter**) - Fill the board randomly, or open the board editor in "Place it myself" mode; the game starts automatically
+- **Start paused** - Same, but the game waits at round 0 so you can step round by round
 - **Pause/Resume** - Toggle continuous simulation
 - **Run One Round** / **Run Five Rounds** - Step when paused
 - **Run Free** - Continue continuous simulation
@@ -242,7 +248,7 @@ See `TESTING_PLAN.md` and `TEST_CONTINUATION_GUIDE.md` for implementation detail
 - **Down / Left Arrow** - Pause
 - **Esc** - Close the rules or summary dialog
 
-**Board editor (manual setup):** arrows move the cursor, Shift+arrows select an area, 1–6 fill it with man/woman/dog/wolf/fruit/mushroom, Shift+1–6 sprinkle ~30%, 0 or Delete erase, Ctrl+A select all, Ctrl+Enter start, Esc back to settings. Mouse: drag items onto the board or drag across it to select.
+**Board editor (manual setup):** arrows move the cursor, Shift+arrows select an area, 1–6 fill it with man/woman/dog/wolf/fruit/mushroom, Shift+1–6 sprinkle ~30%, 0 or Delete erase, Ctrl+A select all, Ctrl+Enter start, Esc back to settings. Mouse or touch: tap/click to place, drag across the board to select, tap a palette item to fill the selection.
 
 ### Understanding the Simulation
 

@@ -46,7 +46,7 @@ export interface RoundRecord {
   events: RoundEvents;
 }
 
-export type EndReason = 'humansExtinct' | 'humansSafe' | 'userFinished';
+export type EndReason = 'humansExtinct' | 'humansSafe' | 'userFinished' | 'challengeComplete' | 'challengeFailed';
 
 /** Anything that can be placed on a board cell. */
 export type PlaceableKind = 'male' | 'female' | 'wolf' | 'dog' | 'fruit' | 'mushroom';

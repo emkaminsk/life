@@ -53,6 +53,26 @@
   font-weight: 600;
 }
 
+.summary-challenge {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 2px solid #e0c97a;
+  background: #fffbea;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.summary-challenge[data-status="complete"] {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.summary-challenge[data-status="failed"] {
+  border-color: #c62828;
+  background: #ffebee;
+}
+
 .summary-section {
   margin-bottom: 20px;
 }
@@ -131,5 +151,67 @@
 
   .summary-actions button {
     flex: 1 1 100%;
+  }
+
+  .summary-challenge {
+    font-size: 15px;
+  }
+}
+
+/* Phones: each table row becomes a small card ("Half (50%)  round 2"), so the
+   tables fit the dialog width without any sideways scrolling. */
+@media (max-width: 560px) {
+  .summary-table-wrap {
+    overflow-x: visible;
+  }
+
+  .summary-table,
+  .summary-table tbody,
+  .summary-table tr,
+  .summary-table th,
+  .summary-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .summary-table {
+    font-size: 13px;
+  }
+
+  .summary-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .summary-table tbody tr {
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .summary-table tbody th {
+    padding: 4px 8px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+    white-space: normal;
+  }
+
+  .summary-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 8px;
+    border-bottom: none;
+    white-space: normal;
+  }
+
+  .summary-table td::before {
+    content: attr(data-label);
+    color: #555;
   }
 }

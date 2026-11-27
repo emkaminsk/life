@@ -65,6 +65,8 @@ describe('rules modal content (R9, R15)', () => {
     expect(text(modal, 'importantRuleBirthSpace')).toMatch(/no empty cell/);
     expect(text(modal, 'orderExample1')).toMatch(/phase 2.*phase 4/);
     expect(text(modal, 'gameEndDesc')).toMatch(/all humans have died.*no wolves and no mushrooms.*round 10/);
+    expect(text(modal, 'challengesDesc')).toMatch(/win when you reach the goal.*switched off/);
+    expect(text(modal, 'classicDesc')).toMatch(/B3\/S23.*exactly 3.*2 or 3 survives/);
   });
 
   it('shows the default config values before a game starts and the active ones after', () => {

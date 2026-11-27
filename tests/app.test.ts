@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/ui/notifications', () => ({ showNotification: vi.fn() }));
+vi.mock('../src/core/challenges', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/core/challenges')>();
+  return { ...original, getChallenge: vi.fn(original.getChallenge) };
+});
 
-import { type App, createApp } from '../src/app';
+import { type App, boardCellSize, createApp } from '../src/app';
 import { createEmptyLayout, setCell } from '../src/core/BoardLayout';
+import { type ChallengeDef, getChallenge } from '../src/core/challenges';
+import { MAX_CELL_SIZE, MIN_CELL_SIZE } from '../src/core/Renderer';
 import { i18n } from '../src/i18n/i18n';
 import { Language } from '../src/i18n/types';
 import type { GameConfig } from '../src/ui/ConfigPanel';
@@ -211,5 +217,230 @@ describe('createApp', () => {
     app.destroy();
     click('helpBtn');
     expect(byId('rulesModal').classList.contains('active')).toBe(false);
+  });
+});
+
+describe('createApp: start paused, classic mode, challenges', () => {
+  it('Start paused: round 0 paused with Step focused; Step runs round 1', async () => {
+    byId<HTMLButtonElement>('startPausedBtn').click();
+    await vi.waitFor(() => expect(app.controls.getState()).toBe('paused'));
+    expect(app.board.round).toBe(0);
+    expect(app.game.running()).toBe(false);
+    expect(app.game.isConfigLocked()).toBe(true);
+    expect(document.activeElement).toBe(byId('stepBtn'));
+    app.game.setAnimationDuration(0); // rounds complete synchronously
+    click('stepBtn');
+    expect(app.board.round).toBe(1);
+    expect(app.controls.getState()).toBe('paused');
+    expect(byId('round').textContent).toBe('Round: 1');
+  });
+
+  it('manual setup confirm honours Start paused', async () => {
+    await app.startGame(smallConfig(4, 4), { setupMode: 'manual', startPaused: true });
+    app.setupView.onConfirm?.(setCell(createEmptyLayout(4, 4), 0, 0, 'male'));
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.board.round).toBe(0);
+  });
+
+  it('a constraint challenge hides its forbidden item in manual setup and never places it', async () => {
+    await app.startGame(smallConfig(4, 4), { setupMode: 'manual', challengeId: 'noDogs', startPaused: true });
+    const dogTool = document.querySelector<HTMLButtonElement>('.setup-tool[data-tool="dog"]')!;
+    expect(dogTool.hidden).toBe(true);
+    app.setupView.onConfirm?.(setCell(setCell(createEmptyLayout(4, 4), 0, 0, 'male'), 1, 1, 'dog'));
+    expect(app.board.getEntity(1, 1)).toBeNull();
+    expect(app.board.getEntity(0, 0)).not.toBeNull();
+  });
+
+  it('a start error after the controls began puts them back to idle', async () => {
+    vi.spyOn(app.game, 'start').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    await app.startGame(getDefaultConfig());
+    expect(showNotification).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('boom'), 'error');
+    expect(app.controls.getState()).toBe('idle');
+    expect(configVisible()).toBe(true);
+    expect(app.game.isConfigLocked()).toBe(false);
+  });
+
+  it('classic mode: the buttons drive the classic session, the header shows the generation', async () => {
+    await app.startGame(getDefaultConfig(), { setupMode: 'random', mode: 'classic', startPaused: true });
+    expect(app.getMode()).toBe('classic');
+    expect(document.body.dataset.mode).toBe('classic');
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.game.isConfigLocked()).toBe(false); // the ecosystem game is untouched
+    expect(byId('round').textContent).toBe('Generation: 0');
+
+    click('stepBtn');
+    expect(app.classic.getGeneration()).toBe(1);
+    expect(byId('round').textContent).toBe('Generation: 1');
+    expect(app.controls.getState()).toBe('paused');
+
+    click('runBtn');
+    expect(app.classic.running()).toBe(true);
+    key('Space');
+    expect(app.controls.getState()).toBe('paused');
+    expect(app.classic.running()).toBe(false);
+
+    app.classic.onGameOver?.();
+    expect(app.controls.getState()).toBe('over');
+
+    click('resetBtn');
+    expect(configVisible()).toBe(true);
+    expect(app.controls.getState()).toBe('idle');
+    expect(app.classic.getGeneration()).toBe(0);
+  });
+
+  it('classic mode from the config panel auto-starts; Finish halts without a summary', async () => {
+    const radio = document.querySelector<HTMLInputElement>('input[name="gameMode"][value="classic"]')!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change'));
+    startBtn().click();
+    await vi.waitFor(() => expect(app.controls.getState()).toBe('running'));
+    expect(app.classic.running()).toBe(true);
+    click('finishBtn');
+    expect(app.classic.running()).toBe(false);
+    expect(app.controls.getState()).toBe('over');
+    expect(summaryOpen()).toBe(false);
+    click('resetBtn');
+    expect(configVisible()).toBe(true);
+    expect(document.body.dataset.mode).toBe('classic'); // the panel's radios decide
+  });
+
+  it('a challenge is set before init; the HUD shows its progress until Reset', async () => {
+    const def: ChallengeDef<number> = {
+      id: 'babyBoom',
+      emoji: '👶',
+      locks: {},
+      init: () => 0,
+      step: (n, r) => n + r.events.births,
+      progress: (n, round) => ({ value: n, target: 100, status: 'inProgress', round }),
+    };
+    vi.mocked(getChallenge).mockImplementation((id) => (id === 'babyBoom' ? def : null));
+    try {
+      await app.startGame(getDefaultConfig(), { setupMode: 'random', challengeId: 'babyBoom', startPaused: true });
+      expect(app.game.getChallengeProgress()).toMatchObject({ id: 'babyBoom', round: 0 });
+      expect(byId('challengePanel').hidden).toBe(false);
+      app.game.setAnimationDuration(0);
+      click('stepBtn');
+      expect(app.game.getChallengeProgress()?.round).toBe(1);
+      click('resetBtn');
+      expect(byId('challengePanel').hidden).toBe(true);
+
+      await app.startGame(getDefaultConfig()); // free play
+      expect(app.game.getChallengeProgress()).toBeNull();
+      expect(byId('challengePanel').hidden).toBe(true);
+    } finally {
+      vi.mocked(getChallenge).mockRestore(); // back to the real getChallenge
+    }
+  });
+
+  it('the speed select drives both engines', () => {
+    const classicSpeed = vi.spyOn(app.classic, 'setSpeed');
+    const select = byId<HTMLSelectElement>('speedSelect');
+    select.value = '50';
+    select.dispatchEvent(new Event('change'));
+    expect(app.game.getSpeed()).toBe(50);
+    expect(classicSpeed).toHaveBeenCalledWith(50);
+  });
+
+  it('destroy() releases the rules dialog listeners', () => {
+    click('helpBtn');
+    expect(byId('rulesModal').classList.contains('active')).toBe(true);
+    app.destroy();
+    click('closeModal');
+    expect(byId('rulesModal').classList.contains('active')).toBe(true);
+  });
+});
+
+describe('boardCellSize', () => {
+  it('uses the tighter of width and height', () => {
+    expect(boardCellSize(600, 1000, 30, 30)).toBe(20); // width-bound
+    expect(boardCellSize(1000, 300, 30, 30)).toBe(10); // height-bound
+    expect(boardCellSize(1000, 300, 50, 10)).toBe(20); // wide board: width-bound
+  });
+
+  it('clamps to the renderer limits', () => {
+    expect(boardCellSize(5000, 5000, 10, 10)).toBe(MAX_CELL_SIZE);
+    expect(boardCellSize(100, 100, 100, 100)).toBe(MIN_CELL_SIZE);
+    expect(boardCellSize(800, -50, 30, 30)).toBe(MIN_CELL_SIZE); // no room left below the header
+    expect(boardCellSize(800, 600, 0, 30)).toBe(MIN_CELL_SIZE);
+  });
+});
+
+describe('createApp: board fit and teardown', () => {
+  const innerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+  const gameCanvas = () => byId<HTMLCanvasElement>('gameCanvas');
+  const cssPx = (value: string) => Number.parseFloat(value);
+
+  /** Pretend the game area is `width` px wide, starts `top` px down the page and the viewport is `height` px tall. */
+  function mockViewport(width: number, top: number, height: number): void {
+    const area = document.querySelector<HTMLElement>('.game-area') as HTMLElement;
+    Object.defineProperty(area, 'clientWidth', { configurable: true, value: width });
+    vi.spyOn(area, 'getBoundingClientRect').mockReturnValue({ top } as DOMRect);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+  }
+
+  function resize(): void {
+    window.dispatchEvent(new Event('resize'));
+    vi.advanceTimersByTime(200);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    if (innerHeight) Object.defineProperty(window, 'innerHeight', innerHeight);
+  });
+
+  it('a wide but short viewport limits the board by its height', () => {
+    mockViewport(1400, 100, 500); // the width alone would allow the maximum cell
+    resize();
+    const height = cssPx(gameCanvas().style.height);
+    expect(height).toBeGreaterThan(0);
+    expect(height).toBeLessThanOrEqual(500 - 100);
+    expect(cssPx(gameCanvas().style.width)).toBeLessThan(MAX_CELL_SIZE * app.board.width);
+  });
+
+  it('a narrow, tall viewport limits the board by its width', () => {
+    mockViewport(330, 60, 2000);
+    resize();
+    expect(cssPx(gameCanvas().style.width)).toBeLessThanOrEqual(330);
+    // At most padding + border + one cell of slack per column is lost.
+    expect(cssPx(gameCanvas().style.width)).toBeGreaterThanOrEqual(330 - 60 - app.board.width);
+  });
+
+  it('classic mode fits the classic canvas into the same area', async () => {
+    mockViewport(900, 80, 600);
+    const fit = vi.spyOn(app.classic, 'fit');
+    await app.startGame(getDefaultConfig(), { setupMode: 'random', mode: 'classic', startPaused: true });
+    expect(fit).toHaveBeenCalled();
+    const [w, h] = fit.mock.calls[fit.mock.calls.length - 1];
+    expect(w).toBeGreaterThan(0);
+    expect(w).toBeLessThanOrEqual(900);
+    expect(h).toBeGreaterThan(0);
+    expect(h).toBeLessThanOrEqual(600 - 80);
+    fit.mockClear();
+    resize();
+    expect(fit).toHaveBeenCalledTimes(1);
+  });
+
+  it('destroy() cancels a pending resize refit', () => {
+    mockViewport(1400, 100, 500);
+    const before = gameCanvas().style.height;
+    window.dispatchEvent(new Event('resize'));
+    app.destroy();
+    vi.advanceTimersByTime(1000);
+    expect(gameCanvas().style.height).toBe(before);
+  });
+
+  it('destroy() hides and empties the entity tooltip', () => {
+    const tip = byId('entityTooltip');
+    tip.style.display = 'block';
+    tip.querySelector('.tooltip-header')!.textContent = 'Wolf';
+    tip.querySelector('.tooltip-stats')!.append(document.createElement('div'));
+    app.destroy();
+    expect(tip.style.display).toBe('none');
+    expect(tip.textContent?.trim()).toBe('');
   });
 });

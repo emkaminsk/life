@@ -1,4 +1,6 @@
 import type { AppKeys } from './sections/app';
+import type { ChallengesKeys } from './sections/challenges';
+import type { ClassicKeys } from './sections/classic';
 import type { ConfigHelpKeys } from './sections/configHelp';
 import type { GenomeKeys } from './sections/genome';
 import type { RulesKeys } from './sections/rules';
@@ -30,6 +32,8 @@ export interface TranslationKeys {
   controls: {
     title: string;
     startGame: string;
+    startPaused: string;
+    startPausedTitle: string;
     pause: string;
     resume: string;
     runOneRound: string;
@@ -95,6 +99,7 @@ export interface TranslationKeys {
     spawnWarning: string;
     spawnVeryHigh: string;
     validationSummary: string;
+    lockedByChallenge: string;
 
     // Board Setup section
     boardSetup: string;
@@ -190,6 +195,8 @@ export interface TranslationKeys {
   summary: SummaryKeys;
   genome: GenomeKeys;
   app: AppKeys;
+  challenges: ChallengesKeys;
+  classic: ClassicKeys;
 
   // Error messages
   errors: {

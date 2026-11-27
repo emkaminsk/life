@@ -186,4 +186,16 @@ export class TooltipManager {
   hide(): void {
     this.tooltipElement.style.display = 'none';
   }
+
+  /**
+   * Release the tooltip: hide it and drop its content. The element itself is
+   * page markup (#entityTooltip), so it stays for the next TooltipManager.
+   */
+  destroy(): void {
+    this.hide();
+    this.headerElement.textContent = '';
+    this.statsElement.replaceChildren();
+    this.tooltipElement.style.removeProperty('left');
+    this.tooltipElement.style.removeProperty('top');
+  }
 }

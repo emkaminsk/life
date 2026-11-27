@@ -60,11 +60,17 @@ export class GameControls {
   }
 
   /**
-   * A new game has been initialized: start it automatically (PRD 3.13.6).
+   * A new game has been initialized: start it automatically (PRD 3.13.6), or,
+   * with `paused` ("Start paused"), show it paused at round 0 with Step focused.
    * The state is set before start(): a round without movement runs synchronously
    * and may end the game (setOver) before start() returns.
    */
-  begin(): void {
+  begin(paused = false): void {
+    if (paused) {
+      this.setState('paused');
+      this.buttons.step.focus({ preventScroll: true });
+      return;
+    }
     this.setState('running');
     this.game.start();
   }
@@ -94,7 +100,8 @@ export class GameControls {
   pause(): void {
     if (this.state !== 'running') return;
     this.game.pause();
-    this.setState('paused');
+    // pause() mid-animation finishes the round, which may have ended the game (setOver).
+    if (this.state === 'running') this.setState('paused');
   }
 
   runFree(): void {
@@ -127,7 +134,9 @@ export class GameControls {
 
   /** Re-apply translated labels (Pause vs Resume) after a language change. */
   refreshLabels(): void {
-    this.buttons.pause.textContent = this.t(this.state === 'paused' ? 'controls.resume' : 'controls.pause');
+    const resume = this.state === 'paused';
+    this.buttons.pause.textContent = this.t(resume ? 'controls.resume' : 'controls.pause');
+    this.buttons.pause.dataset.action = resume ? 'resume' : 'pause'; // picks the ⏸ / ▶ icon (CSS)
   }
 
   private setState(state: ControlState): void {

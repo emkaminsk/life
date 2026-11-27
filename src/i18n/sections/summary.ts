@@ -1,3 +1,4 @@
+import type { ChallengeStatus } from '../../core/challenges';
 import type { DeathCause, EndReason, Species } from '../../core/simulationEvents';
 
 /**
@@ -12,6 +13,11 @@ export interface SummaryKeys {
   backToBoard: string;
   scrollRegion: string;
   endReason: Record<EndReason, string>;
+  /** "🏆 {name} — {status}, {value}/{target}" */
+  challengeLine: string;
+  challengeStatus: Record<ChallengeStatus, string>;
+  /** "{status} – {reason}" */
+  challengeWithReason: string;
 
   factsTitle: string;
   roundsPlayed: string;
@@ -44,6 +50,8 @@ export interface SummaryKeys {
   conclusionsTitle: string;
   conclusionsHint: string;
   conclusions: {
+    outcomeChallengeComplete: string;
+    outcomeChallengeFailed: string;
     outcomeExtinct: string;
     outcomeSafe: string;
     outcomeNoHumans: string;
@@ -91,7 +99,16 @@ export const en: SummaryKeys = {
     humansExtinct: 'The game is over: all humans have died out.',
     humansSafe: 'The game is over: humans are safe – no wolves and no mushrooms are left.',
     userFinished: 'You finished the game.',
+    challengeComplete: 'The game is over: you completed the challenge!',
+    challengeFailed: 'The game is over: the challenge was not completed.',
   },
+  challengeLine: '🏆 {0} — {1}, {2}/{3}',
+  challengeStatus: {
+    inProgress: 'not finished yet',
+    complete: 'complete ✓',
+    failed: 'failed ✗',
+  },
+  challengeWithReason: '{0} – {1}',
 
   factsTitle: 'What happened',
   roundsPlayed: 'Rounds played: {0}',
@@ -102,7 +119,8 @@ export const en: SummaryKeys = {
   startEnd: '{0}: {1} at the start, {2} at the end',
 
   thresholdsTitle: 'When did the population change?',
-  thresholdsHint: 'The first round in which each group reached this share of its starting size.',
+  thresholdsHint:
+    'The first round in which each group reached this share of its starting size (— means it never happened).',
   colGroup: 'Group',
   col50: 'Half (50%)',
   col10: '10%',
@@ -111,7 +129,7 @@ export const en: SummaryKeys = {
   rowMales: '👨 Males',
   rowFemales: '👩 Females',
   roundN: 'round {0}',
-  notReached: 'not reached',
+  notReached: '—',
   notApplicable: 'n/a',
 
   deathsTitle: 'Causes of death',
@@ -140,6 +158,8 @@ export const en: SummaryKeys = {
   conclusionsTitle: 'What can we learn?',
   conclusionsHint: 'These are guesses based on the numbers. Change one setting and play again to check them!',
   conclusions: {
+    outcomeChallengeComplete: 'You completed the challenge in round {0}! 🎉',
+    outcomeChallengeFailed: 'The challenge failed in round {0}. Read the clues below and try again!',
     outcomeExtinct: 'Humans died out in round {0}.',
     outcomeSafe: 'In round {0} humans were safe, with {1} people still alive.',
     outcomeNoHumans: 'There were no humans at the start, so only animals and plants took part ({0} rounds).',
@@ -209,7 +229,16 @@ export const pl: SummaryKeys = {
     humansExtinct: 'Koniec gry: wszyscy ludzie wyginęli.',
     humansSafe: 'Koniec gry: ludzie są bezpieczni – nie ma już wilków ani grzybów.',
     userFinished: 'Gra została zakończona.',
+    challengeComplete: 'Koniec gry: wyzwanie ukończone!',
+    challengeFailed: 'Koniec gry: wyzwanie nie zostało ukończone.',
   },
+  challengeLine: '🏆 {0} — {1}, {2}/{3}',
+  challengeStatus: {
+    inProgress: 'jeszcze nieukończone',
+    complete: 'ukończone ✓',
+    failed: 'nieudane ✗',
+  },
+  challengeWithReason: '{0} – {1}',
 
   factsTitle: 'Co się wydarzyło',
   roundsPlayed: 'Liczba rozegranych rund: {0}',
@@ -220,7 +249,8 @@ export const pl: SummaryKeys = {
   startEnd: '{0}: {1} na początku, {2} na końcu',
 
   thresholdsTitle: 'Kiedy zmieniła się liczebność?',
-  thresholdsHint: 'Pierwsza runda, w której grupa osiągnęła taki procent swojej liczebności z początku gry.',
+  thresholdsHint:
+    'Pierwsza runda, w której grupa osiągnęła taki procent swojej liczebności z początku gry (— oznacza, że to się nie wydarzyło).',
   colGroup: 'Grupa',
   col50: 'Połowa (50%)',
   col10: '10%',
@@ -229,7 +259,7 @@ export const pl: SummaryKeys = {
   rowMales: '👨 Mężczyźni',
   rowFemales: '👩 Kobiety',
   roundN: 'runda {0}',
-  notReached: 'nie osiągnięto',
+  notReached: '—',
   notApplicable: 'nie dotyczy',
 
   deathsTitle: 'Przyczyny śmierci',
@@ -259,6 +289,8 @@ export const pl: SummaryKeys = {
   conclusionsHint:
     'To przypuszczenia na podstawie liczb. Zmień jedno ustawienie i zagraj jeszcze raz, żeby je sprawdzić!',
   conclusions: {
+    outcomeChallengeComplete: 'Wyzwanie ukończone w rundzie {0}! 🎉',
+    outcomeChallengeFailed: 'Wyzwanie nie udało się w rundzie {0}. Przeczytaj wskazówki poniżej i spróbuj jeszcze raz!',
     outcomeExtinct: 'Ludzie wyginęli w rundzie {0}.',
     outcomeSafe: 'W rundzie {0} ludzie byli bezpieczni. Żyło ich jeszcze {1}.',
     outcomeNoHumans: 'Na początku nie było ludzi, więc grały tylko zwierzęta i rośliny (rundy: {0}).',

@@ -788,6 +788,19 @@
       color: #444;
     }
 
+    /* ---- Game mode (ecosystem | classic): body[data-mode] set by ConfigPanel / app ---- */
+    body[data-mode="classic"] .ecosystem-only,
+    body:not([data-mode="classic"]) .classic-only {
+      display: none !important;
+    }
+
+    .config-lock-hint {
+      margin-left: 6px;
+      font-size: 12px;
+      color: #6d4c41;
+      white-space: nowrap;
+    }
+
     .field-error {
       margin: -10px 0 15px;
       font-size: 13px;
@@ -851,30 +864,38 @@
       text-align: center;
     }
 
+    /* Footer: a small row of section / file actions, then the two Start buttons. */
     .config-controls {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .config-controls button {
+    .config-actions-secondary,
+    .config-actions-primary {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Basis = label width; never narrower than the longest word, so labels wrap between words. */
+    .config-actions-secondary button {
       flex: 1 1 auto;
+      padding: 6px 8px;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .config-actions-primary button {
+      flex: 1 1 0;
+      min-width: 0;
       padding: 10px 14px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
     }
 
-    .config-controls #startGameBtn {
-      flex: 1 1 100%;
-      order: 1;
-      padding: 14px 20px;
+    .config-actions-primary #startGameBtn {
+      flex: 2 1 0;
       font-size: 17px;
-    }
-
-    @media (min-width: 640px) {
-      .config-controls #startGameBtn {
-        flex: 2 1 160px;
-      }
     }
 
     /* Short screens (landscape phones, small laptops with zoom): keep Start reachable. */
@@ -906,14 +927,12 @@
         padding-bottom: 8px;
       }
 
-      .config-controls button,
-      .config-controls #startGameBtn {
+      .config-actions-primary button {
         padding: 8px 12px;
-        font-size: 14px;
       }
 
-      .config-controls #startGameBtn {
-        flex: 2 1 140px;
+      .config-actions-primary #startGameBtn {
+        font-size: 15px;
       }
     }
 
@@ -949,10 +968,144 @@
       border-top: 1px solid rgba(255,255,255,0.2);
     }
 
+    /* ---------- Control buttons: icon + label ---------- */
+    .controls button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .controls button::before {
+      content: var(--icon);
+      content: var(--icon) / '';
+      min-width: 1.4em;
+      font-size: 1.1em;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #pauseBtn { --icon: '\275A\275A'; }
+    #pauseBtn[data-action="resume"] { --icon: '\25B6\FE0E'; }
+    #stepBtn { --icon: '+1'; }
+    #runFiveBtn { --icon: '+5'; }
+    #runBtn { --icon: '\25B6\FE0E'; }
+    #resetBtn { --icon: '\21BA'; }
+    #finishBtn { --icon: '\1F3C1'; }
+
+    /* Compact control grid (phones): 3 columns of icon-over-label buttons, speed below. */
+    @media (max-width: 900px), (max-height: 500px) {
+      .controls-panel {
+        padding: 8px;
+      }
+
+      .controls-title {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .controls button {
+        flex-direction: column;
+        gap: 2px;
+        min-height: 44px;
+        padding: 4px;
+        font-size: 12px;
+        line-height: 1.15;
+      }
+
+      .controls button::before {
+        font-size: 16px;
+      }
+
+      .speed-control {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 0;
+      }
+
+      .speed-control label {
+        display: inline;
+        margin: 0;
+        white-space: nowrap;
+      }
+
+      .speed-control select {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 8px;
+      }
+    }
+
     /* ---------- Narrow screens ---------- */
     @media (max-width: 900px) {
       body {
-        padding: 10px;
+        padding: 8px;
+      }
+
+      /* Compact header that stays on top: title, round counter, rounds/sec and help. */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        gap: 2px 14px;
+        margin-bottom: 8px;
+        padding: 6px 12px;
+      }
+
+      h1 {
+        font-size: 16px;
+      }
+
+      .header-info {
+        flex: 1 1 auto;
+        gap: 4px 14px;
+      }
+
+      .round-counter {
+        font-size: 15px;
+      }
+
+      .header-info .help-btn {
+        width: 36px;
+        height: 36px;
+        margin-left: auto;
+        font-size: 18px;
+      }
+
+      .main-content {
+        gap: 8px;
+      }
+
+      .game-area {
+        padding: 8px;
+      }
+
+      .config-content {
+        --config-pad: 20px;
+      }
+
+      .config-content h1 {
+        font-size: 22px;
+      }
+    }
+
+    /* Portrait phones / tablets: board on top, the control bar fixed to the bottom of the viewport. */
+    @media (max-width: 900px) and (min-height: 501px) {
+      body {
+        /* room for the fixed control bar */
+        padding-bottom: calc(176px + env(safe-area-inset-bottom, 0px));
       }
 
       .main-content {
@@ -964,23 +1117,68 @@
         width: 100%;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 15px;
+        gap: 8px;
       }
 
-      .game-area {
-        padding: 10px;
+      .controls-panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 900;
+        padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px))
+          max(8px, env(safe-area-inset-left, 0px));
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.18);
+      }
+
+      .controls {
+        max-width: 560px;
+        margin: 0 auto;
+      }
+    }
+
+    /* Landscape phones: board and sidebar side by side, everything compact. */
+    @media (max-height: 500px) {
+      body {
+        padding: 6px;
+      }
+
+      header {
+        position: static;
+        flex-wrap: nowrap;
+        margin-bottom: 6px;
+        padding: 4px 10px;
       }
 
       h1 {
-        font-size: 20px;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
       }
 
-      .config-content {
-        --config-pad: 20px;
+      .header-info {
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
       }
 
-      .config-content h1 {
-        font-size: 22px;
+      .round-counter {
+        font-size: 14px;
+      }
+
+      .main-content {
+        gap: 6px;
+      }
+
+      .game-area {
+        padding: 6px;
+      }
+
+      .sidebar {
+        width: 260px;
+        gap: 6px;
       }
     }
 
@@ -1003,9 +1201,138 @@
         display: none;
       }
 
+      /* Title and language selector share one row. */
+      .config-content h1 {
+        font-size: 20px;
+      }
+
+      .config-title-row {
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      .config-header {
+        padding-top: 12px;
+      }
+
       .config-row input {
         width: 90px;
       }
+
+      .config-actions-secondary {
+        gap: 6px;
+      }
+
+      .config-actions-secondary button {
+        padding: 4px 6px;
+        font-size: 12px;
+      }
+
+      .config-footer {
+        padding-top: 8px;
+        padding-bottom: 10px;
+      }
+
+      /* Two equal Start buttons, each label on one line. */
+      .config-actions-primary button,
+      .config-actions-primary #startGameBtn {
+        flex: 1 1 0;
+        padding: 8px 10px;
+        font-size: 15px;
+      }
+    }
+
+    /* Small screens: the rules dialog uses the whole screen for its text. */
+    @media (max-width: 480px), (max-height: 500px) {
+      .modal-content {
+        width: calc(100% - 16px);
+        max-height: 94vh;
+        max-height: 94dvh;
+      }
+
+      .modal-header {
+        padding: 6px 6px 6px 16px;
+      }
+
+      .modal-header h2 {
+        font-size: 18px;
+      }
+
+      .modal-tab {
+        padding: 8px 12px;
+      }
+
+      .modal-body {
+        padding: 12px 16px;
+        max-height: calc(94vh - 120px);
+        max-height: calc(94dvh - 120px);
+      }
+    }
+
+    /* Short screens: the footer is one row (small actions, then the two Start buttons). */
+    @media (max-height: 500px) {
+      .config-controls {
+        flex-direction: row;
+        align-items: stretch;
+      }
+
+      .config-actions-secondary {
+        flex: 4 1 0;
+        min-width: 0;
+      }
+
+      .config-actions-primary {
+        flex: 3 1 0;
+        min-width: 0;
+      }
+
+      .config-actions-secondary button {
+        font-size: 12px;
+        padding: 4px 6px;
+      }
+
+      .config-header {
+        padding-top: 8px;
+      }
+    }
+
+    /* ---------- Touch screens: tap targets of at least 44 × 44 px ---------- */
+    @media (pointer: coarse) {
+      .container button,
+      .config-content button,
+      #rulesModal button,
+      .container select,
+      .config-content select,
+      .config-row input {
+        min-height: 44px;
+      }
+
+      .config-row input {
+        font-size: 16px; /* also stops iOS zooming in on focus */
+      }
+
+      .field-help-btn,
+      .close-btn,
+      .help-btn,
+      .header-info .help-btn {
+        width: 44px;
+        height: 44px;
+      }
+
+      .setup-mode-options label {
+        min-height: 44px;
+      }
+
+      .setup-mode-options input,
+      .config-content input[type="checkbox"],
+      .config-content input[type="radio"] {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    #appVersion {
+      font-size: 12px;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1016,7 +1343,7 @@
     }
   </style>
 </head>
-<body>
+<body data-mode="ecosystem">
   <div id="notificationContainer" role="status" aria-live="polite" aria-label="Notifications" data-i18n-aria-label="a11y.notifications"></div>
 
   <!-- Entity Tooltip -->
@@ -1081,6 +1408,10 @@
           </ul>
           <h3 data-i18n="rules.gameEndTitle">🏁 How the Game Ends</h3>
           <p data-i18n="rules.gameEndDesc">The game ends when all humans have died. Humans win when no wolves and no mushrooms are left (checked from round 10 on). You can also press Finish Game at any time to see the summary.</p>
+          <h3 data-i18n="rules.challengesTitle">🏆 Challenges</h3>
+          <p data-i18n="rules.challengesDesc">Pick a challenge in the settings to play for a goal.</p>
+          <h3 data-i18n="rules.classicTitle">🔲 Classic Game of Life</h3>
+          <p data-i18n="rules.classicDesc">Switch the mode to Classic to play the famous cellular automaton.</p>
         </div>
         <div class="tab-content" id="creatures-tab" role="tabpanel" aria-labelledby="tab-creatures" tabindex="0">
           <h3 data-i18n="rules.malesTitle">👨 Male Humans</h3>
@@ -1150,12 +1481,14 @@
 
     <main class="main-content">
       <div class="game-area">
-        <canvas id="gameCanvas" role="img" aria-label="Ecosystem board"></canvas>
+        <canvas id="gameCanvas" class="ecosystem-only" role="img" aria-label="Ecosystem board"></canvas>
+        <canvas id="classicCanvas" class="classic-only" role="img" aria-label="Classic Life board"></canvas>
       </div>
 
       <aside class="sidebar">
-        <section class="panel" aria-labelledby="controlsTitle">
-          <h2 id="controlsTitle" data-i18n="controls.title">Controls</h2>
+        <!-- Sidebar panel on desktop; a compact bar fixed to the bottom on phones (portrait) -->
+        <section class="panel controls-panel" aria-labelledby="controlsTitle">
+          <h2 id="controlsTitle" class="controls-title" data-i18n="controls.title">Controls</h2>
           <div class="controls">
             <button type="button" id="pauseBtn" class="btn-warning" disabled>Pause</button>
             <button type="button" id="stepBtn" class="btn-primary" disabled data-i18n="controls.runOneRound">Run One Round</button>
@@ -1174,7 +1507,13 @@
           </div>
         </section>
 
-        <section class="panel" aria-labelledby="statsTitle">
+        <!-- Challenge HUD (filled by ChallengeHud; hidden in free play) -->
+        <section id="challengePanel" class="panel ecosystem-only" hidden></section>
+
+        <!-- Classic Life panel (filled by ClassicSession) -->
+        <section id="classicPanel" class="panel classic-only"></section>
+
+        <section class="panel ecosystem-only" aria-labelledby="statsTitle">
           <h2 id="statsTitle" data-i18n="stats.statistics">Statistics</h2>
           <div class="stats-grid">
             <div class="stat-row">
@@ -1213,7 +1552,7 @@
         </section>
 
         <!-- Genome trait panel (filled by TraitPanel) -->
-        <section id="traitPanel" class="panel"></section>
+        <section id="traitPanel" class="panel ecosystem-only"></section>
 
         <!-- App version (filled at startup) -->
         <div id="appVersion" class="app-version"></div>
@@ -1238,8 +1577,24 @@
 
       <!-- Scrollable settings; header and footer (with Start) stay visible -->
       <div class="config-scroll">
+      <!-- Game mode switch -->
+      <fieldset class="setup-mode game-mode">
+        <legend data-i18n="classic.mode.legend">Game</legend>
+        <div class="setup-mode-options">
+          <label><input type="radio" name="gameMode" value="ecosystem" checked> <span data-i18n="classic.mode.ecosystem">🌳 Ecosystem</span></label>
+          <label><input type="radio" name="gameMode" value="classic"> <span data-i18n="classic.mode.classic">⬛ Classic Life</span></label>
+        </div>
+        <p class="setup-mode-hint classic-only" data-i18n="classic.mode.hint">Classic Life: cells live or die by their neighbours (Conway).</p>
+      </fieldset>
+
+      <!-- Challenge picker (filled by ChallengePicker) -->
+      <div id="challengeMount" class="ecosystem-only"></div>
+
+      <!-- Classic Life settings (filled by ClassicConfigForm) -->
+      <div id="classicConfigMount" class="classic-only"></div>
+
       <!-- Board & Spawn Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection1">
             <span data-i18n="config.boardSetup">📐 Board & Spawn Probabilities</span>
@@ -1302,7 +1657,7 @@
       </section>
 
       <!-- Human Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection2">
             <span data-i18n="config.humanConfig">👨👩 Human Configuration</span>
@@ -1362,7 +1717,7 @@
       </section>
 
       <!-- Wolf Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection3">
             <span data-i18n="config.wolfConfig">🐺 Wolf Configuration</span>
@@ -1410,7 +1765,7 @@
       </section>
 
       <!-- Dog Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection4">
             <span data-i18n="config.dogConfig">🐕 Dog Configuration</span>
@@ -1450,7 +1805,7 @@
       </section>
 
       <!-- Fruit Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection5">
             <span data-i18n="config.fruitConfig">🍎 Fruit Configuration</span>
@@ -1474,7 +1829,7 @@
       </section>
 
       <!-- Mushroom Configuration Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection6">
             <span data-i18n="config.mushroomConfig">🍄 Mushroom Configuration</span>
@@ -1494,7 +1849,7 @@
       </section>
 
       <!-- Population Control Section -->
-      <section class="config-section">
+      <section class="config-section ecosystem-only">
         <h2 class="config-section-title">
           <button type="button" class="config-section-header" aria-expanded="true" aria-controls="configSection7">
             <span data-i18n="config.populationControl">⚖️ Population Control</span>
@@ -1527,12 +1882,19 @@
       <footer class="config-footer">
         <div id="configValidationSummary" class="validation-message validation-error" aria-live="polite" hidden></div>
         <div class="config-controls">
-          <button type="button" id="collapseAllBtn" class="btn-secondary">Collapse</button>
-          <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S" aria-keyshortcuts="Control+S">Save Configuration</button>
-          <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O" aria-keyshortcuts="Control+O">Load Configuration</button>
-          <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
-          <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
-          <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame" title="Start the game (Ctrl+Enter)" aria-keyshortcuts="Control+Enter">Start Game</button>
+          <!-- Small row: section and file actions -->
+          <div class="config-actions-secondary">
+            <button type="button" id="collapseAllBtn" class="btn-secondary ecosystem-only">Collapse</button>
+            <button type="button" id="saveConfigBtn" class="btn-secondary" data-i18n="config.saveConfig" title="Ctrl+S" aria-keyshortcuts="Control+S">Save Configuration</button>
+            <button type="button" id="loadConfigBtn" class="btn-secondary" data-i18n="config.loadConfig" title="Ctrl+O" aria-keyshortcuts="Control+O">Load Configuration</button>
+            <input type="file" id="loadConfigFile" accept=".json,application/json" hidden>
+            <button type="button" id="resetConfigBtn" class="btn-secondary" data-i18n="config.resetDefaults">Reset to Defaults</button>
+          </div>
+          <!-- Primary row: the two ways to start -->
+          <div class="config-actions-primary">
+            <button type="button" id="startPausedBtn" class="btn-secondary" data-i18n="controls.startPaused" data-i18n-title="controls.startPausedTitle" title="Start at round 0, paused">⏸ Start paused</button>
+            <button type="button" id="startGameBtn" class="btn-primary" data-i18n="controls.startGame" title="Start the game (Ctrl+Enter)" aria-keyshortcuts="Control+Enter">Start Game</button>
+          </div>
         </div>
       </footer>
     </div>

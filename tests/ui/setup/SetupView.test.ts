@@ -37,8 +37,11 @@ const at = (x: number, y: number) => ({ clientX: (x + 0.5) * cellSize(), clientY
 const press = (code: string, mods: KeyboardEventInit = {}) =>
   canvas().dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true, ...mods }));
 
-function mouse(type: string, x: number, y: number, target: EventTarget = canvas()) {
-  target.dispatchEvent(new MouseEvent(type, { bubbles: true, button: 0, ...at(x, y) }));
+/** Pointer event at the centre of a cell (plus an optional pixel offset). */
+function pointer(type: string, x: number, y: number, pointerType = 'mouse', target: EventTarget = canvas(), dx = 0) {
+  const { clientX, clientY } = at(x, y);
+  const init = { bubbles: true, cancelable: true, button: 0, pointerId: 1, pointerType, isPrimary: true };
+  target.dispatchEvent(new PointerEvent(type, { ...init, clientX: clientX + dx, clientY }));
 }
 
 function drop(kind: string, x: number, y: number) {
@@ -79,17 +82,17 @@ describe('SetupView', () => {
     tool('dog').click();
     expect(tool('dog').getAttribute('aria-pressed')).toBe('true');
     expect(tool('male').getAttribute('aria-pressed')).toBe('false');
-    mouse('mousedown', 1, 1);
-    mouse('mouseup', 1, 1, window);
+    pointer('pointerdown', 1, 1);
+    pointer('pointerup', 1, 1, 'mouse', window);
     expect(getCell(view.getLayout(), 1, 1)).toBe('dog');
     expect(countKinds(view.getLayout()).dog).toBe(1);
   });
 
   it('mouse drag selects a rectangle that a digit key then fills', () => {
     open();
-    mouse('mousedown', 4, 3);
-    mouse('mousemove', 2, 1, window);
-    mouse('mouseup', 2, 1, window);
+    pointer('pointerdown', 4, 3);
+    pointer('pointermove', 2, 1, 'mouse', window);
+    pointer('pointerup', 2, 1, 'mouse', window);
     // A drag only selects; nothing is placed yet.
     expect(countKinds(view.getLayout()).male).toBe(0);
     const selection = root.querySelector<HTMLElement>('.setup-selection') as HTMLElement;
@@ -100,6 +103,62 @@ describe('SetupView', () => {
     expect(getCell(view.getLayout(), 2, 1)).toBe('fruit');
     expect(getCell(view.getLayout(), 1, 1)).toBeNull();
     expect(tool('fruit').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('touch: a tap places the chosen item', () => {
+    open();
+    tool('wolf').click();
+    pointer('pointerdown', 2, 2, 'touch');
+    pointer('pointerup', 2, 2, 'touch');
+    expect(getCell(view.getLayout(), 2, 2)).toBe('wolf');
+    expect(countKinds(view.getLayout()).wolf).toBe(1);
+  });
+
+  it('touch: a small finger wobble across a cell edge is still a tap', () => {
+    open();
+    // Starts 1 px left of the edge between cells 1 and 2, ends 2 px right of it.
+    const half = cellSize() / 2;
+    pointer('pointerdown', 1, 1, 'touch', canvas(), half - 1);
+    pointer('pointermove', 2, 1, 'touch', canvas(), -half + 2);
+    pointer('pointerup', 2, 1, 'touch', canvas(), -half + 2);
+    expect(countKinds(view.getLayout()).male).toBe(1);
+    expect(getCell(view.getLayout(), 1, 1)).toBe('male');
+  });
+
+  it('touch: dragging selects an area that tapping a palette item fills', () => {
+    open();
+    pointer('pointerdown', 0, 0, 'touch');
+    pointer('pointermove', 1, 1, 'touch');
+    pointer('pointermove', 2, 1, 'touch');
+    pointer('pointerup', 2, 1, 'touch');
+    expect(countKinds(view.getLayout()).male).toBe(0);
+    const selection = root.querySelector<HTMLElement>('.setup-selection') as HTMLElement;
+    expect(selection.hidden).toBe(false);
+    expect(selection.style.width).toBe(`${3 * cellSize()}px`);
+    expect(selection.style.height).toBe(`${2 * cellSize()}px`);
+    tool('mushroom').click();
+    expect(countKinds(view.getLayout()).mushroom).toBe(6);
+    expect(tool('mushroom').getAttribute('aria-pressed')).toBe('true');
+    // A tap clears the selection; then a palette tap only picks the item.
+    pointer('pointerdown', 5, 3, 'touch');
+    pointer('pointerup', 5, 3, 'touch');
+    expect(selection.hidden).toBe(true);
+    tool('dog').click();
+    expect(countKinds(view.getLayout()).dog).toBe(0);
+  });
+
+  it('a cancelled pointer (the browser took over the gesture) places nothing', () => {
+    open();
+    pointer('pointerdown', 3, 3, 'touch');
+    pointer('pointercancel', 3, 3, 'touch');
+    pointer('pointerup', 3, 3, 'touch');
+    expect(countKinds(view.getLayout()).male).toBe(0);
+  });
+
+  it('marks the keyboard help so touch screens can hide it, and mentions tapping', () => {
+    open();
+    expect(root.querySelector('.setup-help-keys')?.textContent).toContain('Arrows');
+    expect(root.querySelector('.setup-help-pointer')?.textContent).toMatch(/tap/i);
   });
 
   it('keyboard: Shift+arrows select, Delete erases, live region announces', () => {
@@ -168,5 +227,34 @@ describe('SetupView', () => {
     expect(tool('wolf').querySelector('.setup-tool-name')?.textContent).toBe('Wilk');
     expect(button('setup-start').textContent).toBe('Rozpocznij grę');
     expect(canvas().getAttribute('aria-label')).toBe('Plansza do ustawiania, 6 na 4 pól');
+  });
+
+  describe('disabledKinds (challenge constraints)', () => {
+    const openWithout = (initial?: BoardLayout) =>
+      view.open({ width: 6, height: 4, config: DEFAULT_CONFIG, initial, disabledKinds: ['dog'] });
+
+    it('hides the forbidden item and strips it from the initial layout', () => {
+      const initial = setCell(setCell(createEmptyLayout(6, 4), 0, 0, 'dog'), 1, 0, 'male');
+      openWithout(initial);
+      expect(tool('dog').hidden).toBe(true);
+      expect(tool('wolf').hidden).toBe(false);
+      expect(countKinds(view.getLayout()).dog).toBe(0);
+      expect(getCell(view.getLayout(), 1, 0)).toBe('male');
+    });
+
+    it('never places a forbidden item, by keyboard or by pointer', () => {
+      openWithout();
+      tool('dog').click(); // hidden, but still reachable programmatically
+      pointer('pointerdown', 2, 2);
+      pointer('pointerup', 2, 2, 'mouse', window);
+      press('Digit3'); // 3 = dog
+      expect(countKinds(view.getLayout()).dog).toBe(0);
+    });
+
+    it('re-opening without constraints shows the item again', () => {
+      openWithout();
+      open();
+      expect(tool('dog').hidden).toBe(false);
+    });
   });
 });

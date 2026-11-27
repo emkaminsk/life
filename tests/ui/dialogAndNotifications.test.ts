@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createDialog } from '../../src/ui/dialog';
-import { showNotification } from '../../src/ui/notifications';
-import { isLargeBoard, runWithProgress } from '../../src/ui/initProgress';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { debounce } from '../../src/ui/debounce';
+import { createDialog } from '../../src/ui/dialog';
+import { isLargeBoard, runWithProgress } from '../../src/ui/initProgress';
+import { showNotification } from '../../src/ui/notifications';
 
 describe('createDialog', () => {
   beforeEach(() => {
@@ -122,6 +122,25 @@ describe('createDialog', () => {
     dialog.close();
     expect(document.activeElement).not.toBe(opener);
   });
+
+  it('destroy() and an aborted signal remove the listeners', () => {
+    const overlay = document.getElementById('overlay')!;
+    const close = document.getElementById('close')!;
+    const dialog = createDialog(overlay, { closeButton: close });
+    dialog.open();
+    dialog.destroy();
+    close.click();
+    overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(dialog.isOpen()).toBe(true);
+
+    dialog.close();
+    const owner = new AbortController();
+    const other = createDialog(overlay, { closeButton: close, signal: owner.signal });
+    other.open();
+    owner.abort();
+    close.click();
+    expect(other.isOpen()).toBe(true);
+  });
 });
 
 describe('showNotification', () => {
@@ -231,6 +250,21 @@ describe('debounce', () => {
     vi.advanceTimersByTime(1);
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledWith(3);
+    vi.useRealTimers();
+  });
+
+  it('cancel() drops the pending call', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const d = debounce(fn, 100);
+    d(1);
+    d.cancel();
+    vi.advanceTimersByTime(500);
+    expect(fn).not.toHaveBeenCalled();
+    d.cancel(); // no-op when nothing is pending
+    d(2);
+    vi.advanceTimersByTime(100);
+    expect(fn).toHaveBeenCalledWith(2);
     vi.useRealTimers();
   });
 });

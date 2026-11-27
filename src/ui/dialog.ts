@@ -8,6 +8,8 @@ export interface DialogController {
   open(): void;
   close(): void;
   isOpen(): boolean;
+  /** Remove every listener this controller registered. */
+  destroy(): void;
 }
 
 export interface DialogOptions {
@@ -18,6 +20,8 @@ export interface DialogOptions {
   closeOnEscape?: boolean;
   /** Called after every close, whatever triggered it (button, backdrop, Escape, close()). */
   onClose?: () => void;
+  /** Aborting this signal removes the listeners (same as destroy()). */
+  signal?: AbortSignal;
 }
 
 const FOCUSABLE =
@@ -29,6 +33,9 @@ function canTakeFocus(el: HTMLElement | null): el is HTMLElement {
 
 export function createDialog(overlay: HTMLElement, options: DialogOptions = {}): DialogController {
   let returnFocusTo: HTMLElement | null = null;
+  const listeners = new AbortController();
+  options.signal?.addEventListener('abort', () => listeners.abort(), { once: true });
+  const opts = { signal: listeners.signal };
 
   const isOpen = () => overlay.classList.contains('active');
 
@@ -50,40 +57,48 @@ export function createDialog(overlay: HTMLElement, options: DialogOptions = {}):
     (options.initialFocus ?? options.closeButton ?? overlay.querySelector<HTMLElement>(FOCUSABLE))?.focus();
   };
 
-  options.closeButton?.addEventListener('click', close);
+  options.closeButton?.addEventListener('click', close, opts);
 
   // Clicking the backdrop (outside the content) closes the dialog (PRD 3.11.7).
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
+  overlay.addEventListener(
+    'click',
+    (e) => {
+      if (e.target === overlay) close();
+    },
+    opts,
+  );
 
-  overlay.addEventListener('keydown', (e) => {
-    if (!isOpen()) return;
-    if (e.key === 'Escape' && options.closeOnEscape) {
-      e.preventDefault();
-      e.stopPropagation();
-      close();
-      return;
-    }
-    if (e.key !== 'Tab') return;
-    // Focus trap: keep Tab / Shift+Tab inside the dialog while it is open.
-    const focusables = Array.from(overlay.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-      (el) => el.offsetParent !== null || el === document.activeElement,
-    );
-    if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    const active = document.activeElement as HTMLElement | null;
-    // Focus on a non-tabbable element (e.g. a heading focused on open) wraps like an edge.
-    const onTabbable = !!active && focusables.includes(active);
-    if (e.shiftKey && (active === first || !onTabbable)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && (active === last || !onTabbable)) {
-      e.preventDefault();
-      first.focus();
-    }
-  });
+  overlay.addEventListener(
+    'keydown',
+    (e) => {
+      if (!isOpen()) return;
+      if (e.key === 'Escape' && options.closeOnEscape) {
+        e.preventDefault();
+        e.stopPropagation();
+        close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      // Focus trap: keep Tab / Shift+Tab inside the dialog while it is open.
+      const focusables = Array.from(overlay.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement,
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      // Focus on a non-tabbable element (e.g. a heading focused on open) wraps like an edge.
+      const onTabbable = !!active && focusables.includes(active);
+      if (e.shiftKey && (active === first || !onTabbable)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !onTabbable)) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    opts,
+  );
 
-  return { open, close, isOpen };
+  return { open, close, isOpen, destroy: () => listeners.abort() };
 }
