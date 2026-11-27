@@ -210,6 +210,13 @@ system.execute(board, createConfig({ wolf: { perceptionRange: 1 } }))
 ```
 Control randomness with `Random.seed(n)` or `vi.spyOn(Math, 'random')` (Random delegates to Math.random by default; mocks are restored after each test). Phase order is asserted in `tests/core/Game.test.ts`.
 
+### Multi-Agent Workflow
+Reusable agents live in `.claude/agents/`. The flow that worked (see `tasks/archive/` for examples):
+1. **Review/plan in parallel**: `code-reviewer` (last merged work + gates), `ui-auditor` (Playwright, phone to desktop), `feature-architect` (contracts + disjoint workstream split). Record the user's decisions and the plan in `tasks/todo.md` and commit it, so worktrees can see it.
+2. **Foundation first**: one `workstream-implementer` writes the shared contracts, mounts and stubs, and owns the hot files (`app.ts`, `index.html`, `ConfigPanel.ts`, i18n wiring).
+3. **Features in parallel**: `workstream-implementer` / `frontend-implementer` with `isolation: "worktree"`, disjoint file ownership, no push/merge.
+4. **Integrate in the main session**: merge each branch with `--no-ff`, run all gates after each merge, remove worktrees and branches, wire the leftovers, update the docs, run a Playwright smoke test, fill in the plan's Review section.
+
 ## Important Technical Constraints
 
 ### TypeScript Configuration
